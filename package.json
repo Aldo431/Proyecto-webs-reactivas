@@ -1,0 +1,10 @@
+{
+  "name": "tiendadcc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix apps/frontend/client",
+    "build": "npm run build --prefix apps/frontend/client",
+    "check": "npm run check --prefix apps/frontend/client"
+  }
+}
