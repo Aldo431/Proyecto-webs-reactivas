@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Product } from "./productParse.ts";
-import { getProductById } from "./productLookup.ts";
+import { getFeaturedProducts, getProductById } from "./productLookup.ts";
 
 const catalog: Product[] = [
   {
@@ -35,5 +35,19 @@ describe("getProductById", () => {
 
   it("compares ids case-sensitively", () => {
     expect(getProductById(catalog, "Taza-DCC")).toBeUndefined();
+  });
+});
+
+describe("getFeaturedProducts", () => {
+  it("returns the first N products", () => {
+    expect(getFeaturedProducts(catalog, 1)).toEqual([catalog[0]]);
+  });
+
+  it("returns all products when count exceeds the catalog", () => {
+    expect(getFeaturedProducts(catalog, 10)).toEqual(catalog);
+  });
+
+  it("returns an empty array for a zero count", () => {
+    expect(getFeaturedProducts(catalog, 0)).toEqual([]);
   });
 });

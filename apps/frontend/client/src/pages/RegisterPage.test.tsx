@@ -1,10 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { RegisterPage } from "./RegisterPage.tsx";
 
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <RegisterPage />
+    </MemoryRouter>,
+  );
+}
+
 describe("RegisterPage", () => {
   it("shows the four required fields", () => {
-    render(<RegisterPage />);
+    renderPage();
     expect(screen.getByLabelText("Nombre")).toBeDefined();
     expect(screen.getByLabelText("Correo electrónico")).toBeDefined();
     expect(screen.getByLabelText("Contraseña")).toBeDefined();
@@ -12,7 +21,7 @@ describe("RegisterPage", () => {
   });
 
   it("does not validate, submit or navigate on submit", () => {
-    const { container } = render(<RegisterPage />);
+    const { container } = renderPage();
     const form = container.querySelector("form");
     if (!form) throw new Error("form not found");
     fireEvent.change(screen.getByLabelText("Nombre"), {
