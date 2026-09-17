@@ -1,30 +1,39 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, expect, describe, it } from "vitest";
-import { App } from "./App.tsx";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it } from "vitest";
+import { AppRoutes } from "./App.tsx";
 
-beforeEach(() => {
-  window.location.hash = "#/";
-});
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
+}
 
 describe("App", () => {
   it("renders the home page by default", () => {
-    render(<App />);
+    renderAt("/");
     expect(screen.getByRole("heading", { name: "TiendaDCC" })).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Registrarse ahora" }),
     ).toBeDefined();
     expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Ver Catálogo" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Ver más productos" }),
+    ).toBeDefined();
   });
 
   it("shows the example products on the home page", () => {
-    render(<App />);
+    renderAt("/");
     expect(screen.getByText("Taza DCC")).toBeDefined();
     expect(screen.getByText("Polera DCC")).toBeDefined();
     expect(screen.getByText("Sticker DCC")).toBeDefined();
   });
 
   it("navigates to register without reloading and back via Volver", async () => {
-    render(<App />);
+    renderAt("/");
     fireEvent.click(screen.getByRole("button", { name: "Registrarse ahora" }));
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Volver" }));
@@ -34,7 +43,7 @@ describe("App", () => {
   });
 
   it("navigates to login and back via the clickable logo", async () => {
-    render(<App />);
+    renderAt("/");
     fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
     expect(
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
@@ -45,35 +54,28 @@ describe("App", () => {
     ).toBeDefined();
   });
 
-  it("renders the register page on a direct URL hash", async () => {
-    window.location.hash = "#/registro";
-    render(<App />);
+  it("renders the register page on a direct entry", async () => {
+    renderAt("/registro");
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
   });
 
-  it("keeps the current page when the hash does not change", async () => {
-    window.location.hash = "#/iniciar-sesion";
-    render(<App />);
+  it("renders the home page on an unknown path", async () => {
+    renderAt("/ruta-rara");
     expect(
-      await screen.findByRole("heading", { name: "Iniciar sesión" }),
-    ).toBeDefined();
-    window.location.hash = "#/iniciar-sesion";
-    expect(
-      screen.getByRole("heading", { name: "Iniciar sesión" }),
+      await screen.findByRole("heading", { name: "TiendaDCC" }),
     ).toBeDefined();
   });
 
   it("navigates to the product detail when a card link is activated", async () => {
-    render(<App />);
+    renderAt("/");
     fireEvent.click(screen.getByRole("link", { name: /Taza DCC/ }));
     expect(
       await screen.findByRole("heading", { name: "Taza DCC" }),
     ).toBeDefined();
   });
 
-  it("renders the product detail on a direct URL hash", async () => {
-    window.location.hash = "#/producto/polera-dcc";
-    render(<App />);
+  it("renders the product detail on a direct entry", async () => {
+    renderAt("/producto/polera-dcc");
     expect(
       await screen.findByRole("heading", { name: "Polera DCC" }),
     ).toBeDefined();
@@ -83,8 +85,7 @@ describe("App", () => {
   });
 
   it("renders the not-found state for an unknown product id", async () => {
-    window.location.hash = "#/producto/inexistente";
-    render(<App />);
+    renderAt("/producto/inexistente");
     expect(
       await screen.findByRole("heading", { name: "Producto no encontrado" }),
     ).toBeDefined();
@@ -94,10 +95,42 @@ describe("App", () => {
   });
 
   it("returns home from the detail via Volver al inicio", async () => {
-    window.location.hash = "#/producto/taza-dcc";
-    render(<App />);
+    renderAt("/producto/taza-dcc");
     fireEvent.click(
       await screen.findByRole("button", { name: "Volver al inicio" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "TiendaDCC" }),
+    ).toBeDefined();
+  });
+
+  it("renders the catalog with filters on a direct entry", async () => {
+    renderAt("/catalogo");
+    expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Todas" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Tazas" })).toBeDefined();
+    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(screen.getByText("Polera DCC")).toBeDefined();
+  });
+
+  it("navigates to the catalog via Ver Catálogo and filters by category", async () => {
+    renderAt("/");
+    fireEvent.click(screen.getByRole("button", { name: "Ver Catálogo" }));
+    expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
+    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(screen.queryByText("Polera DCC")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Tazas" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("navigates to the catalog via Ver más productos and back home", async () => {
+    renderAt("/");
+    fireEvent.click(screen.getByRole("button", { name: "Ver más productos" }));
+    expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Volver al inicio" }),
     );
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),

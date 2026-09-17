@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import type { Product } from "../logic/productParse.ts";
 import { ProductGrid } from "./ProductGrid.tsx";
@@ -11,9 +12,17 @@ const sampleProduct: Product = {
   description: "De prueba",
 };
 
+function renderGrid(products: Product[]) {
+  return render(
+    <MemoryRouter>
+      <ProductGrid products={products} />
+    </MemoryRouter>,
+  );
+}
+
 describe("ProductGrid", () => {
   it("renders a single product", () => {
-    render(<ProductGrid products={[sampleProduct]} />);
+    renderGrid([sampleProduct]);
     expect(screen.getByText("Polera")).toBeDefined();
   });
 
@@ -23,18 +32,18 @@ describe("ProductGrid", () => {
       id: `p-${index}`,
       name: `Producto ${index}`,
     }));
-    render(<ProductGrid products={manyProducts} />);
+    renderGrid(manyProducts);
     expect(screen.getAllByRole("link")).toHaveLength(10);
   });
 
   it("renders zero products without breaking", () => {
-    render(<ProductGrid products={[]} />);
+    renderGrid([]);
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
   it("links each card to its product detail page", () => {
-    render(<ProductGrid products={[sampleProduct]} />);
+    renderGrid([sampleProduct]);
     const cardLink = screen.getByRole("link", { name: /Polera/ });
-    expect(cardLink.getAttribute("href")).toBe("#/producto/cafe");
+    expect(cardLink.getAttribute("href")).toBe("/producto/cafe");
   });
 });

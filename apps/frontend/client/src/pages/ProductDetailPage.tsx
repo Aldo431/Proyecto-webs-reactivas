@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Header } from "../components/Header.tsx";
 import productsJson from "../data/products.json";
 import { getProductById } from "../logic/productLookup.ts";
@@ -6,11 +7,12 @@ import { parseProducts } from "../logic/productParse.ts";
 
 const productCatalog = parseProducts(productsJson);
 
-interface ProductDetailPageProps {
-  productId: string;
-}
+export function ProductDetailPage() {
+  // Reads the :id segment of the URL and looks the product up in the
+  // catalog; an unknown id renders the not-found state below.
+  const { id } = useParams();
+  const productId = id ?? "";
 
-export function ProductDetailPage({ productId }: ProductDetailPageProps) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [productId]);
