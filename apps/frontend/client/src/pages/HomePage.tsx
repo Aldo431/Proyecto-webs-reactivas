@@ -11,7 +11,7 @@ export function HomePage() {
     <div className="min-h-screen bg-slate-50">
       <Header showBackButton={false} />
       <main>
-        <section className="bg-gradient-to-br from-brand-800 to-brand-950 py-20 text-center">
+        <section className="bg-linear-to-br from-brand-800 to-brand-950 py-20 text-center">
           <div className="mx-auto max-w-3xl px-4">
             <h1 className="text-5xl font-extrabold tracking-tight text-white">
               TiendaDCC

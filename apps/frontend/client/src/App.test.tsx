@@ -62,4 +62,45 @@ describe("App", () => {
       screen.getByRole("heading", { name: "Iniciar sesión" }),
     ).toBeDefined();
   });
+
+  it("navigates to the product detail when a card link is activated", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("link", { name: /Taza DCC/ }));
+    expect(
+      await screen.findByRole("heading", { name: "Taza DCC" }),
+    ).toBeDefined();
+  });
+
+  it("renders the product detail on a direct URL hash", async () => {
+    window.location.hash = "#/producto/polera-dcc";
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: "Polera DCC" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Volver al inicio" }),
+    ).toBeDefined();
+  });
+
+  it("renders the not-found state for an unknown product id", async () => {
+    window.location.hash = "#/producto/inexistente";
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: "Producto no encontrado" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Volver al inicio" }),
+    ).toBeDefined();
+  });
+
+  it("returns home from the detail via Volver al inicio", async () => {
+    window.location.hash = "#/producto/taza-dcc";
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Volver al inicio" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "TiendaDCC" }),
+    ).toBeDefined();
+  });
 });

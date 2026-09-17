@@ -1,6 +1,6 @@
 # Plan 002 — Página individual de producto (detalle por clic en ProductCard)
 
-Plan de implementación para la spec `002-product-detail`. Respeta la constitución (§1–§6), AGENTS.md y cubre RF-1 a RF-5. Cada sección indica qué RF atiende. Mejora y reemplaza el borrador previo de este mismo archivo: adopta la estructura oficial (módulos, modelo, decisiones con alternativa, tests, cobertura) y precisa la migración del tipo `Route`, el helper de ruta y el estado de no-encontrado.
+Plan de implementación para la spec `002-product-detail`. Respeta la constitución (§1–§6), AGENTS.md y cubre RF-1 a RF-5. Cada sección indica qué RF atiende. El ruteo es tabular y extensible (ver D2).
 
 ## 1. Estructura de módulos
 *Cubre: RF-1, RF-2, RF-3, RF-4, RF-5.*
@@ -8,14 +8,9 @@ Plan de implementación para la spec `002-product-detail`. Respeta la constituci
 Organización dentro del frontend existente (`apps/frontend/client/`), separando lógica de interfaz (§3). No hay cambios de backend: sigue sin usarse (RNF-2).
 
 - **Lógica pura testeable** — `logic/` *(RF-1, RF-3, RF-5)*
-  - `routeParser`: `parseRoute(hash)` evoluciona de `type Route = "home" | "register" | "login" | "unknown"` (`routeParser.ts:1`) a unión discriminada que porta el id:
-    ```ts
-    type Route =
-      | { name: "home" } | { name: "register" } | { name: "login" }
-      | { name: "product"; productId: string } | { name: "unknown" };
-    ```
-    Reconoce `#/producto/:id` (decodifica el id una vez con `decodeURIComponent`); `#/producto`, `#/producto/` y `#/producto/a/b` devuelven `unknown`. Las rutas 001 se conservan intactas. *(RF-1, RF-5)*
-  - `buildProductRoute(productId)`: helper puro que construye `#/producto/<id>` con `encodeURIComponent`. Vive junto al parser para que Card y tests compartan una sola definición de la ruta. *(RF-1)*
+  - `routeParser`: tabla modular de parsers por ruta. Cada entrada es un `RouteParser = (path: string) => Route | null` (`parseHomeRoute`, `parseRegisterRoute`, `parseLoginRoute`, `parseProductRoute`); `parseRoute(hash)` solo quita el `#` y devuelve el primer resultado no nulo, o `unknown` si ninguno calza. El tipo `Route` es la unión discriminada con `{ name: "product"; productId: string }`. `parseProductRoute` reconoce `/producto/:id` (decodifica el id una vez con `decodeURIComponent`); `/producto`, `/producto/` y `/producto/a/b` devuelven nulo (→ `unknown`). Las rutas 001 se conservan intactas. *(RF-1, RF-5)*
+  - `buildProductRoute(productId)`: helper puro que construye `#/producto/<id>` con `encodeURIComponent`. Vive junto a los parsers para que Card y tests compartan una sola definición de la ruta. *(RF-1)*
+  - Extensión futura: carrito, catálogo y filtros se añaden como nuevas entradas de `routeParsers` con sus propias specs, sin tocar `parseRoute`; en esta fase no existe lógica ni URLs para ellas (ver nota final). *(diseño, sin RF aún)*
   - Nuevo `productLookup`: `getProductById(products, id): Product | undefined` con comparación exacta sensible a mayúsculas. *(RF-2, RF-3)*
   - `productParse`: se reutiliza sin cambios; sigue validando `products.json` con Zod (AGENTS.md). *(RF-2)*
 - **Enrutamiento (hook propio)** — `hooks/` *(RF-1, RF-4, RF-5)*
@@ -74,9 +69,9 @@ Sin cambios respecto a 001. Producto estático empaquetado en el bundle, sin per
 - Justificación: RF-5 exige URL directa y recarga funcionando sin backend (RNF-2); el hash se sirve desde un único `index.html`, igual que `#/registro` en 001. Reutiliza `useHashRouter`/`navigate` (RNF-5, sin recarga) y encaja con §3 (parser puro y testeable). *(RF-1, RF-5)*
 - Alternativa descartada: **React Router**. Estándar de la industria pero dependencia fuera del stack (§1, RNF-6); además sus rutas limpias exigen fallback de servidor en recarga, lo que contradice RNF-2.
 
-**D2 — Migrar `Route` a unión discriminada con `productId`, en vez de parsear el id en el componente.**
-- Justificación: RF-1 y RF-5 necesitan el id tipado en el punto de montaje (`App` decide qué página renderizar). Portar el id en el tipo evita parseos duplicados y errores de sincronía entre parser y vista, y mantiene §3 (la UI solo consume el valor). *(RF-1, RF-5)*
-- Alternativa descartada: **mantener `Route` como string y extraer el id con otro parseo en `ProductDetailPage`**. Duplica la lógica de ruteo en la capa de presentación y permite estados inconsistentes (ruta dice una cosa, la página otra).
+**D2 — Tabla modular de parsers por ruta (`RouteParser`), en vez de una cadena de `if` en `parseRoute`.**
+- Justificación: RF-1 y RF-5 necesitan el id tipado en el punto de montaje (`App` decide qué página renderizar), y las próximas features (carrito, catálogo, filtros) necesitarán rutas nuevas; con la tabla cada ruta vive en su propio `parseXRoute` testeable y `parseRoute` no se edita al añadir una (aditivo en vez de invasivo, §3). La nomenclatura reusa el vocabulario existente (`parse*`) sin introducir `match`/`matcher`. *(RF-1, RF-5)*
+- Alternativa descartada: **seguir extendiendo la cadena de `if` en `parseRoute`**. Cada ruta nueva obligaría a editar la función compartida y a razonar sobre el orden de los `if`; el costo crece con cada feature.
 
 **D3 — `ProductCard` como enlace `<a>` nativo, no `div`/`article` con `onClick`.**
 - Justificación: RF-1 exige activación por clic y por teclado (RNF-4); el enlace nativo da foco, Enter/Espacio, clic medio y "copiar dirección" gratis, con nombre accesible igual al producto. *(RF-1)*
@@ -98,7 +93,8 @@ Sin cambios respecto a 001. Producto estático empaquetado en el bundle, sin per
 *Cubre: todos los RF vía verificación; conforme §4 y criterio de finalización 7.*
 
 - **Lógica pura obligatoria (§4):**
-  - `parseRoute`: conserva casos 001 (`#/`, hash vacío, `#/registro`, `#/iniciar-sesion`, desconocido → `unknown`) y añade `#/producto/taza-dcc` → `{ name: "product", productId: "taza-dcc" }`; `#/producto`, `#/producto/`, `#/producto/a/b` → `unknown`; id codificado (`#/producto/taza%20dcc`) → `productId` decodificado; mayúsculas en el prefijo (`#/PRODUCTO/x`) → `unknown`. *(Verifica RF-1, RF-5)*
+  - `parseRoute`: conserva casos 001 (`#/`, hash vacío, `#/registro`, `#/iniciar-sesion`, desconocido → `unknown`) y añade `#/producto/taza-dcc` → `{ name: "product", productId: "taza-dcc" }`; `#/producto`, `#/producto/`, `#/producto/a/b` → `unknown`; id codificado (`#/producto/taza%20dcc`) → `productId` decodificado; mayúsculas en el prefijo (`#/PRODUCTO/x`) → `unknown`. Estos casos no cambian ante el refactor tabular: prueban que el comportamiento se conserva. *(Verifica RF-1, RF-5)*
+  - Parsers por ruta: `parseProductRoute` resuelve `/producto/taza-dcc` y devuelve nulo fuera de su forma; cada parser estático solo calza su propio path. Esto fija además el contrato de extensión que usarán carrito, catálogo y filtros. *(Verifica RF-1, RF-5)*
   - `buildProductRoute`: `taza-dcc` → `#/producto/taza-dcc`; codifica espacios y caracteres especiales; round-trip con `parseRoute`. *(Verifica RF-1)*
   - `getProductById`: encuentra cada id del catálogo; `undefined` con id inexistente, vacío y con distinta capitalización (`Taza-DCC`). *(Verifica RF-2, RF-3)*
   - `productParse`: sigue validando `products.json` y rechazando entradas malformadas (heredado de 001). *(Verifica RF-2)*
@@ -114,7 +110,7 @@ Sin cambios respecto a 001. Producto estático empaquetado en el bundle, sin per
 
 | Parte del plan | RF |
 |---|---|
-| `parseRoute` + `buildProductRoute` + `useHashRouter` + `App` | RF-1, RF-5 |
+| Tabla `routeParsers` + `parseRoute` + `buildProductRoute` + `useHashRouter` + `App` | RF-1, RF-5 |
 | `ProductCard` como enlace + `ProductGrid` sin cambios | RF-1 |
 | `ProductDetailPage` (detalle) + `parseProducts` + Zod | RF-2 |
 | `getProductById` + estado no-encontrado | RF-3 |
@@ -124,4 +120,4 @@ Sin cambios respecto a 001. Producto estático empaquetado en el bundle, sin per
 
 ---
 
-Nota: las dudas de textos quedaron fijadas en la spec ("Producto no encontrado" + "Volver al inicio"; "Volver a productos" solo ante una futura vista de productos). Pendiente de alinear en `spec.md`: los criterios de RF-2, RF-3 y RF-4 aún dicen "Volver" en lugar de "Volver al inicio". El plan no introduce dependencias nuevas.
+Nota: las dudas de textos quedaron fijadas en la spec ("Producto no encontrado" + "Volver al inicio"; "Volver a productos" solo ante una futura vista de productos). Pendiente de alinear en `spec.md`: los criterios de RF-2, RF-3 y RF-4 aún dicen "Volver" en lugar de "Volver al inicio". Además, el ruteo se refactorizó a tabla modular (`RouteParser`) sin cambiar comportamiento —los casos preexistentes de `parseRoute` lo verifican—; carrito, catálogo y filtros se añadirán como nuevas entradas con sus specs, sin lógica ni URLs reservadas en esta fase. El plan no introduce dependencias nuevas.

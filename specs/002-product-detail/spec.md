@@ -1,7 +1,7 @@
 # Spec 002 — Página individual de producto (detalle por clic en ProductCard)
 
 ## Contexto y objetivo
-La spec 001 dejó una tienda **solo frontend** con grilla de productos de ejemplo donde el clic en una tarjeta no navega a ninguna vista (`spec 001`, RF-6, criterio 3) y el detalle de producto quedó explícitamente fuera de alcance. Esta spec agrega la **página individual de producto**: al activar una `ProductCard` el sistema navega a una vista de detalle con la información del producto. Sigue sin haber backend, API ni persistencia: se reutilizan el catálogo estático `products.json`, la validación Zod y el hash routing de 001. El tercer criterio de aceptación del RF-6 de 001 ("el clic no deberá navegar") queda **reemplazado** por esta spec a partir de su aprobación.
+La spec 001 dejó una tienda **solo frontend** con grilla de productos de ejemplo donde el clic en una tarjeta no navega a ninguna vista (`spec 001`, RF-6, criterio 3) y el detalle de producto quedó explícitamente fuera de alcance. Esta spec agrega la **página individual de producto**: al activar una `ProductCard` el sistema navega a una vista de detalle con la información del producto. Sigue sin haber backend, API ni persistencia: se reutilizan el catálogo estático `products.json`, la validación Zod y el hash routing de 001. El tercer criterio de aceptación del RF-6 de 001 ("el clic no deberá navegar") queda **reemplazado** por esta spec a partir de su aprobación. El ruteo por hash se implementa como tabla modular de parsers por ruta (tipo `RouteParser`), de modo que futuras vistas (carrito, catálogo, filtros) se añadan como nuevas entradas con sus propias specs, sin modificar `parseRoute`.
 
 ## Usuarios
 - **Visitante / comprador potencial**: persona que explora la grilla, abre el detalle de un producto para conocerlo mejor y vuelve al inicio para seguir explorando.
@@ -78,6 +78,7 @@ Criterios de aceptación:
 - Autenticación real, sesiones y validación de formularios (sigue vigente 001).
 - SEO/SSR, metadatos dinámicos y analítica.
 - Cambios al formato del JSON de productos (se reutiliza el modelo de 001).
+- Lógica de carrito, catálogo y filtros: el ruteo solo deja el mecanismo de extensión (tabla de `RouteParser`); no existen parsers, páginas ni URLs reservadas para esas rutas hasta que sus specs las definan.
 - Despliegue y entorno de producción.
 
 ## Criterios de finalización
@@ -93,6 +94,8 @@ Esta tarea se considera terminada cuando:
 ## Dudas abiertas
 - [RESUELTO] Ruta del detalle: `#/producto/:id` con el hash routing existente (coherente con RF-8 de 001); p. ej. `#/producto/taza-dcc`.
 - [RESUELTO] Tarjeta como enlace `<a>` nativo (no `div` con `onClick`): accesible por teclado, permite copiar enlace y clic medio.
+- [RESUELTO] Nomenclatura del ruteo modular: se reusa el vocabulario existente (`parseRoute` pública + `parseXRoute` por ruta + tabla `routeParsers` + tipo `RouteParser`); no se introduce `match`/`matcher` por ser jerga nueva que confunde con regex/booleanos.
+- [RESUELTO] Carrito, catálogo y filtros se consideran en el diseño (cada uno será una entrada de la tabla con su propia spec), pero sin lógica ni URLs en esta fase; cuando se implementen, esos apartados de la spec y del plan cambiarán.
 - [RESUELTO] Campos del detalle = los 5 actuales (`id`, `name`, `category`, `image`, `description`); sin precio ni stock en esta fase porque exigirían cambiar el formato del JSON.
 - [RESUELTO] Sin "Añadir al carrito" ni "productos relacionados" en esta fase; pertenecen a futuras specs de carrito y catálogo.
 - [ACLARADO] Texto exacto del no-encontrado: "Producto no encontrado" y etiqueta del regreso del detalle ("Volver al inicio" si proviene del inicio (por ahora, sí), o "Volver a productos" en caso de venir desde productos (en un futuro)).
