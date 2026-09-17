@@ -1,4 +1,5 @@
 import type { Product } from "../logic/productParse.ts";
+import { buildProductRoute } from "../logic/routeParser.ts";
 
 interface ProductCardProps {
   product: Product;
@@ -6,7 +7,10 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+    <a
+      href={buildProductRoute(product.id)}
+      className="block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+    >
       <img
         src={product.image}
         alt={product.name}
@@ -21,6 +25,6 @@ export function ProductCard({ product }: ProductCardProps) {
         </h3>
         <p className="mt-1 text-sm text-slate-600">{product.description}</p>
       </div>
-    </article>
+    </a>
   );
 }

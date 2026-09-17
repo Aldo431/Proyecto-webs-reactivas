@@ -24,11 +24,17 @@ describe("ProductGrid", () => {
       name: `Producto ${index}`,
     }));
     render(<ProductGrid products={manyProducts} />);
-    expect(screen.getAllByRole("article")).toHaveLength(10);
+    expect(screen.getAllByRole("link")).toHaveLength(10);
   });
 
   it("renders zero products without breaking", () => {
     render(<ProductGrid products={[]} />);
-    expect(screen.queryAllByRole("article")).toHaveLength(0);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("links each card to its product detail page", () => {
+    render(<ProductGrid products={[sampleProduct]} />);
+    const cardLink = screen.getByRole("link", { name: /Polera/ });
+    expect(cardLink.getAttribute("href")).toBe("#/producto/cafe");
   });
 });
