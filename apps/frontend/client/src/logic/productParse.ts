@@ -4,6 +4,7 @@ export const productSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   category: z.string().min(1),
+  price: z.number().int().positive(),
   image: z.string().min(1),
   description: z.string().min(1),
   // A product is featured on the home page when this is true (Home RF-8).

@@ -72,4 +72,54 @@ describe("parseProducts", () => {
     };
     expect(() => parseProducts(bad)).toThrow();
   });
+
+  it("rejects a product without price", () => {
+    const bad = {
+      products: [
+        {
+          id: "1",
+          name: "N",
+          category: "Y",
+          image: "/i.png",
+          description: "d",
+          featured: true,
+        },
+      ],
+    };
+    expect(() => parseProducts(bad)).toThrow();
+  });
+
+  it("rejects a product with negative price", () => {
+    const bad = {
+      products: [
+        {
+          id: "1",
+          name: "N",
+          category: "Y",
+          price: -100,
+          image: "/i.png",
+          description: "d",
+          featured: true,
+        },
+      ],
+    };
+    expect(() => parseProducts(bad)).toThrow();
+  });
+
+  it("rejects a product with decimal price", () => {
+    const bad = {
+      products: [
+        {
+          id: "1",
+          name: "N",
+          category: "Y",
+          price: 10.5,
+          image: "/i.png",
+          description: "d",
+          featured: true,
+        },
+      ],
+    };
+    expect(() => parseProducts(bad)).toThrow();
+  });
 });

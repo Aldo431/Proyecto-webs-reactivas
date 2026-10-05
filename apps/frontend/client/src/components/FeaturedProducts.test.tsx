@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeProduct } from "../logic/productFixtures.ts";
 import type { FeaturedProductsSource } from "../logic/productRepository.ts";
+import { CartProvider } from "../context/CartContext.tsx";
 import { FeaturedProducts } from "./FeaturedProducts.tsx";
 
 interface BlurFadeCall {
@@ -57,7 +58,9 @@ function expectSeeMoreLink(): void {
 function renderSection(source: FeaturedProductsSource) {
   return render(
     <MemoryRouter>
-      <FeaturedProducts source={source} />
+      <CartProvider>
+        <FeaturedProducts source={source} />
+      </CartProvider>
     </MemoryRouter>,
   );
 }

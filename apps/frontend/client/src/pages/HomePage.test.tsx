@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { setPrefersReducedMotion } from "../testMedia.ts";
+import { CartProvider } from "../context/CartContext.tsx";
 import { HomePage } from "./HomePage.tsx";
 
 // Shows the current location so tests can check that nothing navigated.
@@ -19,8 +20,10 @@ function LocationProbe() {
 function renderHome() {
   return render(
     <MemoryRouter>
-      <HomePage />
-      <LocationProbe />
+      <CartProvider>
+        <HomePage />
+        <LocationProbe />
+      </CartProvider>
     </MemoryRouter>,
   );
 }
@@ -151,7 +154,7 @@ describe("HomePage", () => {
     it("keeps the top bar próximamente accesses inert", async () => {
       renderHome();
       const banner = screen.getByRole("banner");
-      for (const name of ["Favoritos", "Carrito", "Perfil"]) {
+      for (const name of ["Favoritos", "Perfil"]) {
         expect(
           within(banner)
             .getByRole("button", { name: `${name} (próximamente)` })
@@ -160,14 +163,13 @@ describe("HomePage", () => {
       }
 
       const before = currentLocation();
-      const cart = within(banner).getByRole("button", {
-        name: "Carrito (próximamente)",
-      });
+      const cart = within(banner).getByRole("button", { name: "Carrito" });
+      expect(cart.getAttribute("aria-disabled")).toBeNull();
+      expect(cart.getAttribute("aria-expanded")).toBe("false");
       cart.focus();
       expect(document.activeElement).toBe(cart);
       fireEvent.click(cart);
-      fireEvent.keyDown(cart, { key: "Enter" });
-      fireEvent.keyDown(cart, { key: " " });
+      expect(cart.getAttribute("aria-expanded")).toBe("true");
       expect(currentLocation()).toBe(before);
       await screen.findByText("Taza DCC");
     });

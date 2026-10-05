@@ -1,5 +1,7 @@
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { HashRouter, Route, Routes } from "react-router-dom";
+import { CartProvider } from "./context/CartContext.tsx";
+import { CartDrawer } from "./components/CartDrawer.tsx";
 import { CatalogPage } from "./pages/CatalogPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
@@ -33,7 +35,10 @@ export function App() {
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation} strict>
         <HashRouter>
-          <AppRoutes />
+          <CartProvider>
+            <AppRoutes />
+            <CartDrawer />
+          </CartProvider>
         </HashRouter>
       </LazyMotion>
     </MotionConfig>

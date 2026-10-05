@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Header } from "../components/Header.tsx";
+import { Button } from "../components/ui/button.tsx";
+import { useCart } from "../context/CartContext.tsx";
 import productsJson from "../data/products.json";
+import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { getProductById } from "../logic/productLookup.ts";
 import { parseProducts } from "../logic/productParse.ts";
 
@@ -12,6 +15,7 @@ export function ProductDetailPage() {
   // catalog; an unknown id renders the not-found state below.
   const { id } = useParams();
   const productId = id ?? "";
+  const { addItem, openCart } = useCart();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -52,7 +56,26 @@ export function ProductDetailPage() {
             <h1 className="mt-2 text-3xl font-bold text-brand-900">
               {product.name}
             </h1>
+            <p className="mt-2 font-mono text-xl font-bold text-card-foreground">
+              {formatPriceCLP(product.price)}
+            </p>
             <p className="mt-4 text-slate-600">{product.description}</p>
+            <Button
+              variant="default"
+              type="button"
+              className="mt-6"
+              onClick={() => {
+                addItem({
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  image: product.image,
+                });
+                openCart();
+              }}
+            >
+              Agregar al carrito
+            </Button>
           </div>
         </div>
       </main>

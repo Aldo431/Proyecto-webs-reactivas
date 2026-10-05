@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { CatalogPage } from "./CatalogPage.tsx";
+import { CartProvider } from "../context/CartContext.tsx";
 
 // Exposes the current location and a "back" action, so the tests can check
 // the URL and the history without a real browser.
@@ -33,11 +34,13 @@ function renderCatalog(initialEntries: string[]) {
       initialEntries={initialEntries}
       initialIndex={initialEntries.length - 1}
     >
-      <Routes>
-        <Route path="/" element={<p>Inicio (sonda)</p>} />
-        <Route path="/catalogo" element={<CatalogPage />} />
-      </Routes>
-      <LocationProbe />
+      <CartProvider>
+        <Routes>
+          <Route path="/" element={<p>Inicio (sonda)</p>} />
+          <Route path="/catalogo" element={<CatalogPage />} />
+        </Routes>
+        <LocationProbe />
+      </CartProvider>
     </MemoryRouter>,
   );
 }

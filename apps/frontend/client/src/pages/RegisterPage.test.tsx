@@ -1,12 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import { CartProvider } from "../context/CartContext.tsx";
 import { RegisterPage } from "./RegisterPage.tsx";
 
 function renderPage() {
   return render(
     <MemoryRouter>
-      <RegisterPage />
+      <CartProvider>
+        <RegisterPage />
+      </CartProvider>
     </MemoryRouter>,
   );
 }

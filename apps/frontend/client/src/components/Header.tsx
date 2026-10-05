@@ -1,7 +1,10 @@
 import { Heart, ShoppingCart, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { ComingSoonItem } from "./ComingSoonItem.tsx";
+import { useCart } from "../context/CartContext.tsx";
+import { getCartBadgeText } from "../logic/cartCalculations.ts";
 import { Button } from "./ui/button.tsx";
+import { Badge } from "./ui/badge.tsx";
 
 interface HeaderProps {
   showBackButton: boolean;
@@ -13,6 +16,8 @@ interface HeaderProps {
 // RNF-3). The ">_" prompt is decorative.
 export function Header({ showBackButton, backLabel = "Volver" }: HeaderProps) {
   const navigate = useNavigate();
+  const { totalCount, isOpen, openCart } = useCart();
+  const badgeText = getCartBadgeText(totalCount);
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
@@ -33,7 +38,27 @@ export function Header({ showBackButton, backLabel = "Volver" }: HeaderProps) {
             <Link to="/catalogo">Catálogo</Link>
           </Button>
           <ComingSoonItem label="Favoritos" icon={Heart} compactOnMobile />
-          <ComingSoonItem label="Carrito" icon={ShoppingCart} compactOnMobile />
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            className="max-sm:px-2"
+            aria-expanded={isOpen}
+            aria-label={
+              totalCount > 0
+                ? `Carrito, ${totalCount} artículos`
+                : "Carrito"
+            }
+            onClick={openCart}
+          >
+            <ShoppingCart aria-hidden="true" />
+            <span className="hidden sm:inline">Carrito</span>
+            {badgeText !== null && (
+              <Badge variant="default" className="font-mono">
+                {badgeText}
+              </Badge>
+            )}
+          </Button>
           <ComingSoonItem label="Perfil" icon={User} compactOnMobile />
           {showBackButton && (
             <Button variant="outline" size="sm" onClick={() => navigate("/")}>

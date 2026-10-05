@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { makeProduct } from "../logic/productFixtures.ts";
 import type { Product } from "../logic/productParse.ts";
+import { CartProvider } from "../context/CartContext.tsx";
 import { ProductGrid } from "./ProductGrid.tsx";
 
 const sampleProduct: Product = makeProduct({
@@ -16,7 +17,9 @@ const sampleProduct: Product = makeProduct({
 function renderGrid(products: Product[]) {
   return render(
     <MemoryRouter>
-      <ProductGrid products={products} />
+      <CartProvider>
+        <ProductGrid products={products} />
+      </CartProvider>
     </MemoryRouter>,
   );
 }

@@ -7,6 +7,7 @@ export function makeProduct(overrides: Partial<Product> = {}): Product {
     id: "producto-de-prueba",
     name: "Producto de prueba",
     category: "Pruebas",
+    price: 6000,
     image: "/images/producto-de-prueba.png",
     description: "Producto de prueba.",
     featured: true,
