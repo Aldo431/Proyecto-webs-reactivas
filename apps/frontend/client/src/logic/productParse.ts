@@ -6,6 +6,8 @@ export const productSchema = z.object({
   category: z.string().min(1),
   image: z.string().min(1),
   description: z.string().min(1),
+  // A product is featured on the home page when this is true (Home RF-8).
+  featured: z.boolean(),
 });
 
 export const productListSchema = z.object({

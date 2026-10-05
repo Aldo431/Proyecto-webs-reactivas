@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CategoryFilter } from "../components/CategoryFilter.tsx";
 import { Header } from "../components/Header.tsx";
 import { ProductGrid } from "../components/ProductGrid.tsx";
 import productsJson from "../data/products.json";
+import {
+  CATEGORY_PARAM,
+  parseCategoryParam,
+  toCategorySlug,
+} from "../logic/categoryParam.ts";
 import {
   filterProductsByCategory,
   getCategories,
@@ -13,7 +18,31 @@ const productCatalog = parseProducts(productsJson);
 const categories = getCategories(productCatalog);
 
 export function CatalogPage() {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  // The URL is the only source of truth for the active filter (plan D9):
+  // an invalid or unknown `categoria` falls back to "Todas" (null).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = parseCategoryParam(
+    searchParams.get(CATEGORY_PARAM),
+    categories,
+  );
+
+  // replace: true keeps filter changes out of the history, so "back" leaves
+  // the catalog instead of stepping through previous filters (Home RF-6).
+  function selectCategory(category: string | null): void {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (category === null) {
+          next.delete(CATEGORY_PARAM);
+        } else {
+          next.set(CATEGORY_PARAM, toCategorySlug(category));
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
   const visibleProducts = filterProductsByCategory(
     productCatalog,
     activeCategory,
@@ -28,7 +57,7 @@ export function CatalogPage() {
           <CategoryFilter
             categories={categories}
             activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
+            onSelectCategory={selectCategory}
           />
         </div>
         {visibleProducts.length === 0 ? (

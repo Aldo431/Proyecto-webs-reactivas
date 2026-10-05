@@ -1,3 +1,4 @@
+import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { CatalogPage } from "./pages/CatalogPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
@@ -21,10 +22,20 @@ export function AppRoutes() {
   );
 }
 
+// MotionConfig with reducedMotion="user" makes every Motion animation honor
+// prefers-reduced-motion (transforms and layout are skipped). Effects that
+// Motion does not drive (timers, blur) add their own guards.
+// LazyMotion loads only the `domAnimation` features (animations, variants,
+// exit, in-view), leaving out layout and drag to keep the bundle within
+// budget (plan R6). `strict` fails fast if a full `motion.*` sneaks in.
 export function App() {
   return (
-    <HashRouter>
-      <AppRoutes />
-    </HashRouter>
+    <MotionConfig reducedMotion="user">
+      <LazyMotion features={domAnimation} strict>
+        <HashRouter>
+          <AppRoutes />
+        </HashRouter>
+      </LazyMotion>
+    </MotionConfig>
   );
 }

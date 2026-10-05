@@ -1,16 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import { makeProduct } from "../logic/productFixtures.ts";
 import type { Product } from "../logic/productParse.ts";
 import { ProductGrid } from "./ProductGrid.tsx";
 
-const sampleProduct: Product = {
+const sampleProduct: Product = makeProduct({
   id: "cafe",
   name: "Polera",
   category: "Poleras",
   image: "/images/polera-dcc.png",
   description: "De prueba",
-};
+});
 
 function renderGrid(products: Product[]) {
   return render(

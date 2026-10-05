@@ -47,4 +47,29 @@ describe("parseProducts", () => {
   it("rejects a payload without products", () => {
     expect(() => parseProducts({})).toThrow();
   });
+
+  it("rejects a product without the featured flag", () => {
+    const bad = {
+      products: [
+        { id: "1", name: "N", category: "Y", image: "/i.png", description: "d" },
+      ],
+    };
+    expect(() => parseProducts(bad)).toThrow();
+  });
+
+  it("rejects a product with a non-boolean featured flag", () => {
+    const bad = {
+      products: [
+        {
+          id: "1",
+          name: "N",
+          category: "Y",
+          image: "/i.png",
+          description: "d",
+          featured: "sí",
+        },
+      ],
+    };
+    expect(() => parseProducts(bad)).toThrow();
+  });
 });

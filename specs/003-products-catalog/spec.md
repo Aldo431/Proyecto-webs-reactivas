@@ -1,5 +1,13 @@
 # Spec 003 — Catálogo de productos con filtros por categoría
 
+> **Enmendado por `specs/home/spec.md`.**
+> - RF-1: "Ver Catálogo" y "Ver más productos" pasan de botones a enlaces (rol `link`), con los mismos textos y destinos. Los "productos principales" pasan a ser los destacados (`featured: true`, máximo 3) en vez de los 3 primeros; el modelo de producto suma el campo `featured`.
+> - RF-3 y RF-6: el filtro activo se refleja en el parámetro `categoria` de la URL (`#/catalogo?categoria=<slug>`).
+>   - El valor se valida con Zod; si es inválido o no existe, se muestran todos los productos ("Todas").
+>   - Al cambiar de filtro, el parámetro se actualiza con `setSearchParams` y `replace: true`, sin agregar entradas al historial; al elegir "Todas", se elimina.
+>   - La recarga conserva el filtro presente en la URL.
+> - Fuera de alcance: los "filtros persistentes en la URL o compartibles por enlace" quedan habilitados solo para `categoria`.
+
 > **Aclaración: por qué `react-router-dom` en vez del router propio.** (1) El Lab5 del curso prescribe `react-router-dom@^7` en su propio template (`BrowserRouter`, `Routes`, `useParams`, `Link`): es la arquitectura de referencia de la cátedra para una SPA, no una ocurrencia. (2) La última cátedra (05, comunicación con el servidor) orienta hacia apps cliente↔servidor, donde ruteo y datos van juntos; adoptar la librería ahora (en sabor `HashRouter`, compatible sin backend) deja esa puerta abierta. (3) Con 5 rutas y más en camino, extender el router propio sale más caro que usar la librería; el cambio se sancionó aquí vía excepción RNF-6, igual que 001 hizo con Vitest.
 
 ## Contexto y objetivo

@@ -28,6 +28,7 @@ El stack tecnológico es React 19 + Vite para el frontend, Express para el backe
 - No añadas dependencias ni cambies el formato del JSON sin actualizar antes la spec.
 - No modifiques archivos dentro de `specs/` salvo petición explícita.
 - Valida las variables de entorno al iniciar la aplicación utilizando Zod.
+- Antes de tocar UI, lee specs/00-design-system/spec.md
 
 ## Al terminar cualquier tarea
 - Ejecuta `npm run check` y confirma en tu respuesta que todo pasa.

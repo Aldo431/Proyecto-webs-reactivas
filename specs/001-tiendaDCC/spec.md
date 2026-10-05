@@ -1,5 +1,10 @@
 # Spec 001 — Página de inicio y accesos de autenticación (frontend)
 
+> **Enmendado por `specs/home/spec.md`.**
+> - RF-1, RF-2 y RF-3: "Registrarse ahora" e "Iniciar sesión" pasan de botones a enlaces (rol `link`), con los mismos textos y destinos.
+> - RF-7: el logo "TiendaDCC" pasa de botón a enlace a `/`, con el mismo nombre accesible.
+> - RF-6: la vista previa del inicio muestra los productos destacados (`featured: true`, máximo 3), cargados de forma asíncrona con estados de carga, error y vacío; el modelo de producto suma el campo `featured`.
+
 ## Contexto y objetivo
 La primera funcionalidad de tiendaDCC es una **página web solo frontend** que actúe como escaparate inicial: muestra la marca "TiendaDCC", una breve descripción, una vista previa de productos de ejemplo y los accesos "Registrarse ahora" e "Iniciar sesión". Estos accesos navegan a páginas de formulario (registro completo / login mínimo) que **aún no funcionan**: su envío no valida ni envía nada. No hay backend, autenticación ni persistencia en esta fase; el objetivo es fijar la estructura y el flujo de navegación básico de la tienda.
 

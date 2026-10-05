@@ -16,25 +16,25 @@ describe("App", () => {
     renderAt("/");
     expect(screen.getByRole("heading", { name: "TiendaDCC" })).toBeDefined();
     expect(
-      screen.getByRole("button", { name: "Registrarse ahora" }),
+      screen.getByRole("link", { name: "Registrarse ahora" }),
     ).toBeDefined();
-    expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeDefined();
-    expect(screen.getByRole("button", { name: "Ver Catálogo" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toBeDefined();
+    expect(screen.getByRole("link", { name: "Ver Catálogo" })).toBeDefined();
     expect(
-      screen.getByRole("button", { name: "Ver más productos" }),
+      screen.getByRole("link", { name: "Ver más productos" }),
     ).toBeDefined();
   });
 
-  it("shows the example products on the home page", () => {
+  it("shows the example products on the home page", async () => {
     renderAt("/");
-    expect(screen.getByText("Taza DCC")).toBeDefined();
-    expect(screen.getByText("Polera DCC")).toBeDefined();
-    expect(screen.getByText("Sticker DCC")).toBeDefined();
+    expect(await screen.findByText("Taza DCC")).toBeDefined();
+    expect(await screen.findByText("Polera DCC")).toBeDefined();
+    expect(await screen.findByText("Sticker DCC")).toBeDefined();
   });
 
   it("navigates to register without reloading and back via Volver", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("button", { name: "Registrarse ahora" }));
+    fireEvent.click(screen.getByRole("link", { name: "Registrarse ahora" }));
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Volver" }));
     expect(
@@ -44,11 +44,11 @@ describe("App", () => {
 
   it("navigates to login and back via the clickable logo", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    fireEvent.click(screen.getByRole("link", { name: "Iniciar sesión" }));
     expect(
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
     ).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "TiendaDCC" }));
+    fireEvent.click(screen.getByRole("link", { name: "TiendaDCC" }));
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),
     ).toBeDefined();
@@ -68,7 +68,7 @@ describe("App", () => {
 
   it("navigates to the product detail when a card link is activated", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("link", { name: /Taza DCC/ }));
+    fireEvent.click(await screen.findByRole("link", { name: /Taza DCC/ }));
     expect(
       await screen.findByRole("heading", { name: "Taza DCC" }),
     ).toBeDefined();
@@ -115,7 +115,7 @@ describe("App", () => {
 
   it("navigates to the catalog via Ver Catálogo and filters by category", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("button", { name: "Ver Catálogo" }));
+    fireEvent.click(screen.getByRole("link", { name: "Ver Catálogo" }));
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
     expect(screen.getByText("Taza DCC")).toBeDefined();
@@ -127,7 +127,7 @@ describe("App", () => {
 
   it("navigates to the catalog via Ver más productos and back home", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("button", { name: "Ver más productos" }));
+    fireEvent.click(screen.getByRole("link", { name: "Ver más productos" }));
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     fireEvent.click(
       screen.getByRole("button", { name: "Volver al inicio" }),
