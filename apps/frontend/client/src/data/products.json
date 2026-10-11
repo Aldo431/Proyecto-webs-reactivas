@@ -1,0 +1,31 @@
+{
+  "products": [
+    {
+      "id": "taza-dcc",
+      "name": "Taza DCC",
+      "category": "Tazas",
+      "price": 6000,
+      "image": "/images/taza-dcc.png",
+      "description": "Taza de cerámica con el logo del DCC.",
+      "featured": true
+    },
+    {
+      "id": "polera-dcc",
+      "name": "Polera DCC",
+      "category": "Poleras",
+      "price": 12000,
+      "image": "/images/polera-dcc.png",
+      "description": "Polera de algodón con estampado del DCC.",
+      "featured": true
+    },
+    {
+      "id": "sticker-dcc",
+      "name": "Sticker DCC",
+      "category": "Stickers",
+      "price": 1500,
+      "image": "/images/sticker-dcc.png",
+      "description": "Stickers con el logo del DCC.",
+      "featured": true
+    }
+  ]
+}
