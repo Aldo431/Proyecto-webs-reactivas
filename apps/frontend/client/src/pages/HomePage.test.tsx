@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setPrefersReducedMotion } from "../testMedia.ts";
+import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
+import { stubAuthFetch } from "../test/authMocks.ts";
 import { HomePage } from "./HomePage.tsx";
 
 // Shows the current location so tests can check that nothing navigated.
@@ -20,10 +22,12 @@ function LocationProbe() {
 function renderHome() {
   return render(
     <MemoryRouter>
-      <CartProvider>
-        <HomePage />
-        <LocationProbe />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <HomePage />
+          <LocationProbe />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
 }
@@ -31,6 +35,14 @@ function renderHome() {
 function currentLocation(): string {
   return screen.getByTestId("location").textContent ?? "";
 }
+
+beforeEach(() => {
+  stubAuthFetch();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("HomePage", () => {
   it("links each category shortcut to the filtered catalog", async () => {

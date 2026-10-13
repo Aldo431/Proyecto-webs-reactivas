@@ -1,25 +1,49 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "./App.tsx";
+import { AuthProvider } from "./context/AuthContext.tsx";
 import { CartProvider } from "./context/CartContext.tsx";
+import {
+  jsonResponse,
+  stubAuthFetch,
+  type FetchRoutes,
+} from "./test/authMocks.ts";
+
+const okUser = {
+  id: "6712a4f3c9b1e24a8f0d1234",
+  name: "Ana Pérez",
+  email: "ana@dcc.uchile.cl",
+};
+
+let routes: FetchRoutes;
 
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <CartProvider>
-        <AppRoutes />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
 }
 
+beforeEach(() => {
+  routes = stubAuthFetch();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("App", () => {
-  it("renders the home page by default", () => {
+  it("renders the home page by default", async () => {
     renderAt("/");
-    expect(screen.getByRole("heading", { name: "TiendaDCC" })).toBeDefined();
+    expect(await screen.findByRole("heading", { name: "TiendaDCC" })).toBeDefined();
     expect(
-      screen.getByRole("link", { name: "Registrarse ahora" }),
+      await screen.findByRole("link", { name: "Registrarse ahora" }),
     ).toBeDefined();
     expect(screen.getByRole("link", { name: "Iniciar sesión" })).toBeDefined();
     expect(screen.getByRole("link", { name: "Ver Catálogo" })).toBeDefined();
@@ -37,7 +61,9 @@ describe("App", () => {
 
   it("navigates to register without reloading and back via Volver", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("link", { name: "Registrarse ahora" }));
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Registrarse ahora" }),
+    );
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Volver" }));
     expect(
@@ -47,7 +73,9 @@ describe("App", () => {
 
   it("navigates to login and back via the clickable logo", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("link", { name: "Iniciar sesión" }));
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Iniciar sesión" }),
+    );
     expect(
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
     ).toBeDefined();
@@ -118,7 +146,9 @@ describe("App", () => {
 
   it("navigates to the catalog via Ver Catálogo and filters by category", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("link", { name: "Ver Catálogo" }));
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Ver Catálogo" }),
+    );
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
     expect(screen.getByText("Taza DCC")).toBeDefined();
@@ -130,7 +160,9 @@ describe("App", () => {
 
   it("navigates to the catalog via Ver más productos and back home", async () => {
     renderAt("/");
-    fireEvent.click(screen.getByRole("link", { name: "Ver más productos" }));
+    fireEvent.click(
+      await screen.findByRole("link", { name: "Ver más productos" }),
+    );
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     fireEvent.click(
       screen.getByRole("button", { name: "Volver al inicio" }),
@@ -138,5 +170,42 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),
     ).toBeDefined();
+  });
+
+  it("shows the user name and Cerrar sesión when authenticated", async () => {
+    routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+    renderAt("/");
+    expect(await screen.findByText("Ana Pérez")).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Cerrar sesión" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("link", { name: "Registrarse ahora" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Iniciar sesión" })).toBeNull();
+  });
+
+  it("redirects an authenticated user from the auth routes to home", async () => {
+    routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+    renderAt("/registro");
+    expect(
+      await screen.findByRole("heading", { name: "TiendaDCC" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Registro" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Registrarse ahora" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Cerrar sesión" }),
+    ).toBeDefined();
+  });
+
+  it("returns to the visitor accesses after logging out", async () => {
+    routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+    routes["/api/auth/logout"] = () => new Response(null, { status: 204 });
+    renderAt("/");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Cerrar sesión" }),
+    );
+    expect(
+      await screen.findByRole("link", { name: "Registrarse ahora" }),
+    ).toBeDefined();
+    expect(screen.queryByText("Ana Pérez")).toBeNull();
   });
 });

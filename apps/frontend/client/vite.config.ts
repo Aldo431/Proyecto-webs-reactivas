@@ -10,6 +10,16 @@ export default defineConfig({
   resolve: {
     alias: { "@": "/src" },
   },
+  // En desarrollo el backend escucha en 3001; /api se proxya para que la
+  // cookie de sesión sea del mismo sitio (plan D6).
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./src/setupTests.ts"],
