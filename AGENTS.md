@@ -17,6 +17,13 @@ El stack tecnológico es React 19 + Vite para el frontend, Express para el backe
 - Tests y verificación de tipos: `npm run check`
 - Compilación: `npm run build`
 
+## Variables de entorno
+- Backend: `apps/backend/.env` (lo carga `npm run dev -w backend` vía `--env-file-if-exists=.env`; un `.env` en la raíz **no** se lee). Requeridas `MONGODB_URI` y `JWT_SECRET`; opcionales `PORT` (3001), `NODE_ENV` (development) y `CLIENT_ORIGIN` (`http://localhost:5173`). Validadas con Zod en `apps/backend/src/config/env.ts`; si faltan las requeridas el proceso aborta con mensaje en español.
+- Frontend: `apps/frontend/client/.env.local`, solo `VITE_API_URL` (por defecto vacío = mismo origen vía proxy de Vite a `http://localhost:3001`). Validada con Zod en `apps/frontend/client/src/logic/env.ts`.
+- Si cambias `PORT`, actualiza también el target del proxy en `apps/frontend/client/vite.config.ts`.
+- Plantillas versionadas: `apps/backend/.env.example` y `apps/frontend/client/.env.example`. Los `.env`/`.env.local` están gitignoreados: nunca subas secretos reales.
+- Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propias variables.
+
 ## Estilo y convenciones
 - **React:** React 19, con type hints explícitos en todas las props y componentes.
 - **Idioma:** Identificadores, nombres de variables y funciones en inglés; mensajes orientados al usuario final en español.
