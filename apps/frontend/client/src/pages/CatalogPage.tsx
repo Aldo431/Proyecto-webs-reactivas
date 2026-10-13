@@ -1,23 +1,27 @@
+import { PRODUCT_CATEGORIES } from "@tiendadcc/utils";
+import { CircleAlert } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { CategoryFilter } from "../components/CategoryFilter.tsx";
 import { Header } from "../components/Header.tsx";
 import { ProductGrid } from "../components/ProductGrid.tsx";
-import productsJson from "../data/products.json";
+import { Button } from "../components/ui/button.tsx";
 import {
   CATEGORY_PARAM,
   parseCategoryParam,
   toCategorySlug,
 } from "../logic/categoryParam.ts";
-import {
-  filterProductsByCategory,
-  getCategories,
-} from "../logic/productFilter.ts";
-import { parseProducts } from "../logic/productParse.ts";
+import { filterProductsByCategory } from "../logic/productFilter.ts";
+import { fetchCatalogProducts } from "../logic/productRepository.ts";
+import { useProductList } from "../logic/useProductList.ts";
 
-const productCatalog = parseProducts(productsJson);
-const categories = getCategories(productCatalog);
+// The filters come from the shared category list, not from the loaded data,
+// so they are available while the catalog loads (spec 008, RF-14).
+const categories: string[] = [...PRODUCT_CATEGORIES];
 
 export function CatalogPage() {
+  // The catalog is requested once; changing the category filters the loaded
+  // list locally, so the grid updates instantly (spec 008, RF-14, D9).
+  const { state, retry } = useProductList(fetchCatalogProducts);
   // The URL is the only source of truth for the active filter (plan D9):
   // an invalid or unknown `categoria` falls back to "Todas" (null).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,10 +47,10 @@ export function CatalogPage() {
     );
   }
 
-  const visibleProducts = filterProductsByCategory(
-    productCatalog,
-    activeCategory,
-  );
+  const visibleProducts =
+    state.status === "success"
+      ? filterProductsByCategory(state.products, activeCategory)
+      : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -60,13 +64,33 @@ export function CatalogPage() {
             onSelectCategory={selectCategory}
           />
         </div>
-        {visibleProducts.length === 0 ? (
-          <p className="py-14 text-center text-slate-600">
-            No hay productos en esta categoría.
+        {state.status === "loading" && (
+          <p role="status" className="py-14 text-center text-muted-foreground">
+            Cargando productos…
           </p>
-        ) : (
-          <ProductGrid products={visibleProducts} />
         )}
+        {state.status === "error" && (
+          <div
+            role="alert"
+            className="mt-8 flex flex-col items-start gap-4 rounded-xl border border-destructive p-5 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="flex items-center gap-2 font-sans text-destructive">
+              <CircleAlert aria-hidden="true" className="size-5 shrink-0" />
+              No se pudieron cargar los productos.
+            </p>
+            <Button variant="outline" onClick={retry}>
+              Reintentar
+            </Button>
+          </div>
+        )}
+        {state.status === "success" &&
+          (visibleProducts.length === 0 ? (
+            <p className="py-14 text-center text-slate-600">
+              No hay productos en esta categoría.
+            </p>
+          ) : (
+            <ProductGrid products={visibleProducts} />
+          ))}
       </main>
     </div>
   );

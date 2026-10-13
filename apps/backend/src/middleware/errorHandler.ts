@@ -21,6 +21,16 @@ function isBodyParseError(error: unknown): boolean {
   );
 }
 
+// body-parser rechaza los cuerpos que exceden el límite de su ruta con
+// `type: "entity.too.large"` y estado 413.
+function isPayloadTooLargeError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { type?: unknown }).type === "entity.too.large"
+  );
+}
+
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -51,6 +61,13 @@ export const errorHandler: ErrorRequestHandler = (
     response.status(400).json({
       message: "Revisa los datos ingresados.",
       fieldErrors,
+    });
+    return;
+  }
+
+  if (isPayloadTooLargeError(error)) {
+    response.status(413).json({
+      message: "Los datos enviados superan el tamaño máximo permitido.",
     });
     return;
   }

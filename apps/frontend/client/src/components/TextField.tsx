@@ -11,6 +11,7 @@ interface TextFieldProps {
   error?: string | undefined;
   autoComplete?: string | undefined;
   disabled?: boolean | undefined;
+  inputMode?: "numeric" | undefined;
 }
 
 // Controlled field with an accessible error (RF-12, RNF-4): the label is
@@ -26,6 +27,7 @@ export function TextField({
   error,
   autoComplete,
   disabled,
+  inputMode,
 }: TextFieldProps) {
   const inputId = useId();
   const errorId = `${inputId}-error`;
@@ -42,6 +44,7 @@ export function TextField({
         onChange={onChange}
         autoComplete={autoComplete}
         disabled={disabled}
+        inputMode={inputMode}
         aria-invalid={hasError ? true : undefined}
         aria-describedby={hasError ? errorId : undefined}
       />

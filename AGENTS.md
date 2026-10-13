@@ -18,7 +18,7 @@ El stack tecnológico es React 19 + Vite para el frontend, Express para el backe
 - Compilación: `npm run build`
 
 ## Variables de entorno
-- Backend: `apps/backend/.env` (lo carga `npm run dev -w backend` vía `--env-file-if-exists=.env`; un `.env` en la raíz **no** se lee). Requeridas `MONGODB_URI` y `JWT_SECRET`; opcionales `PORT` (3001), `NODE_ENV` (development) y `CLIENT_ORIGIN` (`http://localhost:5173`). Validadas con Zod en `apps/backend/src/config/env.ts`; si faltan las requeridas el proceso aborta con mensaje en español.
+- Backend: `apps/backend/.env` (lo carga `npm run dev -w backend` vía `--env-file-if-exists=.env`; un `.env` en la raíz **no** se lee). Requeridas `MONGODB_URI` y `JWT_SECRET`; opcionales `PORT` (3001), `NODE_ENV` (development) y `CLIENT_ORIGIN` (`http://localhost:5173`). `SEED_SELLER_PASSWORD` solo la usa `npm run seed -w backend` (se valida en `apps/backend/src/seed/seedEnv.ts`, no al arrancar la API). Validadas con Zod en `apps/backend/src/config/env.ts`; si faltan las requeridas el proceso aborta con mensaje en español.
 - Frontend: `apps/frontend/client/.env.local`, solo `VITE_API_URL` (por defecto vacío = mismo origen vía proxy de Vite a `http://localhost:3001`). Validada con Zod en `apps/frontend/client/src/logic/env.ts`.
 - Si cambias `PORT`, actualiza también el target del proxy en `apps/frontend/client/vite.config.ts`.
 - Plantillas versionadas: `apps/backend/.env.example` y `apps/frontend/client/.env.example`. Los `.env`/`.env.local` están gitignoreados: nunca subas secretos reales.

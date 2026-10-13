@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "./AuthContext.tsx";
 import { CartProvider, useCart } from "./CartContext.tsx";
 import { clearInMemoryFallbackForTests } from "../logic/cartStorage.ts";
+import { productsByIdsResponse } from "../test/productMocks.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -37,6 +38,8 @@ interface RecordedCall {
 }
 
 let recordedCalls: RecordedCall[];
+// Simula la API de productos caída (503) para las consultas por ids.
+let productsDown = false;
 
 function stubFetch(
   handlers: Record<string, (body: unknown) => Response | Promise<Response>>,
@@ -54,6 +57,12 @@ function stubFetch(
         body = null;
       }
       recordedCalls.push({ url, method, body });
+      const productsResponse = productsByIdsResponse(method, url);
+      if (productsResponse !== null) {
+        return productsDown
+          ? json(503, { message: "Servicio no disponible." })
+          : productsResponse;
+      }
       const handler = handlers[`${method} ${url}`];
       if (!handler) {
         throw new Error(`Sin respuesta simulada para ${method} ${url}`);
@@ -82,6 +91,7 @@ function setLocalCart(items: unknown[]): void {
 beforeEach(() => {
   window.localStorage.clear();
   clearInMemoryFallbackForTests();
+  productsDown = false;
 });
 
 afterEach(() => {
@@ -492,5 +502,161 @@ describe("CartContext / sincronización con la cuenta", () => {
       { productId: "taza-dcc", quantity: 1 },
       { productId: "sticker-dcc", quantity: 1 },
     ]);
+  });
+});
+
+function productRequests(): RecordedCall[] {
+  return recordedCalls.filter((call) =>
+    call.url.startsWith("/api/products?ids="),
+  );
+}
+
+function cartPuts(): RecordedCall[] {
+  return recordedCalls.filter(
+    (call) => call.url === "/api/users/me/cart" && call.method === "PUT",
+  );
+}
+
+const staleTaza = {
+  productId: "taza-dcc",
+  name: "Nombre viejo",
+  price: 1,
+  image: "/viejo.png",
+  quantity: 3,
+};
+
+const ghostLine = {
+  productId: "6713b0c2a1f4e9d2c8b70a99",
+  name: "Fantasma",
+  price: 1000,
+  image: "/fantasma.png",
+  quantity: 1,
+};
+
+describe("CartContext / productos desde la API", () => {
+  it("refresca el carrito guardado y descarta los productos que ya no existen", async () => {
+    setLocalCart([staleTaza, ghostLine]);
+    stubFetch({ "GET /api/auth/me": () => json(401, {}) });
+
+    const { result } = renderHook(() => useProbe(), { wrapper: wrapper });
+
+    // Se muestra de inmediato con lo guardado...
+    expect(result.current.cart.items).toHaveLength(2);
+
+    // ...y luego se corrige con los datos vigentes.
+    await waitFor(() => {
+      expect(result.current.cart.items).toEqual([
+        {
+          productId: "taza-dcc",
+          name: "Taza DCC",
+          price: 6000,
+          image: "/images/taza-dcc.png",
+          quantity: 3,
+        },
+      ]);
+    });
+    expect(productRequests()).toHaveLength(1);
+    expect(productRequests()[0]?.url).toBe(
+      `/api/products?ids=taza-dcc,${ghostLine.productId}`,
+    );
+    const stored = JSON.parse(window.localStorage.getItem("cart") ?? "[]");
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({ name: "Taza DCC", price: 6000 });
+    expect(cartPuts()).toEqual([]);
+  });
+
+  it("no consulta la API cuando el carrito guardado está vacío", async () => {
+    stubFetch({ "GET /api/auth/me": () => json(401, {}) });
+
+    const { result } = renderHook(() => useProbe(), { wrapper: wrapper });
+    await waitFor(() => {
+      expect(result.current.auth.state.status).toBe("anonymous");
+    });
+
+    expect(productRequests()).toEqual([]);
+    expect(result.current.cart.items).toEqual([]);
+  });
+
+  it("conserva todas las líneas si la API de productos no responde", async () => {
+    productsDown = true;
+    setLocalCart([staleTaza, ghostLine]);
+    stubFetch({ "GET /api/auth/me": () => json(401, {}) });
+
+    const { result } = renderHook(() => useProbe(), { wrapper: wrapper });
+
+    await waitFor(() => {
+      expect(productRequests()).toHaveLength(1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(result.current.cart.items.map((item) => item.productId)).toEqual([
+      "taza-dcc",
+      ghostLine.productId,
+    ]);
+    expect(result.current.cart.items[0]?.name).toBe("Nombre viejo");
+  });
+
+  it("no fusiona ni sube nada al iniciar sesión si la API de productos falla", async () => {
+    setLocalCart([{ ...staleTaza, name: "Taza DCC", price: 6000, quantity: 1 }]);
+    stubFetch({
+      "GET /api/auth/me": () => json(401, {}),
+      "POST /api/auth/login": () => json(200, okUser),
+      "GET /api/users/me": () => json(200, serverProfile),
+      "PUT /api/users/me/cart": () => json(200, []),
+    });
+
+    const { result } = renderHook(() => useProbe(), { wrapper: wrapper });
+    await waitFor(() => {
+      expect(result.current.auth.state.status).toBe("anonymous");
+    });
+    productsDown = true;
+    await act(async () => {
+      await result.current.auth.login(loginInput);
+    });
+    await waitFor(() => {
+      expect(
+        recordedCalls.some(
+          (call) => call.url === "/api/users/me" && call.method === "GET",
+        ),
+      ).toBe(true);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    expect(cartPuts()).toEqual([]);
+    expect(result.current.cart.mergeNotice).toBeNull();
+    expect(result.current.cart.items.map((item) => item.productId)).toEqual([
+      "taza-dcc",
+    ]);
+  });
+
+  it("ignora de la cuenta los productos que ya no existen al restaurar la sesión", async () => {
+    stubFetch({
+      "GET /api/auth/me": () => json(200, okUser),
+      "GET /api/users/me": () =>
+        json(200, {
+          ...serverProfile,
+          cart: [
+            { productId: "polera-dcc", quantity: 2 },
+            { productId: ghostLine.productId, quantity: 4 },
+          ],
+        }),
+      "PUT /api/users/me/cart": () => json(200, []),
+    });
+
+    const { result } = renderHook(() => useProbe(), { wrapper: wrapper });
+
+    await waitFor(() => {
+      expect(result.current.cart.items).toEqual([
+        {
+          productId: "polera-dcc",
+          name: "Polera DCC",
+          price: 12000,
+          image: "/images/polera-dcc.png",
+          quantity: 2,
+        },
+      ]);
+    });
+    expect(result.current.cart.mergeNotice).toBeNull();
+    expect(cartPuts()).toEqual([]);
   });
 });

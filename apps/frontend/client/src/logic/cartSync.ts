@@ -65,6 +65,47 @@ function resolveLines(lines: CartLine[], catalog: Product[]): CartItem[] {
   return items;
 }
 
+// Actualiza un carrito ya cargado con los productos vigentes de la API
+// (spec 008, RF-15): name/price/image se toman del producto y las líneas cuyo
+// id se consultó (`checkedIds`) y no volvió se descartan. Las líneas que no se
+// consultaron (p. ej. agregadas mientras llegaba la respuesta) se conservan.
+// Devuelve el mismo arreglo si nada cambió.
+export function refreshCartItems(
+  items: CartItem[],
+  products: Product[],
+  checkedIds: ReadonlySet<string>,
+): CartItem[] {
+  let changed = false;
+  const next: CartItem[] = [];
+  for (const item of items) {
+    const product = products.find((entry) => entry.id === item.productId);
+    if (product === undefined) {
+      if (checkedIds.has(item.productId)) {
+        changed = true;
+      } else {
+        next.push(item);
+      }
+      continue;
+    }
+    if (
+      product.name !== item.name ||
+      product.price !== item.price ||
+      product.image !== item.image
+    ) {
+      changed = true;
+      next.push({
+        ...item,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+      });
+    } else {
+      next.push(item);
+    }
+  }
+  return changed ? next : items;
+}
+
 // Fusiona el carrito invitado (local) con el de la cuenta sumando cantidades
 // por productId (spec 006, RF-12, primera versión).
 export function mergeCarts(

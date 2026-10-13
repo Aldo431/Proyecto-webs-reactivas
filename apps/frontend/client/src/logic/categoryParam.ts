@@ -1,7 +1,9 @@
+import { PRODUCT_CATEGORIES } from "@tiendadcc/utils";
 import { z } from "zod";
 
-// Category shortcuts shown on the home page (Home RF-6).
-export const CATEGORY_SHORTCUTS = ["Tazas", "Poleras", "Stickers"] as const;
+// Category shortcuts shown on the home page (Home RF-6). Same list as the
+// catalog filters and the API (spec 008, RF-1).
+export const CATEGORY_SHORTCUTS = PRODUCT_CATEGORIES;
 
 // URL parameter that carries the active catalog filter (Home RF-6).
 export const CATEGORY_PARAM = "categoria";

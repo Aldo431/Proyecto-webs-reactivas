@@ -23,3 +23,17 @@ export class ConflictError extends HttpError {
     this.name = "ConflictError";
   }
 }
+
+export class ForbiddenError extends HttpError {
+  constructor(message = "No tienes permiso para realizar esta acción.") {
+    super(403, message);
+    this.name = "ForbiddenError";
+  }
+}
+
+export class NotFoundError extends HttpError {
+  constructor(message = "Recurso no encontrado.") {
+    super(404, message);
+    this.name = "NotFoundError";
+  }
+}

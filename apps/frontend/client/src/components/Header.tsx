@@ -1,6 +1,6 @@
 import { Heart, Menu, ShoppingCart, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
 import { getCartBadgeText } from "../logic/cartCalculations.ts";
@@ -14,11 +14,16 @@ import { Badge } from "./ui/badge.tsx";
 // prompt is decorative.
 export function Header() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { state: authState } = useAuth();
   const { totalCount, isOpen, openCart } = useCart();
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const badgeText = getCartBadgeText(totalCount);
+  const isPublicationsRoute =
+    pathname === "/mis-publicaciones" ||
+    pathname === "/publicar" ||
+    /^\/publicaciones\/[^/]+\/editar$/.test(pathname);
   const isAuthenticated = authState.status === "authenticated";
   const displayName =
     authState.status === "authenticated" ? authState.user.displayName : null;
@@ -77,6 +82,16 @@ export function Header() {
             <Button asChild variant="ghost" size="sm" className="max-sm:px-2">
               <Link to="/catalogo">Catálogo</Link>
             </Button>
+            {isAuthenticated && (
+              <Button asChild variant="ghost" size="sm" className="max-sm:px-2">
+                <Link
+                  to="/mis-publicaciones"
+                  aria-current={isPublicationsRoute ? "page" : undefined}
+                >
+                  Mis publicaciones
+                </Link>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -172,6 +187,22 @@ export function Header() {
               Catálogo
             </Link>
           </Button>
+          {isAuthenticated && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+            >
+              <Link
+                to="/mis-publicaciones"
+                aria-current={isPublicationsRoute ? "page" : undefined}
+                onClick={() => setMenuOpen(false)}
+              >
+                Mis publicaciones
+              </Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

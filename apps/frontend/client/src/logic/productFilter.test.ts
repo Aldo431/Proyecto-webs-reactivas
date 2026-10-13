@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Product } from "./productParse.ts";
-import { filterProductsByCategory, getCategories } from "./productFilter.ts";
+import { filterProductsByCategory } from "./productFilter.ts";
 import { makeProduct } from "./productFixtures.ts";
 
 const catalog: Product[] = [
@@ -33,16 +33,6 @@ const catalog: Product[] = [
     description: "Otra taza.",
   }),
 ];
-
-describe("getCategories", () => {
-  it("returns unique categories in order of appearance", () => {
-    expect(getCategories(catalog)).toEqual(["Tazas", "Poleras", "Stickers"]);
-  });
-
-  it("returns an empty array for an empty catalog", () => {
-    expect(getCategories([])).toEqual([]);
-  });
-});
 
 describe("filterProductsByCategory", () => {
   it("returns all products for a null category", () => {

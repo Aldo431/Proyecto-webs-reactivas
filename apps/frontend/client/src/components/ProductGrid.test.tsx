@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Product } from "@tiendadcc/utils";
 import { makeProduct } from "../logic/productFixtures.ts";
-import type { Product } from "../logic/productParse.ts";
 import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";

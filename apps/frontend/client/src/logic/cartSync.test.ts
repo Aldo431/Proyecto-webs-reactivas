@@ -3,6 +3,7 @@ import {
   areCartItemsEqual,
   mergeCarts,
   mergeWithDelta,
+  refreshCartItems,
   subtractSnapshot,
 } from "./cartSync.ts";
 import type { CartItem } from "./cartTypes.ts";
@@ -176,5 +177,70 @@ describe("mergeWithDelta", () => {
 
     expect(items.map((item) => item.productId)).toEqual(["polera-dcc"]);
     expect(merged).toBe(false);
+  });
+});
+
+describe("refreshCartItems", () => {
+  const checked = new Set(["taza-dcc", "polera-dcc", "eliminado"]);
+
+  it("updates name, price and image from the products keeping the quantity", () => {
+    const items = [localItem("taza-dcc", 3)];
+
+    expect(refreshCartItems(items, catalog, checked)).toEqual([
+      {
+        productId: "taza-dcc",
+        name: "Taza DCC",
+        price: 6000,
+        image: "taza.png",
+        quantity: 3,
+      },
+    ]);
+  });
+
+  it("discards checked ids that the API no longer returns", () => {
+    const items = [localItem("taza-dcc", 1), localItem("eliminado", 2)];
+
+    const result = refreshCartItems(items, catalog, checked);
+
+    expect(result.map((item) => item.productId)).toEqual(["taza-dcc"]);
+  });
+
+  it("keeps lines that were not part of the request", () => {
+    const items = [localItem("taza-dcc", 1), localItem("agregado-despues", 2)];
+
+    const result = refreshCartItems(items, catalog, checked);
+
+    expect(result.map((item) => item.productId)).toEqual([
+      "taza-dcc",
+      "agregado-despues",
+    ]);
+    expect(result[1]).toBe(items[1]);
+  });
+
+  it("returns the same array when nothing changed", () => {
+    const items: CartItem[] = [
+      {
+        productId: "taza-dcc",
+        name: "Taza DCC",
+        price: 6000,
+        image: "taza.png",
+        quantity: 2,
+      },
+    ];
+
+    expect(refreshCartItems(items, catalog, checked)).toBe(items);
+    expect(refreshCartItems([], catalog, checked)).toEqual([]);
+  });
+
+  it("keeps the order of the cart lines", () => {
+    const items = [
+      localItem("polera-dcc", 1),
+      localItem("eliminado", 1),
+      localItem("taza-dcc", 1),
+    ];
+
+    expect(
+      refreshCartItems(items, catalog, checked).map((item) => item.productId),
+    ).toEqual(["polera-dcc", "taza-dcc"]);
   });
 });

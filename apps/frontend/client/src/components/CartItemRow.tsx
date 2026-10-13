@@ -2,6 +2,7 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext.tsx";
 import { calculateItemSubtotal, formatPriceCLP } from "../logic/cartCalculations.ts";
 import type { CartItem } from "../logic/cartTypes.ts";
+import { resolveImageUrl } from "../logic/productImage.ts";
 import { Button } from "./ui/button.tsx";
 
 interface CartItemRowProps {
@@ -15,7 +16,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
   return (
     <li className="flex gap-3 border-b border-border py-4 last:border-b-0">
       <img
-        src={item.image}
+        src={resolveImageUrl(item.image)}
         alt={item.name}
         className="h-16 w-16 shrink-0 rounded-md object-cover"
       />

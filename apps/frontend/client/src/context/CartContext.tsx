@@ -26,16 +26,22 @@ import {
   areCartItemsEqual,
   areCartLinesEqual,
   mergeWithDelta,
+  refreshCartItems,
   subtractSnapshot,
   toCartLines,
 } from "../logic/cartSync.ts";
 import type { CartItem } from "../logic/cartTypes.ts";
+import { fetchProductsByIds } from "../logic/productApi.ts";
 import { fetchProfile, replaceCart } from "../logic/profileApi.ts";
-import productsJson from "../data/products.json";
-import { parseProducts } from "../logic/productParse.ts";
+import type { Product } from "../logic/productParse.ts";
 import { useAuth } from "./AuthContext.tsx";
 
-const productCatalog = parseProducts(productsJson);
+// Productos vigentes para los ids dados (spec 008, RF-15); null si la API no
+// responde, para no descartar líneas ni subir un carrito recortado.
+async function fetchCatalogFor(ids: string[]): Promise<Product[] | null> {
+  const result = await fetchProductsByIds(ids);
+  return result.ok ? result.products : null;
+}
 
 const SYNC_ERROR_MESSAGE =
   "No se pudo sincronizar el carrito con tu cuenta. Se reintentará en el próximo cambio.";
@@ -69,7 +75,7 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const { state: authState } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() =>
-    loadCartFromStorage(productCatalog),
+    loadCartFromStorage(),
   );
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [mergeNotice, setMergeNotice] = useState<string | null>(null);
@@ -86,6 +92,31 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const userId =
     authState.status === "authenticated" ? authState.user.id : null;
+
+  // Al montar, el carrito guardado se muestra de inmediato y luego se
+  // refresca contra la API: nombre/precio/imagen vigentes y fuera las líneas
+  // cuyo producto ya no existe (spec 008, RF-15). Si la API falla no se
+  // descarta nada.
+  useEffect(() => {
+    const ids = items.map((item) => item.productId);
+    if (ids.length === 0) {
+      return;
+    }
+    const checkedIds = new Set(ids);
+    let cancelled = false;
+    void (async () => {
+      const products = await fetchCatalogFor(ids);
+      if (cancelled || products === null) {
+        return;
+      }
+      setItems((previous) => refreshCartItems(previous, products, checkedIds));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Solo al montar, con el carrito que había en el almacenamiento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sincronización con la cuenta (RF-12): solo se fusiona en la transición
   // anónimo → autenticado y únicamente el delta sobre la huella sincronizada,
@@ -116,6 +147,17 @@ export function CartProvider({ children }: CartProviderProps) {
         return;
       }
       const serverLines = profile?.cart ?? [];
+      // Los productos se resuelven contra la API para las líneas locales y de
+      // la cuenta; sin respuesta no se fusiona ni se sube nada y se reintenta
+      // en la próxima transición o carga (RF-15).
+      const catalog = await fetchCatalogFor([
+        ...snapshot.map((item) => item.productId),
+        ...serverLines.map((line) => line.productId),
+      ]);
+      if (cancelled || catalog === null) {
+        syncingRef.current = false;
+        return;
+      }
 
       if (isLoginTransition) {
         const delta = subtractSnapshot(
@@ -125,7 +167,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const { items: next, merged } = mergeWithDelta(
           delta,
           serverLines,
-          productCatalog,
+          catalog,
         );
         if (delta.length === 0) {
           // Adopción (local vacío o ya sincronizado): nunca PUT ni aviso.
@@ -161,7 +203,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const { items: resolvedServer } = mergeWithDelta(
           [],
           serverLines,
-          productCatalog,
+          catalog,
         );
         if (snapshot.length === 0) {
           if (serverLines.length > 0) {

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
 import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
+import { productsByIdsResponse } from "../test/productMocks.ts";
 import { ProfilePage } from "./ProfilePage.tsx";
 
 const okUser = {
@@ -44,6 +45,7 @@ function stubProfileFetch(
   profileHandler: () => Response,
   putHandler: (body: unknown) => Response,
   deleteHandler: () => Response = () => json(200, []),
+  productsDown = false,
 ) {
   fetchCalls = [];
   vi.stubGlobal(
@@ -60,6 +62,12 @@ function stubProfileFetch(
       fetchCalls.push({ method, url, body });
       if (url === "/api/auth/me") {
         return json(200, okUser);
+      }
+      const productsResponse = productsByIdsResponse(method, url);
+      if (productsResponse !== null) {
+        return productsDown
+          ? json(503, { message: "Servicio no disponible." })
+          : productsResponse;
       }
       if (url === "/api/users/me" && method === "GET") {
         return profileHandler();
@@ -408,6 +416,94 @@ describe("ProfilePage", () => {
     await waitFor(() => {
       expect(document.activeElement?.id).toBe("perfil-favoritos");
     });
+  });
+});
+
+describe("ProfilePage / productos desde la API", () => {
+  const ghostId = "6713b0c2a1f4e9d2c8b70a99";
+
+  it("resuelve favoritos e historial con una sola consulta por ids", async () => {
+    stubProfileFetch(
+      () =>
+        json(200, {
+          ...baseProfile,
+          favorites: ["taza-dcc", "sticker-dcc"],
+          history: [{ productId: "polera-dcc", viewedAt: "2026-10-13T10:00:00.000Z" }],
+        }),
+      () => json(200, baseProfile),
+    );
+
+    renderProfile();
+    await screen.findByText("Polera DCC");
+
+    const productCalls = fetchCalls.filter((call) =>
+      call.url.startsWith("/api/products"),
+    );
+    expect(productCalls.map((call) => call.url)).toEqual([
+      "/api/products?ids=taza-dcc,sticker-dcc,polera-dcc",
+    ]);
+    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(screen.getByText("Sticker DCC")).toBeDefined();
+  });
+
+  it("oculta sin error los favoritos y visitas cuyo producto ya no existe", async () => {
+    stubProfileFetch(
+      () =>
+        json(200, {
+          ...baseProfile,
+          favorites: [ghostId, "taza-dcc"],
+          history: [
+            { productId: ghostId, viewedAt: "2026-10-13T11:00:00.000Z" },
+            { productId: "polera-dcc", viewedAt: "2026-10-13T10:00:00.000Z" },
+          ],
+        }),
+      () => json(200, baseProfile),
+    );
+
+    renderProfile();
+
+    expect(await screen.findByText("Taza DCC")).toBeDefined();
+    expect(screen.getByText("Polera DCC")).toBeDefined();
+    expect(screen.getAllByText(/Visto el/)).toHaveLength(1);
+    expect(
+      screen.getAllByRole("button", { name: /Eliminar .* de favoritos/ }),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("muestra el aviso y mantiene el perfil si los productos no cargan", async () => {
+    stubProfileFetch(
+      () => json(200, baseProfile),
+      () => json(200, baseProfile),
+      () => json(200, []),
+      true,
+    );
+
+    renderProfile();
+
+    expect(
+      await screen.findByRole("heading", { name: "Mi perfil" }),
+    ).toBeDefined();
+    expect(screen.getByText("anaperez")).toBeDefined();
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts[0]?.textContent).toContain(
+      "No se pudieron cargar los productos guardados.",
+    );
+    expect(screen.queryByText("Taza DCC")).toBeNull();
+  });
+
+  it("no consulta productos si no hay favoritos ni historial", async () => {
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites: [], history: [] }),
+      () => json(200, baseProfile),
+    );
+
+    renderProfile();
+    await screen.findByText("Aún no tienes favoritos. Marca el corazón en un producto para guardarlo aquí.");
+
+    expect(
+      fetchCalls.filter((call) => call.url.startsWith("/api/products")),
+    ).toEqual([]);
   });
 });
 

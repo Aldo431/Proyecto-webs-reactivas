@@ -1,47 +1,19 @@
-import type { ReactNode } from "react";
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext.tsx";
+import { HashRouter, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext.tsx";
 import { CartProvider } from "./context/CartContext.tsx";
 import { CartDrawer } from "./components/CartDrawer.tsx";
+import { OnlyAnonymousRoute } from "./components/OnlyAnonymousRoute.tsx";
+import { OnlyAuthenticatedRoute } from "./components/OnlyAuthenticatedRoute.tsx";
 import { CatalogPage } from "./pages/CatalogPage.tsx";
+import { EditProductPage } from "./pages/EditProductPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
+import { MyProductsPage } from "./pages/MyProductsPage.tsx";
 import { ProductDetailPage } from "./pages/ProductDetailPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
+import { PublishProductPage } from "./pages/PublishProductPage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
-
-interface GuardProps {
-  children: ReactNode;
-}
-
-// Auth routes are only for anonymous visitors (RF-8): while the session is
-// still being restored nothing is rendered (no authenticated flash), and once
-// it is known an authenticated user is sent home.
-function OnlyAnonymousRoute({ children }: GuardProps) {
-  const { state } = useAuth();
-  if (state.status === "loading") {
-    return null;
-  }
-  if (state.status === "authenticated") {
-    return <Navigate to="/" replace />;
-  }
-  return <>{children}</>;
-}
-
-// Profile routes are only for authenticated users (RF-7): while the session
-// is still being restored nothing is rendered, and anonymous visitors are
-// sent to login.
-function OnlyAuthenticatedRoute({ children }: GuardProps) {
-  const { state } = useAuth();
-  if (state.status === "loading") {
-    return null;
-  }
-  if (state.status === "anonymous") {
-    return <Navigate to="/iniciar-sesion" replace />;
-  }
-  return <>{children}</>;
-}
 
 // Maps each URL path to its page. HashRouter keeps navigation client-side
 // (everything after # never reaches a server), and "*" renders home
@@ -73,6 +45,30 @@ export function AppRoutes() {
         element={
           <OnlyAuthenticatedRoute>
             <ProfilePage />
+          </OnlyAuthenticatedRoute>
+        }
+      />
+      <Route
+        path="/publicar"
+        element={
+          <OnlyAuthenticatedRoute>
+            <PublishProductPage />
+          </OnlyAuthenticatedRoute>
+        }
+      />
+      <Route
+        path="/mis-publicaciones"
+        element={
+          <OnlyAuthenticatedRoute>
+            <MyProductsPage />
+          </OnlyAuthenticatedRoute>
+        }
+      />
+      <Route
+        path="/publicaciones/:id/editar"
+        element={
+          <OnlyAuthenticatedRoute>
+            <EditProductPage />
           </OnlyAuthenticatedRoute>
         }
       />

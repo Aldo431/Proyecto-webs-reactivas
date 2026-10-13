@@ -5,6 +5,7 @@ import { setPrefersReducedMotion } from "../testMedia.ts";
 import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";
+import { productRoutes } from "../test/productMocks.ts";
 import { HomePage } from "./HomePage.tsx";
 
 // Shows the current location so tests can check that nothing navigated.
@@ -37,7 +38,7 @@ function currentLocation(): string {
 }
 
 beforeEach(() => {
-  stubAuthFetch();
+  stubAuthFetch(productRoutes());
 });
 
 afterEach(() => {

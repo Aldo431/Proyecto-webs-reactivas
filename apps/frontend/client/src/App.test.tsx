@@ -9,6 +9,7 @@ import {
   stubAuthFetch,
   type FetchRoutes,
 } from "./test/authMocks.ts";
+import { notFoundRoute, productRoutes } from "./test/productMocks.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -32,7 +33,7 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
-  routes = stubAuthFetch();
+  routes = stubAuthFetch(productRoutes());
 });
 
 afterEach(() => {
@@ -117,6 +118,7 @@ describe("App", () => {
   });
 
   it("renders the not-found state for an unknown product id", async () => {
+    routes["/api/products/inexistente"] = notFoundRoute();
     renderAt("/producto/inexistente");
     expect(
       await screen.findByRole("heading", { name: "Producto no encontrado" }),
@@ -141,7 +143,7 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Todas" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Tazas" })).toBeDefined();
-    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(await screen.findByText("Taza DCC")).toBeDefined();
     expect(screen.getByText("Polera DCC")).toBeDefined();
   });
 
@@ -151,6 +153,7 @@ describe("App", () => {
       await screen.findByRole("link", { name: "Ver Catálogo" }),
     );
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
+    await screen.findByText("Polera DCC");
     fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
     expect(screen.getByText("Taza DCC")).toBeDefined();
     expect(screen.queryByText("Polera DCC")).toBeNull();

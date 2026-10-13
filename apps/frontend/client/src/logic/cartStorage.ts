@@ -1,7 +1,6 @@
 import { cartLineSchema, type CartLine } from "@tiendadcc/utils";
 import { z } from "zod";
 import { cartItemsSchema, type CartItem } from "./cartTypes.ts";
-import type { Product } from "./productParse.ts";
 
 export const CART_STORAGE_KEY = "cart";
 
@@ -65,7 +64,9 @@ function readStoredText(): string | null {
   }
 }
 
-export function loadCartFromStorage(products: Product[]): CartItem[] {
+// Reads the persisted cart validating only its shape: the stored items are
+// shown right away and refreshed against the API afterwards (spec 008, RF-15).
+export function loadCartFromStorage(): CartItem[] {
   let raw: string | null = null;
   try {
     raw = readStoredText();
@@ -84,20 +85,7 @@ export function loadCartFromStorage(products: Product[]): CartItem[] {
     return [];
   }
   const result = cartItemsSchema.safeParse(parsed);
-  if (!result.success) return [];
-  const revalidated: CartItem[] = [];
-  for (const stored of result.data) {
-    const product = products.find((entry) => entry.id === stored.productId);
-    if (product === undefined) continue;
-    revalidated.push({
-      productId: stored.productId,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      quantity: stored.quantity,
-    });
-  }
-  return revalidated;
+  return result.success ? result.data : [];
 }
 
 export function saveCartToStorage(items: CartItem[]): void {

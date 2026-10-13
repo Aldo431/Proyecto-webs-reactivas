@@ -19,7 +19,8 @@ import { useCart } from "../context/CartContext.tsx";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 import { getProductById } from "../logic/productLookup.ts";
-import { parseProducts, type Product } from "../logic/productParse.ts";
+import { fetchProductsByIds } from "../logic/productApi.ts";
+import type { Product } from "../logic/productParse.ts";
 import {
   FAVORITES_PAGE_SIZE,
   formatViewedAt,
@@ -31,9 +32,9 @@ import {
   removeFavorite,
   updateProfile,
 } from "../logic/profileApi.ts";
-import productsJson from "../data/products.json";
 
-const productCatalog = parseProducts(productsJson);
+const SAVED_PRODUCTS_ERROR =
+  "No se pudieron cargar los productos guardados. Inténtalo de nuevo más tarde.";
 
 const EDIT_FIELD_ORDER = [
   "username",
@@ -72,6 +73,10 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Productos de favoritos e historial, resueltos por id contra la API
+  // (spec 008, RF-15); los ids que ya no existen simplemente no vuelven.
+  const [savedProducts, setSavedProducts] = useState<Product[]>([]);
+  const [savedProductsError, setSavedProductsError] = useState<boolean>(false);
   const [mode, setMode] = useState<"read" | "edit">("read");
   const [values, setValues] = useState<EditValues>({
     username: "",
@@ -101,6 +106,12 @@ export function ProfilePage() {
         "No se pudo cargar tu perfil. Revisa tu conexión e inténtalo de nuevo.",
       );
     } else {
+      const products = await fetchProductsByIds([
+        ...loaded.favorites,
+        ...loaded.history.map((visit) => visit.productId),
+      ]);
+      setSavedProducts(products.ok ? products.products : []);
+      setSavedProductsError(!products.ok);
       setProfile(loaded);
       setValues(valuesFromProfile(loaded));
     }
@@ -143,16 +154,16 @@ export function ProfilePage() {
   const favoriteProducts = useMemo(
     () =>
       (profile?.favorites ?? [])
-        .map((productId) => getProductById(productCatalog, productId))
+        .map((productId) => getProductById(savedProducts, productId))
         .filter((product) => product !== undefined),
-    [profile],
+    [profile, savedProducts],
   );
 
   const historyItems = useMemo(
     () =>
       (profile?.history ?? [])
         .map((visit) => {
-          const product = getProductById(productCatalog, visit.productId);
+          const product = getProductById(savedProducts, visit.productId);
           if (product === undefined) {
             return undefined;
           }
@@ -162,7 +173,7 @@ export function ProfilePage() {
           (entry): entry is { product: Product; viewedAt: string } =>
             entry !== undefined,
         ),
-    [profile],
+    [profile, savedProducts],
   );
 
   const favoritesPageData = paginate(
@@ -525,6 +536,11 @@ export function ProfilePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
+                {savedProductsError && (
+                  <p role="alert" className="font-sans text-sm text-destructive">
+                    {SAVED_PRODUCTS_ERROR}
+                  </p>
+                )}
                 {favoriteError !== null && (
                   <p role="alert" className="font-sans text-sm text-destructive">
                     {favoriteError}
@@ -608,6 +624,11 @@ export function ProfilePage() {
                 <CardTitle className="font-mono">Historial</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
+                {savedProductsError && (
+                  <p role="alert" className="font-sans text-sm text-destructive">
+                    {SAVED_PRODUCTS_ERROR}
+                  </p>
+                )}
                 {historyItems.length === 0 ? (
                   <>
                     <p className="font-sans text-sm text-muted-foreground">

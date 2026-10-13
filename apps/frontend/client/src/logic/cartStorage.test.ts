@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { makeProduct } from "./productFixtures.ts";
 import {
   CART_STORAGE_KEY,
   clearInMemoryFallbackForTests,
@@ -8,21 +7,6 @@ import {
   saveCartToStorage,
   saveSyncedSnapshot,
 } from "./cartStorage.ts";
-
-const catalog = [
-  makeProduct({
-    id: "taza-dcc",
-    name: "Taza DCC",
-    price: 6000,
-    image: "/images/taza-dcc.png",
-  }),
-  makeProduct({
-    id: "polera-dcc",
-    name: "Polera DCC",
-    price: 12000,
-    image: "/images/polera-dcc.png",
-  }),
-];
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -43,7 +27,7 @@ describe("loadCartFromStorage", () => {
         },
       ]),
     );
-    expect(loadCartFromStorage(catalog)).toEqual([
+    expect(loadCartFromStorage()).toEqual([
       {
         productId: "taza-dcc",
         name: "Taza DCC",
@@ -56,7 +40,7 @@ describe("loadCartFromStorage", () => {
 
   it("returns [] for corrupt JSON without throwing", () => {
     window.localStorage.setItem(CART_STORAGE_KEY, "no-json{{{");
-    expect(loadCartFromStorage(catalog)).toEqual([]);
+    expect(loadCartFromStorage()).toEqual([]);
   });
 
   it("returns [] for incompatible schema without throwing", () => {
@@ -64,70 +48,21 @@ describe("loadCartFromStorage", () => {
       CART_STORAGE_KEY,
       JSON.stringify([{ productId: "taza-dcc", quantity: -3 }]),
     );
-    expect(loadCartFromStorage(catalog)).toEqual([]);
+    expect(loadCartFromStorage()).toEqual([]);
   });
 
-  it("discards items whose productId no longer exists", () => {
-    window.localStorage.setItem(
-      CART_STORAGE_KEY,
-      JSON.stringify([
-        {
-          productId: "taza-dcc",
-          name: "Taza DCC",
-          price: 6000,
-          image: "/images/taza-dcc.png",
-          quantity: 1,
-        },
-        {
-          productId: "eliminado",
-          name: "Eliminado",
-          price: 1000,
-          image: "/i.png",
-          quantity: 1,
-        },
-      ]),
-    );
-    expect(loadCartFromStorage(catalog)).toEqual([
+  it("keeps the stored name, price and image without any catalog lookup", () => {
+    const stored = [
       {
-        productId: "taza-dcc",
-        name: "Taza DCC",
-        price: 6000,
-        image: "/images/taza-dcc.png",
-        quantity: 1,
-      },
-    ]);
-  });
-
-  it("updates name, price and image from the catalog keeping quantity", () => {
-    window.localStorage.setItem(
-      CART_STORAGE_KEY,
-      JSON.stringify([
-        {
-          productId: "taza-dcc",
-          name: "Nombre viejo",
-          price: 1,
-          image: "/viejo.png",
-          quantity: 3,
-        },
-      ]),
-    );
-    const updatedCatalog = [
-      makeProduct({
-        id: "taza-dcc",
-        name: "Taza DCC",
-        price: 6000,
-        image: "/images/taza-dcc.png",
-      }),
-    ];
-    expect(loadCartFromStorage(updatedCatalog)).toEqual([
-      {
-        productId: "taza-dcc",
-        name: "Taza DCC",
-        price: 6000,
-        image: "/images/taza-dcc.png",
+        productId: "6713b0c2a1f4e9d2c8b70a11",
+        name: "Nombre guardado",
+        price: 1,
+        image: "/api/products/6713b0c2a1f4e9d2c8b70a11/image?v=1",
         quantity: 3,
       },
-    ]);
+    ];
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(stored));
+    expect(loadCartFromStorage()).toEqual(stored);
   });
 });
 
@@ -146,7 +81,7 @@ describe("saveCartToStorage", () => {
     expect(window.localStorage.getItem(CART_STORAGE_KEY)).toBe(
       JSON.stringify(items),
     );
-    expect(loadCartFromStorage(catalog)).toEqual(items);
+    expect(loadCartFromStorage()).toEqual(items);
   });
 });
 

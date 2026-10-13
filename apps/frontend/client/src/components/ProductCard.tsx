@@ -4,7 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
-import type { Product } from "../logic/productParse.ts";
+import type { Product } from "@tiendadcc/utils";
+import { resolveImageUrl } from "../logic/productImage.ts";
 import { productPath } from "../logic/productPath.ts";
 import {
   addFavorite,
@@ -17,13 +18,18 @@ import { Card, CardContent } from "./ui/card.tsx";
 
 interface ProductCardProps {
   product: Product;
+  // Cart and favorite buttons; hidden on the owner's own listing (008 RF-19).
+  showShopActions?: boolean;
 }
 
 // The card links to the product detail (002 RF-1); the cart and favorite
 // icon buttons overlay the image as siblings of the Link (never nested
 // inside it) on a surface background so they stay visible with or without
 // hover (007 RF-6, touch included). Both show the formatted CLP price.
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({
+  product,
+  showShopActions = true,
+}: ProductCardProps) {
   const { addItem, openCart } = useCart();
   const { state: authState } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (authState.status !== "authenticated") {
+    if (!showShopActions || authState.status !== "authenticated") {
       setIsFavorite(false);
       return;
     }
@@ -46,7 +52,7 @@ export function ProductCard({ product }: ProductCardProps) {
     return () => {
       cancelled = true;
     };
-  }, [authState, product.id]);
+  }, [authState, product.id, showShopActions]);
 
   async function handleToggleFavorite(): Promise<void> {
     if (toggling) {
@@ -77,8 +83,10 @@ export function ProductCard({ product }: ProductCardProps) {
           className="group block h-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <img
-            src={product.image}
+            src={resolveImageUrl(product.image)}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="h-48 w-full object-cover"
           />
           <CardContent className="flex flex-col items-start gap-2">
@@ -96,6 +104,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
           </CardContent>
         </Link>
+        {showShopActions && (
         <div className="absolute top-2 right-2 flex gap-1 rounded-full bg-card/95 p-1 shadow-sm">
           <Button
             variant="ghost"
@@ -137,6 +146,7 @@ export function ProductCard({ product }: ProductCardProps) {
             />
           </Button>
         </div>
+        )}
       </Card>
       {favoriteError !== null && (
         <p role="alert" className="text-sm text-destructive">

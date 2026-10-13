@@ -70,6 +70,7 @@ Lo carga `npm run dev -w backend` con `--env-file-if-exists=.env` (cwd = `apps/b
 | `PORT` | No | `3001` | Puerto del backend. Si lo cambias, actualiza el target del proxy en `apps/frontend/client/vite.config.ts`. |
 | `NODE_ENV` | No | `development` | `development` \| `production` \| `test`. En `production` la cookie se marca `Secure` (requiere HTTPS). |
 | `CLIENT_ORIGIN` | No | `http://localhost:5173` | Origen exacto del frontend para CORS con credenciales. |
+| `SEED_SELLER_PASSWORD` | Solo para el seed | — | Contraseña (8–100 caracteres) del vendedor de prueba `vendedor@tiendadcc.cl`. La lee únicamente `npm run seed -w backend`; la API no la usa. |
 
 ### Frontend — `apps/frontend/client/.env.local`
 
@@ -87,6 +88,7 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 |---|---|
 | `npm run dev` | Levanta Vite en `http://localhost:5173` con hot reload |
 | `npm run dev -w backend` | Levanta la API en `http://localhost:3001` (requiere `apps/backend/.env` y MongoDB) |
+| `npm run seed -w backend` | Carga en MongoDB los productos de `apps/backend/src/seed/products.json` con el vendedor de prueba (requiere `apps/backend/.env`, ver [Seed de productos](#seed-de-productos-spec-008)) |
 | `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
 | `npm run build` | Compila la app a `apps/frontend/client/dist` |
 
@@ -97,9 +99,25 @@ npm run dev            # frontend en http://localhost:5173
 npm run dev -w backend # API en http://localhost:3001 (otra terminal)
 ```
 
-Abre `http://localhost:5173` en el navegador. Sin backend ni MongoDB, la tienda funciona salvo autenticación, perfil y sincronización (usan la API).
+### Seed de productos (spec 008)
 
-## Funcionalidad actual (specs 001–007)
+Carga el catálogo inicial (`apps/backend/src/seed/products.json`: Taza, Polera y Sticker DCC) en MongoDB, con sus imágenes `/images/...` y a nombre del vendedor de prueba `tiendadcc` (`vendedor@tiendadcc.cl`).
+
+```bash
+# 1. En apps/backend/.env define MONGODB_URI y SEED_SELLER_PASSWORD (≥ 8 caracteres)
+# 2. Con MongoDB en marcha:
+npm run seed -w backend
+```
+
+- Valida el entorno antes de conectar: si falta `SEED_SELLER_PASSWORD` (o `MONGODB_URI`) termina con un mensaje en español y no escribe nada.
+- Es **idempotente**: crea el vendedor solo si no existe (no cambia su contraseña si ya existe) y actualiza los productos por vendedor + nombre, sin duplicarlos.
+- Reemplaza los ids antiguos (`taza-dcc`, `polera-dcc`, `sticker-dcc`) por los `_id` nuevos en los favoritos, el historial y el carrito de las cuentas existentes; las demás referencias no se tocan.
+- Crea los productos del último al primero, de modo que el listado público (del más reciente al más antiguo) conserve el orden del JSON: Taza, Polera, Sticker. En una base ya sembrada con una versión anterior el orden no cambia al re-ejecutar; para reordenar hay que borrar esos productos y volver a correr el seed.
+- Escribe en la base indicada por `MONGODB_URI`: revisa que apunte a desarrollo antes de ejecutarlo.
+
+Abre `http://localhost:5173` en el navegador. Inicio, catálogo, detalle, autenticación, perfil y publicaciones usan la API: necesitan el backend, MongoDB y haber ejecutado el seed para ver productos.
+
+## Funcionalidad actual (specs 001–008)
 
 Tienda con enrutamiento de hash (funciona por URL directa y con recarga). Estética "IDE institucional" (tema oscuro, specs/00-design-system).
 
@@ -111,6 +129,9 @@ Tienda con enrutamiento de hash (funciona por URL directa y con recarga). Estét
 | `http://localhost:5173/#/catalogo` | Catálogo con filtro por categoría y tarjetas con acciones directas |
 | `http://localhost:5173/#/producto/:id` | Detalle con agregar al carrito y a favoritos |
 | `http://localhost:5173/#/perfil` | Perfil (solo con sesión): datos editables, carrito, favoritos e historial |
+| `http://localhost:5173/#/publicar` | Publicar un producto (solo con sesión): nombre, descripción, categoría, precio en CLP e imagen |
+| `http://localhost:5173/#/mis-publicaciones` | Mis publicaciones (solo con sesión): lista, editar y eliminar con confirmación |
+| `http://localhost:5173/#/publicaciones/:id/editar` | Editar una publicación propia (solo con sesión y siendo el dueño) |
 
 ### Autenticación y sesión (005)
 
@@ -131,6 +152,21 @@ El documento persiste `username` (único, minúsculas, editable en el perfil), `
 | `POST /api/users/me/favorites` · `DELETE /api/users/me/favorites/:id` | Favoritos idempotentes por cuenta |
 | `POST /api/users/me/history` | Visitas (tope 67, recientes primero) |
 | `PUT /api/users/me/cart` | Reemplazo validado del carrito de la cuenta |
+
+### Productos y publicaciones (008)
+
+Los productos viven en MongoDB (modelo `Product`, con `seller` apuntando al usuario). Cualquier visitante los lee; solo el dueño los crea, edita y borra. Las imágenes se suben como data URL JPG/PNG/WebP (≤ 1 MB; el navegador las redimensiona a 1200 px y las comprime), pero la API nunca las devuelve inline: las sirve en `/api/products/:id/image?v=…` con caché inmutable.
+
+| Método y ruta | Descripción |
+|---|---|
+| `GET /api/products` | Listado público (`?categoria=`, `?featured=true`, `?ids=a,b`) |
+| `GET /api/products/mine` | Publicaciones del usuario (`401` sin sesión) |
+| `GET /api/products/:id` · `GET /api/products/:id/image` | Detalle público e imagen |
+| `POST /api/products` | Publica (`201`; `400` por campo; `413` sobre 2 MB) |
+| `PATCH /api/products/:id` | Edición parcial del dueño (`403` si no lo es; `404`) |
+| `DELETE /api/products/:id` | Borra (`204`) y quita el id de favoritos, historial y carrito de todas las cuentas |
+
+Detalles verificables: `specs/008-product-publications/`.
 
 El carrito vive en `localStorage` (clave `cart`) y se sincroniza con la cuenta: al iniciar sesión fusiona lo invitado sumando cantidades (con aviso), sin duplicar en recargas; favoritos e historial son por cuenta. Detalles verificables: `specs/005-user-auth/`, `specs/006-user-profile/` y `specs/007-profile-polish/` (spec, plan y tareas de cada una).
 

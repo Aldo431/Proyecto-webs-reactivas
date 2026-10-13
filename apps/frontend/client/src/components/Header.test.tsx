@@ -160,4 +160,29 @@ describe("Header / accesos de cuenta", () => {
       "Abrir menú",
     );
   });
+
+  it("muestra Mis publicaciones solo con sesión", async () => {
+    stubAuthFetch();
+    const anonymous = renderHeader();
+    await waitFor(() => {
+      expect(screen.getByTestId("auth-state").textContent).toBe("anonymous");
+    });
+    expect(screen.queryByRole("link", { name: "Mis publicaciones" })).toBeNull();
+    anonymous.unmount();
+
+    stubAuthFetch({
+      "/api/auth/me": () =>
+        new Response(JSON.stringify(okUser), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    });
+    renderHeader();
+    const link = await screen.findByRole("link", { name: "Mis publicaciones" });
+    expect(link.getAttribute("href")).toBe("/mis-publicaciones");
+
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+    const menu = screen.getByRole("navigation", { name: "Menú" });
+    expect(within(menu).getByRole("link", { name: "Mis publicaciones" })).toBeDefined();
+  });
 });

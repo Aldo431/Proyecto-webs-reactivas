@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
+import { resolveImageUrl } from "../logic/productImage.ts";
 import type { Product } from "../logic/productParse.ts";
 import { Button } from "./ui/button.tsx";
 import { Card, CardContent } from "./ui/card.tsx";
@@ -25,7 +26,7 @@ export function FavoriteProductCard({
     <Card className="h-full overflow-hidden">
       <CardContent className="flex items-center gap-3 p-3">
         <img
-          src={product.image}
+          src={resolveImageUrl(product.image)}
           alt=""
           aria-hidden="true"
           className="h-20 w-20 shrink-0 rounded-lg object-cover"
