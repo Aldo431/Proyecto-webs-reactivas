@@ -163,15 +163,12 @@ describe("HomePage", () => {
       await screen.findByText("Taza DCC");
     });
 
-    it("keeps the top bar próximamente accesses inert", async () => {
+    it("navigates the top bar account accesses to login when anonymous", async () => {
       renderHome();
       const banner = screen.getByRole("banner");
       for (const name of ["Favoritos", "Perfil"]) {
-        expect(
-          within(banner)
-            .getByRole("button", { name: `${name} (próximamente)` })
-            .getAttribute("aria-disabled"),
-        ).toBe("true");
+        fireEvent.click(within(banner).getByRole("button", { name }));
+        expect(currentLocation()).toBe("/iniciar-sesion");
       }
 
       const before = currentLocation();

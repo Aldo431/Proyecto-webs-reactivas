@@ -4,7 +4,9 @@ import {
   CART_STORAGE_KEY,
   clearInMemoryFallbackForTests,
   loadCartFromStorage,
+  loadSyncedSnapshot,
   saveCartToStorage,
+  saveSyncedSnapshot,
 } from "./cartStorage.ts";
 
 const catalog = [
@@ -145,5 +147,30 @@ describe("saveCartToStorage", () => {
       JSON.stringify(items),
     );
     expect(loadCartFromStorage(catalog)).toEqual(items);
+  });
+});
+
+describe("synced snapshot", () => {
+  it("guarda y carga la huella separada por cuenta", () => {
+    saveSyncedSnapshot("user-1", [
+      {
+        productId: "taza-dcc",
+        name: "Taza DCC",
+        price: 6000,
+        image: "/images/taza-dcc.png",
+        quantity: 2,
+      },
+    ]);
+
+    expect(loadSyncedSnapshot("user-1")).toEqual([
+      { productId: "taza-dcc", quantity: 2 },
+    ]);
+    expect(loadSyncedSnapshot("user-2")).toEqual([]);
+  });
+
+  it("devuelve vacío con datos corruptos", () => {
+    window.localStorage.setItem("cart-synced:user-1", "no-json{");
+
+    expect(loadSyncedSnapshot("user-1")).toEqual([]);
   });
 });

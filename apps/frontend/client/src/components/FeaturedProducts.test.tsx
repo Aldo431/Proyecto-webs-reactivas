@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeProduct } from "../logic/productFixtures.ts";
 import type { FeaturedProductsSource } from "../logic/productRepository.ts";
+import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
+import { stubAuthFetch } from "../test/authMocks.ts";
 import { FeaturedProducts } from "./FeaturedProducts.tsx";
 
 interface BlurFadeCall {
@@ -58,15 +60,22 @@ function expectSeeMoreLink(): void {
 function renderSection(source: FeaturedProductsSource) {
   return render(
     <MemoryRouter>
-      <CartProvider>
-        <FeaturedProducts source={source} />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <FeaturedProducts source={source} />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
 }
 
 beforeEach(() => {
   blurFadeCalls.length = 0;
+  stubAuthFetch();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("FeaturedProducts", () => {

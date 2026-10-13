@@ -8,6 +8,7 @@ import { CatalogPage } from "./pages/CatalogPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { ProductDetailPage } from "./pages/ProductDetailPage.tsx";
+import { ProfilePage } from "./pages/ProfilePage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
 
 interface GuardProps {
@@ -24,6 +25,20 @@ function OnlyAnonymousRoute({ children }: GuardProps) {
   }
   if (state.status === "authenticated") {
     return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+// Profile routes are only for authenticated users (RF-7): while the session
+// is still being restored nothing is rendered, and anonymous visitors are
+// sent to login.
+function OnlyAuthenticatedRoute({ children }: GuardProps) {
+  const { state } = useAuth();
+  if (state.status === "loading") {
+    return null;
+  }
+  if (state.status === "anonymous") {
+    return <Navigate to="/iniciar-sesion" replace />;
   }
   return <>{children}</>;
 }
@@ -53,6 +68,14 @@ export function AppRoutes() {
       />
       <Route path="/producto/:id" element={<ProductDetailPage />} />
       <Route path="/catalogo" element={<CatalogPage />} />
+      <Route
+        path="/perfil"
+        element={
+          <OnlyAuthenticatedRoute>
+            <ProfilePage />
+          </OnlyAuthenticatedRoute>
+        }
+      />
       <Route path="*" element={<HomePage />} />
     </Routes>
   );

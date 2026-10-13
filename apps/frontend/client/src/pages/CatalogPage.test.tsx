@@ -6,9 +6,11 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogPage } from "./CatalogPage.tsx";
+import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
+import { stubAuthFetch } from "../test/authMocks.ts";
 
 // Exposes the current location and a "back" action, so the tests can check
 // the URL and the history without a real browser.
@@ -34,16 +36,26 @@ function renderCatalog(initialEntries: string[]) {
       initialEntries={initialEntries}
       initialIndex={initialEntries.length - 1}
     >
-      <CartProvider>
-        <Routes>
-          <Route path="/" element={<p>Inicio (sonda)</p>} />
-          <Route path="/catalogo" element={<CatalogPage />} />
-        </Routes>
-        <LocationProbe />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            <Route path="/" element={<p>Inicio (sonda)</p>} />
+            <Route path="/catalogo" element={<CatalogPage />} />
+          </Routes>
+          <LocationProbe />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
 }
+
+beforeEach(() => {
+  stubAuthFetch();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function currentLocation(): string {
   return screen.getByTestId("location").textContent ?? "";

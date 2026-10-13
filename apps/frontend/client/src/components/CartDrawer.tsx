@@ -8,7 +8,16 @@ import { CartEmptyState } from "./CartEmptyState.tsx";
 import { CartItemRow } from "./CartItemRow.tsx";
 
 export function CartDrawer() {
-  const { items, isOpen, totalAmount, closeCart, clearCart } = useCart();
+  const {
+    items,
+    isOpen,
+    totalAmount,
+    mergeNotice,
+    syncError,
+    closeCart,
+    clearCart,
+    dismissMergeNotice,
+  } = useCart();
   const panelRef = useRef<HTMLElement>(null);
   const openerRef = useRef<Element | null>(null);
   const location = useLocation();
@@ -89,6 +98,34 @@ export function CartDrawer() {
             <X aria-hidden="true" />
           </Button>
         </div>
+
+        {mergeNotice !== null && (
+          <div
+            role="status"
+            className="flex items-start justify-between gap-2 border-b border-border bg-muted px-4 py-3"
+          >
+            <p className="font-sans text-sm text-muted-foreground">
+              {mergeNotice}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={dismissMergeNotice}
+            >
+              Entendido
+            </Button>
+          </div>
+        )}
+
+        {syncError !== null && (
+          <div
+            role="alert"
+            className="border-b border-border px-4 py-3"
+          >
+            <p className="font-sans text-sm text-destructive">{syncError}</p>
+          </div>
+        )}
 
         {items.length === 0 ? (
           <CartEmptyState onNavigate={closeCart} />

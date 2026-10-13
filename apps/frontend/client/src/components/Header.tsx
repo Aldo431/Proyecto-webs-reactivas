@@ -1,6 +1,6 @@
 import { Heart, ShoppingCart, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { ComingSoonItem } from "./ComingSoonItem.tsx";
+import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
 import { getCartBadgeText } from "../logic/cartCalculations.ts";
 import { Button } from "./ui/button.tsx";
@@ -12,12 +12,26 @@ interface HeaderProps {
 }
 
 // Top bar (Home RF-1): the logo links to "/", "Catálogo" is active and the
-// future accesses are shown as "próximamente" (icon-only on mobile, Home
-// RNF-3). The ">_" prompt is decorative.
+// account accesses (Favoritos, Perfil) go to /perfil with session or to
+// /iniciar-sesion without it (spec 006, RF-14). The ">_" prompt is decorative.
 export function Header({ showBackButton, backLabel = "Volver" }: HeaderProps) {
   const navigate = useNavigate();
+  const { state: authState } = useAuth();
   const { totalCount, isOpen, openCart } = useCart();
   const badgeText = getCartBadgeText(totalCount);
+  const isAuthenticated = authState.status === "authenticated";
+
+  function goToFavorites() {
+    if (isAuthenticated) {
+      navigate("/perfil", { state: { section: "favoritos" } });
+    } else {
+      navigate("/iniciar-sesion");
+    }
+  }
+
+  function goToProfile() {
+    navigate(isAuthenticated ? "/perfil" : "/iniciar-sesion");
+  }
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
@@ -37,7 +51,17 @@ export function Header({ showBackButton, backLabel = "Volver" }: HeaderProps) {
           <Button asChild variant="ghost" size="sm" className="max-sm:px-2">
             <Link to="/catalogo">Catálogo</Link>
           </Button>
-          <ComingSoonItem label="Favoritos" icon={Heart} compactOnMobile />
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            className="max-sm:px-2"
+            aria-label="Favoritos"
+            onClick={goToFavorites}
+          >
+            <Heart aria-hidden="true" />
+            <span className="hidden sm:inline">Favoritos</span>
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -59,7 +83,17 @@ export function Header({ showBackButton, backLabel = "Volver" }: HeaderProps) {
               </Badge>
             )}
           </Button>
-          <ComingSoonItem label="Perfil" icon={User} compactOnMobile />
+          <Button
+            variant="ghost"
+            size="sm"
+            type="button"
+            className="max-sm:px-2"
+            aria-label="Perfil"
+            onClick={goToProfile}
+          >
+            <User aria-hidden="true" />
+            <span className="hidden sm:inline">Perfil</span>
+          </Button>
           {showBackButton && (
             <Button variant="outline" size="sm" onClick={() => navigate("/")}>
               {backLabel}

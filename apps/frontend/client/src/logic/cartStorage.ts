@@ -1,7 +1,59 @@
+import { cartLineSchema, type CartLine } from "@tiendadcc/utils";
+import { z } from "zod";
 import { cartItemsSchema, type CartItem } from "./cartTypes.ts";
 import type { Product } from "./productParse.ts";
 
 export const CART_STORAGE_KEY = "cart";
+
+// Huella sincronizada por cuenta (spec 006, RF-12): último carrito que se
+// sabe igual al de la cuenta. Vive separada por usuario y sobrevive al logout
+// para que el re-login no vuelva a sumar lo ya sincronizado.
+const SYNCED_SNAPSHOT_PREFIX = "cart-synced:";
+
+function snapshotKey(userId: string): string {
+  return `${SYNCED_SNAPSHOT_PREFIX}${userId}`;
+}
+
+export function loadSyncedSnapshot(userId: string): CartLine[] {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(snapshotKey(userId));
+  } catch {
+    return [];
+  }
+  if (raw === null) {
+    return [];
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  // La huella guarda líneas { productId, quantity }: se valida su forma sin
+  // revalidar contra el catálogo (los ids se resuelven al fusionar).
+  const lines = z.array(cartLineSchema).safeParse(parsed);
+  if (!lines.success) {
+    return [];
+  }
+  return lines.data;
+}
+
+export function saveSyncedSnapshot(userId: string, items: CartItem[]): void {
+  try {
+    window.localStorage.setItem(
+      snapshotKey(userId),
+      JSON.stringify(
+        items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      ),
+    );
+  } catch {
+    // Sin almacenamiento: la próxima fusión usará delta completo.
+  }
+}
 
 let inMemoryFallback: CartItem[] | null = null;
 
