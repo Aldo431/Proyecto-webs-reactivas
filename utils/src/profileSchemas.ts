@@ -4,11 +4,18 @@ import { z } from "zod";
 // máximo esta cantidad de visitas recientes por usuario.
 export const MAX_PROD_HISTORY = 67;
 
-const nameField = z
+const usernameField = z
   .string()
   .trim()
-  .min(1, "El nombre es obligatorio.")
-  .max(80, "El nombre no puede superar los 80 caracteres.");
+  .toLowerCase()
+  .min(1, "El nombre de usuario es obligatorio.")
+  .max(80, "El nombre de usuario no puede superar los 80 caracteres.");
+
+const displayNameField = z
+  .string()
+  .trim()
+  .min(1, "El nombre a mostrar es obligatorio.")
+  .max(80, "El nombre a mostrar no puede superar los 80 caracteres.");
 
 const emailField = z
   .string()
@@ -21,7 +28,8 @@ const productIdField = z
   .min(1, "Identificador de producto inválido.");
 
 export const updateProfileSchema = z.object({
-  name: nameField,
+  username: usernameField,
+  displayName: displayNameField,
   email: emailField,
   currentPassword: z.string().min(1, "Ingresa tu contraseña actual."),
 });
@@ -51,7 +59,8 @@ export const historyEntrySchema = z.object({
 
 export const profileSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
+  username: z.string().min(1),
+  displayName: z.string().min(1),
   email: z.email(),
   emailVerified: z.boolean(),
   favorites: z.array(z.string()),

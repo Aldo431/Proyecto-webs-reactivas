@@ -10,7 +10,8 @@ import {
 } from "./profileSchemas.ts";
 
 const validUpdate = {
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   currentPassword: "secreto123",
 };
@@ -20,29 +21,32 @@ describe("updateProfileSchema", () => {
     expect(updateProfileSchema.safeParse(validUpdate).success).toBe(true);
   });
 
-  it("recorta espacios de nombre y correo", () => {
+  it("recorta espacios de username y displayName", () => {
     const result = updateProfileSchema.safeParse({
       ...validUpdate,
-      name: "  Ana Pérez  ",
+      username: "  AnaPerez  ",
+      displayName: "  Ana Pérez  ",
       email: "  ana@dcc.uchile.cl  ",
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.name).toBe("Ana Pérez");
+      expect(result.data.username).toBe("anaperez");
+      expect(result.data.displayName).toBe("Ana Pérez");
       expect(result.data.email).toBe("ana@dcc.uchile.cl");
     }
   });
 
-  it("rechaza un nombre vacío o solo con espacios", () => {
+  it("rechaza un username vacío o solo con espacios", () => {
     expect(
-      updateProfileSchema.safeParse({ ...validUpdate, name: "   " }).success,
+      updateProfileSchema.safeParse({ ...validUpdate, username: "   " })
+        .success,
     ).toBe(false);
   });
 
-  it("rechaza un nombre de más de 80 caracteres", () => {
+  it("rechaza un displayName vacío", () => {
     expect(
-      updateProfileSchema.safeParse({ ...validUpdate, name: "a".repeat(81) })
+      updateProfileSchema.safeParse({ ...validUpdate, displayName: "" })
         .success,
     ).toBe(false);
   });
@@ -132,7 +136,8 @@ describe("profileSchema", () => {
   it("acepta un perfil completo sin passwordHash", () => {
     const result = profileSchema.safeParse({
       id: "6712a4f3c9b1e24a8f0d1234",
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       emailVerified: false,
       favorites: ["taza-dcc"],
@@ -149,7 +154,8 @@ describe("profileSchema", () => {
     expect(
       profileSchema.safeParse({
         id: "6712a4f3c9b1e24a8f0d1234",
-        name: "Ana Pérez",
+        username: "anaperez",
+        displayName: "Ana Pérez",
         email: "ana@dcc.uchile.cl",
       }).success,
     ).toBe(false);
