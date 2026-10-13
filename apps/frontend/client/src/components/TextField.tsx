@@ -1,20 +1,55 @@
+import { useId, type ChangeEventHandler } from "react";
+import { Input } from "./ui/input.tsx";
+import { Label } from "./ui/label.tsx";
+
 interface TextFieldProps {
   label: string;
   name: string;
   type: "text" | "email" | "password";
+  value: string;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+  error?: string | undefined;
+  autoComplete?: string | undefined;
+  disabled?: boolean | undefined;
 }
 
-export function TextField({ label, name, type }: TextFieldProps) {
+// Controlled field with an accessible error (RF-12, RNF-4): the label is
+// linked to the input, and when there is an error the input exposes
+// `aria-invalid` plus `aria-describedby` pointing at the message, which lives
+// in a `role="alert"` region so it is announced.
+export function TextField({
+  label,
+  name,
+  type,
+  value,
+  onChange,
+  error,
+  autoComplete,
+  disabled,
+}: TextFieldProps) {
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
+  const hasError = error !== undefined && error !== "";
+
   return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-brand-900">
-        {label}
-      </span>
-      <input
-        type={type}
+    <div className="space-y-2">
+      <Label htmlFor={inputId}>{label}</Label>
+      <Input
+        id={inputId}
         name={name}
-        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+        type={type}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        aria-invalid={hasError ? true : undefined}
+        aria-describedby={hasError ? errorId : undefined}
       />
-    </label>
+      {hasError && (
+        <p id={errorId} role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

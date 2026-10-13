@@ -1,24 +1,20 @@
-import express, {
- type NextFunction,
- type Request,
- type Response,
-} from "express";
-import cors from "cors";
-const app = express();
-app.use(express.json());
-app.use(cors());
+import { createApp } from "./app.ts";
+import { getEnv } from "./config/env.ts";
+import { connectToDatabase } from "./db/connect.ts";
 
-app.get("/", (request, response) => {
- response.send("<h1>Hello World!</h1>");
-});
+const env = getEnv();
+const app = createApp();
 
-const unknownEndpoint = (request: Request, response: Response) => {
-     response.status(404).send({ error: "unknown endpoint" });
-};
+try {
+  await connectToDatabase(env.mongodbUri);
+  console.log("Conexión a MongoDB establecida.");
+} catch {
+  console.error(
+    "No se pudo conectar a MongoDB. Verifica MONGODB_URI y que el servidor esté disponible.",
+  );
+  process.exit(1);
+}
 
-app.use(unknownEndpoint);
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
- console.log(`Server running on port ${PORT}`);
+app.listen(env.port, () => {
+  console.log(`Servidor escuchando en el puerto ${env.port}`);
 });

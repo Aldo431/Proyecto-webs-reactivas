@@ -2,9 +2,14 @@
   "name": "tiendadcc",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/frontend/client",
+    "apps/backend",
+    "utils"
+  ],
   "scripts": {
-    "dev": "npm run dev --prefix apps/frontend/client",
-    "build": "npm run build --prefix apps/frontend/client",
-    "check": "npm run check --prefix apps/frontend/client"
+    "dev": "npm run dev -w tiendadcc-client",
+    "build": "npm run build -w tiendadcc-client",
+    "check": "npm run check -w @tiendadcc/utils && npm run check -w backend && npm run check -w tiendadcc-client"
   }
 }

@@ -47,6 +47,39 @@ Las dependencias viven dentro de `apps/frontend/client` (un solo `node_modules` 
 npm install --prefix apps/frontend/client
 ```
 
+## Variables de entorno
+
+El backend valida sus variables con Zod al arrancar (`apps/backend/src/config/env.ts`); si falta `MONGODB_URI` o `JWT_SECRET`, aborta con un mensaje en español y no escucha peticiones. Copia las plantillas y completa los valores:
+
+```bash
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/client/.env.example apps/frontend/client/.env.local
+```
+
+Los archivos `.env` y `.env.local` están gitignoreados; las plantillas `.env.example` sí se versionan.
+
+### Backend — `apps/backend/.env`
+
+Lo carga `npm run dev -w backend` con `--env-file-if-exists=.env` (cwd = `apps/backend`). Un `.env` en la raíz **no** se lee.
+
+| Variable | Obligatoria | Por defecto | Descripción |
+|---|---|---|---|
+| `MONGODB_URI` | Sí | — | Cadena de conexión de MongoDB (p. ej. `mongodb://localhost:27017/tiendadcc`). |
+| `JWT_SECRET` | Sí | — | Secreto para firmar los JWT (expiran en 7 días). Genera con `openssl rand -hex 32`. |
+| `PORT` | No | `3001` | Puerto del backend. Si lo cambias, actualiza el target del proxy en `apps/frontend/client/vite.config.ts`. |
+| `NODE_ENV` | No | `development` | `development` \| `production` \| `test`. En `production` la cookie se marca `Secure` (requiere HTTPS). |
+| `CLIENT_ORIGIN` | No | `http://localhost:5173` | Origen exacto del frontend para CORS con credenciales. |
+
+### Frontend — `apps/frontend/client/.env.local`
+
+Vite solo expone las variables con prefijo `VITE_`.
+
+| Variable | Obligatoria | Por defecto | Descripción |
+|---|---|---|---|
+| `VITE_API_URL` | No | vacío (`""`) | URL base del backend. Vacío = mismo origen (Vite proxya `/api` a `http://localhost:3001`); recomendado en desarrollo. Al apuntar a otro origen, la cookie `SameSite=Lax` no se envía y la sesión no se mantiene. |
+
+Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propias variables.
+
 ## Comandos (desde la raíz)
 
 | Comando | Qué hace |
