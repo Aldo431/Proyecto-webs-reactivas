@@ -9,7 +9,7 @@ Esta spec define el **perfil del usuario autenticado** sobre esa base: consulta 
 La implementación se divide en **3 partes**, con la validación mediante tests al final:
 
 - **Parte 1 — Backend:** modelo extendido, `GET /api/users/me`, `PUT /api/users/me`, endpoints de favoritos e historial, y esquemas Zod compartidos (RF-1–RF-6).
-- **Parte 2 — Frontend:** ruta `/perfil` protegida, `ProfilePage` en modo lectura y edición, secciones de favoritos e historial, y registro de visitas desde el detalle (RF-7–RF-10).
+- **Parte 2 — Frontend:** ruta `/perfil` protegida, `ProfilePage` en modo lectura y edición, secciones de favoritos e historial, registro de visitas desde el detalle y accesos de Favoritos/Perfil en el encabezado (RF-7–RF-10, RF-14).
 - **Parte 3 — Sincronización con la cuenta:** carrito persistido en el `User`, fusión del carrito invitado al iniciar sesión con aviso, y persistencia continua mientras hay sesión (RF-11–RF-13). Los favoritos no requieren fusión: solo existen con cuenta (duda resuelta al final).
 - **Validación final:** tests de backend y frontend más `npm run check` (RNF-9 y criterio de finalización).
 
@@ -32,6 +32,7 @@ Lo que **NO** incluye aún: recuperación de contraseña, cambio directo de cont
 - Como usuario autenticado, quiero que mi carrito se guarde en mi cuenta, para retomarlo aunque cambie de dispositivo o navegador.
 - Como usuario que inicia sesión con un carrito invitado, quiero que se combine con el de mi cuenta sumando cantidades y que se me avise, para no perder ningún producto.
 - Como visitante anónimo, quiero que al intentar guardar un favorito se me invite a iniciar sesión, para entender que los favoritos requieren cuenta.
+- Como usuario autenticado, quiero accesos directos a Favoritos y a mi Perfil en el encabezado, para llegar a ellos en un clic desde cualquier vista.
 - Como desarrollador, quiero esquemas Zod compartidos y una API validada con tests, para no duplicar reglas ni aceptar datos sin validar.
 
 ## Requisitos funcionales
@@ -134,6 +135,16 @@ Criterios de aceptación:
 - Cuando un visitante anónimo active el control de favorito, deberá redirigirse a `/iniciar-sesion` sin modificar nada.
 - Cuando cambie el perfil (RF-9) o los favoritos, el estado de sesión expuesto no deberá perder los datos ya cargados salvo recarga explícita.
 
+**RF-14 — Accesos de perfil y favoritos en el encabezado.**
+Cuando el usuario vea el encabezado en cualquier vista, el sistema deberá ofrecer accesos funcionales a Favoritos y Perfil en lugar del marcador "Próximamente".
+Criterios de aceptación:
+- Cuando un usuario autenticado active "Favoritos" (corazón), deberá navegar a `/perfil` mostrando la sección de favoritos (desplazamiento y foco en la sección).
+- Cuando un visitante anónimo active "Favoritos", deberá redirigirse a `/iniciar-sesion` sin modificar nada.
+- Cuando un usuario autenticado active "Perfil" (persona), deberá navegar a `/perfil`.
+- Cuando un visitante anónimo active "Perfil", deberá redirigirse a `/iniciar-sesion` sin modificar nada.
+- Cuando se muestren los accesos, deberán conservar el estilo del encabezado (fantasma, etiqueta visible desde `sm`, solo ícono en móvil) y no deberá quedar ningún marcador "Próximamente" para Favoritos o Perfil.
+- Cuando navegue a la sección de favoritos, la URL visible deberá seguir siendo `#/perfil` (se usa el estado de navegación, compatible con `HashRouter`).
+
 ### Parte 3 — Sincronización con la cuenta
 
 **RF-11 — Carrito persistido en la cuenta.**
@@ -146,14 +157,17 @@ Criterios de aceptación:
 - Cuando se consulte `GET /api/users/me` (RF-2), el carrito guardado deberá incluirse en la respuesta.
 
 **RF-12 — Fusión del carrito invitado al iniciar sesión.**
-Cuando un usuario inicie sesión o se registre con un carrito local distinto del de su cuenta, el sistema deberá fusionarlos sumando cantidades y avisar en español.
+Cuando un usuario pase de anónimo a autenticado (inicio de sesión o registro en la sesión actual), el sistema deberá fusionar una sola vez el carrito invitado con el de su cuenta sumando únicamente lo agregado como invitado (delta sobre la huella sincronizada) y avisar en español solo ante fusión real.
 Criterios de aceptación:
-- Cuando el inicio de sesión o el registro tenga éxito, el frontend deberá fusionar el carrito local (`localStorage`, clave `cart`) con el de la cuenta sumando cantidades por `productId`.
+- Cuando el usuario pase de anónimo a autenticado, el frontend deberá calcular el delta (cantidades locales menos la huella sincronizada de esa cuenta, con un mínimo de cero por producto) y fusionar cuenta más delta sumando cantidades por `productId`.
 - Cuando fusione, deberá revalidar el resultado contra el catálogo: los `productId` inexistentes deberán descartarse y `name`, `price` e `image` deberán tomarse del catálogo manteniendo las cantidades fusionadas (004, RF-7).
-- Cuando fusione carritos no vacíos en ambos lados, deberá persistir el resultado en la cuenta con `PUT /api/users/me/cart` y en `localStorage`, y deberá mostrar un aviso en español en una región con `role="status"` indicando que ambos carritos se combinaron sumando cantidades.
-- Cuando la cuenta no tenga carrito guardado, deberá subir el carrito local sin mostrar el aviso de fusión.
-- Cuando el carrito local esté vacío, deberá adoptar el de la cuenta sin mostrar el aviso de fusión.
+- Cuando el delta y la cuenta sean no vacíos y el resultado difiera del carrito local, deberá persistir el resultado en la cuenta con `PUT /api/users/me/cart` y en `localStorage`, y deberá mostrar un aviso en español en una región con `role="status"` indicando que ambos carritos se combinaron sumando cantidades.
+- Cuando el delta esté vacío (incluido el re-login con el carrito ya sincronizado), deberá adoptar el de la cuenta sin mostrar aviso y sin enviar ningún `PUT` con arreglo vacío.
+- Cuando la cuenta no tenga carrito guardado y el delta sea no vacío, deberá subir el carrito local sin mostrar el aviso de fusión.
+- Cuando restaure la sesión al cargar la aplicación (recarga con cookie válida, sin pasar por anónimo), no deberá fusionar: con el carrito local vacío deberá adoptar el de la cuenta sin `PUT` ni aviso; con el carrito local igual a la huella deberá mantenerlo sin `PUT` ni aviso; con cambios locales no sincronizados deberá subirlos en silencio sin aviso.
 - Cuando el carrito local esté vacío al iniciar sesión, registrarse o restaurar la sesión, el frontend deberá adoptar el de la cuenta sin enviar ningún `PUT` con arreglo vacío: la adopción nunca deberá vaciar el carrito guardado. El `PUT` con arreglo vacío (RF-11) queda reservado a la acción explícita del usuario de vaciar el carrito o quitar su última línea.
+- Cuando la fusión o subida falle por error de red, deberá conservar el carrito local, mostrar un error en español y reintentar en el próximo cambio del carrito.
+- Cuando sincronice (fusión, subida, persistencia o adopción), deberá guardar la huella sincronizada de esa cuenta en `localStorage` (espacio de nombres por cuenta, que sobrevive al cierre de sesión); cuando la escritura falle, la huella no deberá actualizarse.
 - Cuando la fusión falle por error de red, deberá conservar el carrito local, mostrar un error en español y reintentar en el próximo cambio del carrito.
 
 **RF-13 — Persistencia continua y cierre de sesión.**
@@ -198,6 +212,10 @@ Criterios de aceptación:
 - Fallo de red al fusionar o persistir el carrito: se conserva el carrito local y se reintenta en el próximo cambio (cubierto por RF-12, RF-13).
 - Cierre de sesión con carrito: ni el local ni el de la cuenta se modifican (cubierto por RF-13).
 - Anónimo que intenta guardar un favorito: es redirigido a `/iniciar-sesion` sin cambios (cubierto por RF-10).
+- Recarga con el carrito idéntico en local y cuenta: no suma, no avisa y no escribe (cubierto por RF-12).
+- Re-login con el carrito ya sincronizado: el delta está vacío y se adopta sin duplicar (cubierto por RF-12).
+- Invitado que agrega productos tras cerrar sesión y vuelve a entrar: solo el delta se suma a la cuenta (cubierto por RF-12).
+- Navegador compartido por dos cuentas: las huellas viven separadas por cuenta y no se mezclan (cubierto por RF-12).
 
 ## Fuera de alcance
 
@@ -225,10 +243,10 @@ Esta tarea se considera terminada cuando:
 8. El modo edición parte de los valores actuales, exige contraseña actual, valida en español, evita doble envío, gestiona el foco y refleja el éxito en la vista y en la sesión (RF-9).
 9. Las visitas se registran desde el detalle solo para autenticados con producto existente, los favoritos se sincronizan con feedback en español y el anónimo que intenta guardar un favorito es redirigido a `/iniciar-sesion` (RF-10).
 10. El carrito se persiste en la cuenta con `PUT /api/users/me/cart` validado y viaja en el perfil (RF-11, RF-2).
-11. Al iniciar sesión o registrarse, el carrito invitado se fusiona con el de la cuenta sumando cantidades, revalidado contra el catálogo y con aviso en español; sin fusión de no vacíos no hay aviso (RF-12).
+11. Al pasar de anónimo a autenticado, el carrito invitado se fusiona con el de la cuenta sumando solo el delta sobre la huella (con aviso en español ante fusión real); al restaurar la sesión nunca se fusiona y la adopción no escribe; la huella por cuenta sobrevive al cierre de sesión (RF-12).
 12. Con sesión activa cada cambio del carrito se persiste sin bloquear, con error no bloqueante y reintento; al cerrar sesión ningún carrito se altera y el anónimo solo usa `localStorage` (RF-13).
 13. Existen tests de backend y frontend según RNF-9 y el `npm run check` de la raíz verifica frontend y backend.
-14. La UI cumple el sistema de diseño "IDE institucional", accesibilidad y responsividad exigidas (RNF-4, RNF-5, RNF-6).
+14. La UI cumple el sistema de diseño "IDE institucional", accesibilidad y responsividad exigidas (RNF-4, RNF-5, RNF-6), y el encabezado ofrece Favoritos (a la sección en `/perfil`) y Perfil funcionales sin marcadores "Próximamente" (RF-14).
 15. `npm run check` pasa sin errores.
 
 ## Dudas abiertas
@@ -245,3 +263,5 @@ Esta tarea se considera terminada cuando:
 - [RESUELTO] Favoritos sin fusión: solo existen con cuenta y el anónimo que intenta guardar uno es redirigido a `/iniciar-sesion`; la "sincronización" de favoritos es su persistencia por cuenta (RF-4, RF-10).
 - [RESUELTO] Historial con tope **`MAX_PROD_HISTORY` = 67** (constante configurable compartida en `utils/`) y **paginación de 10 por página** (`HISTORY_PAGE_SIZE`, constante configurable del frontend) en la sección del perfil.
 - [RESUELTO] Lectura del carrito incluida en `GET /api/users/me`; escritura con `PUT /api/users/me/cart` de reemplazo completo validado; el `PUT /api/users/me` ignora `cart` (además de `favorites` e `history`).
+- [RESUELTO] Fusión por **delta sobre huella sincronizada**: la suma ciega local+cuenta duplicaba en cada recarga y re-login; ahora solo se fusiona en la transición anónimo→autenticado sumando lo agregado como invitado, la restauración de sesión nunca fusiona, y la huella (`cart-synced:<userId>` en `localStorage`) sobrevive al logout.
+- [RESUELTO] Accesos del encabezado: **Favoritos** (corazón → sección de favoritos en `/perfil` con desplazamiento y foco; anónimo → `/iniciar-sesion`) y **Perfil** (persona → `/perfil`; anónimo → `/iniciar-sesion`); se eliminan los marcadores "Próximamente" de ambos. La sección se pasa por estado de navegación para no romper `HashRouter`.

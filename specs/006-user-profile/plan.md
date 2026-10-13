@@ -19,7 +19,8 @@ Se trabaja sobre lo ya construido: workspace `utils/` con `@tiendadcc/utils` (00
 
 - **Lógica pura del frontend** — `apps/frontend/client/src/logic/` *(RF-8, RF-10, RF-12, RF-13)*
   - `profileApi.ts` (nuevo): `fetchProfile`, `updateProfile`, `addFavorite`, `removeFavorite`, `recordVisit`, `replaceCart`; `credentials: "include"`, respuestas validadas con `profileSchema`, errores tipados como `AuthResult` (`ok` | `fieldErrors` | `message`) siguiendo el patrón de `authApi.ts` *(RF-8, RF-9, RF-10, RF-11)*.
-  - `cartSync.ts` (nuevo): `mergeCarts(local, server, catalog)` pura — suma cantidades por `productId`, descarta ids inexistentes y toma `name`/`price`/`image` del catálogo (misma revalidación de `loadCartFromStorage`, 004 RF-7); indica si hubo fusión real de no vacíos para decidir el aviso *(RF-12)*.
+  - `cartSync.ts` (nuevo): `mergeCarts(local, server, catalog)` para la suma con revalidación; `subtractSnapshot(local, snapshot)` para el delta (cantidades locales menos huella, mínimo cero); `mergeWithDelta(delta, server, catalog)` (suma delta+cuenta, `merged` solo si delta y cuenta son no vacíos); `areCartItemsEqual` para silenciar el aviso cuando nada cambió *(RF-12)*.
+  - `cartStorage.ts` (existente, 004): `saveSyncedSnapshot(userId, lines)` / `loadSyncedSnapshot(userId)` con clave `cart-synced:<userId>` validada con `cartSchema`; la huella sobrevive al cierre de sesión y se actualiza solo ante escritura exitosa *(RF-12)*.
   - `profilePagination.ts` (nuevo): `paginate(items, page, HISTORY_PAGE_SIZE = 10)` puro — recorta la página y calcula `totalPages`; `HISTORY_PAGE_SIZE` vive aquí (constante configurable del frontend, no viaja al backend) *(RF-8)*.
   - `authApi.ts` y `cartStorage.ts` no cambian (el carrito anónimo sigue en `localStorage` clave `cart`).
 
@@ -28,10 +29,11 @@ Se trabaja sobre lo ya construido: workspace `utils/` con `@tiendadcc/utils` (00
   - `AuthContext.tsx`: sin cambios salvo que `ProfilePage` usa su `refresh()` tras un `PUT /me` exitoso para reflejar el `name` *(RF-9)*.
 
 - **Presentación** — `src/pages/` y `src/components/` *(RF-7, RF-8, RF-9, RF-10)*
-  - `pages/ProfilePage.tsx` (nueva): modo lectura (datos, estado "Cuenta verificada"/"Pendiente de verificación", secciones de favoritos e historial paginado con "Explorar catálogo" en vacíos, resumen "Mi carrito" que abre el drawer, botón "Editar perfil") y modo edición (formulario controlado pre-rellenado + "Contraseña actual" con `TextField`, validación local con el esquema compartido, doble envío bloqueado, foco al error, éxito/error en español) *(RF-8, RF-9)*.
+  - `pages/ProfilePage.tsx` (nueva): modo lectura (datos, estado "Cuenta verificada"/"Pendiente de verificación", secciones de favoritos e historial paginado con "Explorar catálogo" en vacíos, resumen "Mi carrito" que abre el drawer, botón "Editar perfil"), sección de favoritos con ancla y foco programático al llegar con estado de navegación, y modo edición (formulario controlado pre-rellenado + "Contraseña actual" con `TextField`, validación local con el esquema compartido, doble envío bloqueado, foco al error, éxito/error en español) *(RF-8, RF-9, RF-14)*.
   - `components/FavoriteToggle.tsx` (nuevo): botón corazón con `aria-pressed` y nombre accesible en español; props `productId`, `isFavorite`, `onToggle`, `disabled` *(RF-10, RNF-4)*.
   - `pages/ProductDetailPage.tsx`: agrega `FavoriteToggle` junto a "Agregar al carrito" (autenticado: persiste; anónimo: navega a `/iniciar-sesion`) y registra la visita con `recordVisit` solo si hay sesión y el producto existe, sin bloquear el render *(RF-10)*.
   - `components/CartDrawer.tsx`: muestra el aviso de fusión (`mergeNotice`, `role="status"`, descartable) dentro del panel *(RF-12, RNF-4)*.
+  - `components/Header.tsx`: "Favoritos" (corazón) y "Perfil" (persona) funcionales en vez de `ComingSoonItem`: autenticado → `/perfil` (Favoritos con `state: { section: "favoritos" }`); anónimo → `/iniciar-sesion`; mismo estilo fantasma con etiqueta desde `sm` *(RF-14)*.
   - `App.tsx`: guarda `OnlyAuthenticatedRoute` para `/perfil` (anónimo → `/iniciar-sesion`, neutro durante `loading`) y ruta `#/perfil` *(RF-7)*.
 
 - **Datos** — `src/data/products.json` no cambia: los `productId` de favoritos, historial y carrito son opacos para el backend y se resuelven contra el catálogo en el frontend (fuera de alcance de 006 migrar el catálogo) *(RF-8, RF-10, RF-12)*.
@@ -105,9 +107,9 @@ Cuerpos de entrada (revalidados en el servidor; el email se normaliza a minúscu
 - Justificación: el carrito del frontend ya se opera como arreglo completo (004) y es pequeño; un `PUT` validado con `cartSchema` es idempotente y simple de reintentar *(RF-11, RF-13)*.
 - Alternativa descartada: **`POST/DELETE` por línea como en favoritos**. Triplica los endpoints y complica la fusión y el reintento (orden de operaciones parciales).
 
-**D5 — Fusión del carrito en el frontend (`mergeCarts` pura) en vez de endpoint de fusión.**
-- Justificación: la fusión necesita el catálogo estático, que solo existe en el frontend; una función pura es testeable sin DB ni red y respeta §3 *(RF-12)*.
-- Alternativa descartada: **`POST /api/users/me/cart/merge`**. El backend no conoce `products.json` y replicaría la revalidación del frontend.
+**D5 — Fusión por delta sobre huella sincronizada, solo en la transición anónimo→autenticado.**
+- Justificación: la suma ciega local+cuenta duplicaba en cada recarga y re-login porque tras sincronizar ambos lados son idénticos; el delta (local menos huella `cart-synced:<userId>`, que sobrevive al logout) suma solo lo agregado como invitado, y la restauración de sesión nunca fusiona (adopta o converge en silencio) *(RF-12)*.
+- Alternativa descartada: **sumar siempre al autenticar**. Correcta solo en el primer login; rompe el invariante en recargas y re-logins porque vuelve a sumar lo ya sincronizado.
 
 **D6 — Adopción sin `PUT` vacío (regla anti-vaciado).**
 - Justificación: RF-12 lo exige explícito —adoptar con local vacío nunca envía arreglo vacío— porque el auto-persistido de RF-13 haría eco del `[]` y borraría el carrito de la cuenta *(RF-11, RF-12, RF-13)*.
@@ -133,6 +135,14 @@ Cuerpos de entrada (revalidados en el servidor; el email se normaliza a minúscu
 - Justificación: el tope lo aplica el backend al recortar (debe ser compartido y validable, RF-5/RF-6) mientras el tamaño de página solo afecta presentación (RF-8) *(RF-5, RF-6, RF-8)*.
 - Alternativa descartada: **variables de entorno para ambas**. Operativa de despliegue para constantes de dominio ya fijadas en la spec.
 
+**D13 — Accesos del header a `/perfil` con sección por estado de navegación.**
+- Justificación: RF-14 exige Favoritos/Perfil funcionales sin "Próximamente" (duda resuelta); `navigate("/perfil", { state: { section: "favoritos" } })` lleva a la sección sin tocar la URL visible, compatible con `HashRouter` *(RF-14, RF-7)*.
+- Alternativa descartada: **ancla `#favoritos` en la URL o ruta `/favoritos` dedicada**. El `#` ya lo ocupa el `HashRouter` (`#/perfil`) y una ruta nueva excede el alcance de la spec.
+
+**D14 — Fusión en el frontend (función pura) en vez de endpoint de fusión.**
+- Justificación: la fusión necesita el catálogo estático, que solo existe en el frontend; una función pura es testeable sin DB ni red y respeta §3 *(RF-12)*.
+- Alternativa descartada: **`POST /api/users/me/cart/merge`**. El backend no conoce `products.json` y replicaría la revalidación del frontend.
+
 **D12 — Tests con la infraestructura existente (supertest + `mongodb-memory-server`, `fetch` simulado); QA manual para contrato.**
 - Justificación: §4 y RNF-9 exigen cubrir la lógica; reutilizar `mongoMemory.ts` prueba índice único y flujos reales sin MongoDB externa, como en 005 *(criterio de finalización 15)*.
 - Alternativa descartada: **e2e con navegador o MongoDB real**. Fuera del stack de verificación del proyecto y frágil para `npm run check`.
@@ -142,7 +152,8 @@ Cuerpos de entrada (revalidados en el servidor; el email se normaliza a minúscu
 
 - **Lógica pura obligatoria (§4):**
   - `utils/profileSchemas`: `updateProfileSchema` acepta un cuerpo válido y recorta; rechaza nombre vacío/largo, email inválido y `currentPassword` vacío; `cartLineSchema` rechaza cantidad 0/negativa/no entera; `MAX_PROD_HISTORY` es 67. *(Verifica RF-3, RF-6, RF-11)*
-  - `cartSync.mergeCarts`: suma cantidades por `productId`, descarta ids inexistentes, toma `name`/`price`/`image` del catálogo, indica fusión real solo si ambos lados eran no vacíos; ambos vacíos → vacío sin aviso. *(Verifica RF-12)*
+  - `cartSync.mergeCarts`: suma cantidades por `productId`, descarta ids inexistentes, toma `name`/`price`/`image` del catálogo, indica fusión real solo si ambos lados eran no vacíos; ambos vacíos → vacío sin aviso. `subtractSnapshot`: resta la huella con mínimo cero e incluye íntegros los ids nuevos; `mergeWithDelta`: suma delta+cuenta e indica `merged` solo si ambos son no vacíos. *(Verifica RF-12)*
+  - `cartStorage` huella: guarda/carga por cuenta (`cart-synced:<id>`), valida con `cartSchema`, sobrevive al logout. *(Verifica RF-12)*
   - `profilePagination.paginate`: recorta la página de 10, `totalPages` correcto, página fuera de rango → última/página vacía según convención fijada en el test. *(Verifica RF-8)*
   - `profileApi` (con `fetch` simulado): mapea `200` a perfil válido, `400` a `fieldErrors`, `401`/`409` a mensaje, red a mensaje genérico; nunca envía `favorites`/`history`/`cart` en el `PUT /me`. *(Verifica RF-8, RF-9, RF-10, RF-11)*
 - **Backend (rutas/controladores, §4, con `mongodb-memory-server`):**
@@ -155,7 +166,8 @@ Cuerpos de entrada (revalidados en el servidor; el email se normaliza a minúscu
   - `ProfilePage`: lectura con datos/estado/secciones; edición pre-rellenada, validación local, éxito (llama `refresh`), errores `400/401/409`, "Cancelar" sin enviar; carga/error con "Reintentar"; historial paginado (cambia de página); resumen "Mi carrito" abre el drawer. *(RF-8, RF-9)*
   - Ruta `/perfil`: anónimo → `/iniciar-sesion`; `loading` neutro; autenticado → perfil. *(RF-7)*
   - `FavoriteToggle` en detalle: autenticado alterna y persiste; anónimo navega a login; visita registra historial solo con sesión y producto existente. *(RF-10)*
-  - `CartContext` + drawer: fusión con aviso `role="status"` descartable en el drawer; adopción sin `PUT` vacío (fetch simulado: ningún `PUT []` tras login con local vacío); cambio con sesión → `PUT`; fallo → error no bloqueante y reintento; logout no altera carritos; anónimo sin red. *(RF-12, RF-13)*
+  - `CartContext` + drawer: fusión con aviso `role="status"` descartable en el drawer; adopción sin `PUT` vacío (fetch simulado: ningún `PUT []` tras login con local vacío); cambio con sesión → `PUT`; fallo → error no bloqueante y reintento; logout no altera carritos; anónimo sin red. Recarga con carrito idéntico → sin `PUT`, sin aviso y sin duplicar; re-login sincronizado → delta vacío y cantidades intactas; invitado post-logout → solo el delta se suma. *(RF-12, RF-13)*
+  - `Header`: Favoritos/Perfil según sesión (autenticado → `/perfil` y sección de favoritos con foco; anónimo → `/iniciar-sesion`), sin `ComingSoonItem`. *(RF-14)*
   - Tests existentes afectados (`App.test.tsx` y los que rendericen detalle/header) se actualizan sin eliminar aserciones vigentes.
 - **Verificación de contrato por QA (manual):**
   - Flujo real con MongoDB: registro nuevo → `/perfil` muestra datos y secciones vacías con "Explorar catálogo".
@@ -178,13 +190,15 @@ Cuerpos de entrada (revalidados en el servidor; el email se normaliza a minúscu
 | `usersRoutes` + `usersController` + `requireAuth` + `errorHandler` | RF-2, RF-3, RF-4, RF-5, RF-11 |
 | `app.ts` monta `/api/users` | RF-2, RNF-2 |
 | `logic/profileApi.ts` | RF-8, RF-9, RF-10, RF-11 |
-| `logic/cartSync.ts` (`mergeCarts`) | RF-12 |
+| `logic/cartSync.ts` (`mergeCarts`, `subtractSnapshot`, `mergeWithDelta`) | RF-12 |
+| `logic/cartStorage.ts` (huella `cart-synced:<id>`) | RF-12 |
 | `logic/profilePagination.ts` | RF-8 |
 | `CartContext` extendido (fusión, persistencia, aviso, adopción) | RF-12, RF-13 |
 | `ProfilePage` (lectura, edición, secciones, resumen carrito) | RF-8, RF-9 |
 | `FavoriteToggle` + detalle (registro de visita, toggle, redirect anónimo) | RF-10 |
 | `CartDrawer` (aviso `role="status"`) | RF-12 |
 | Guarda `OnlyAuthenticatedRoute` + ruta `#/perfil` en `App.tsx` | RF-7 |
+| `Header` accesos + sección de favoritos en `ProfilePage` | RF-14 |
 | `products.json` sin cambios (ids opacos) | RF-8, RF-10, RF-12 |
 | Tests de lógica pura, backend y smoke de frontend en Vitest | verificación RF-1…RF-13 (§4) |
 
