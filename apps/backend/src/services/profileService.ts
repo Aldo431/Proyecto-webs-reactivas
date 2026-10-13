@@ -25,12 +25,21 @@ export async function updateProfileData(
   }
 
   const email = input.email.trim().toLowerCase();
-  const existing = await User.findOne({ email, _id: { $ne: user._id } });
-  if (existing) {
+  const username = input.username.trim().toLowerCase();
+  const existingEmail = await User.findOne({ email, _id: { $ne: user._id } });
+  if (existingEmail) {
     throw new ConflictError();
   }
+  const existingUsername = await User.findOne({
+    username,
+    _id: { $ne: user._id },
+  });
+  if (existingUsername) {
+    throw new ConflictError("Ese nombre de usuario ya está en uso.");
+  }
 
-  user.name = input.name.trim();
+  user.username = username;
+  user.displayName = input.displayName.trim();
   user.email = email;
   await user.save();
   return user;

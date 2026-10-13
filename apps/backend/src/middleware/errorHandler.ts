@@ -68,6 +68,17 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   if (isDuplicateKeyError(error)) {
+    const keyValue = (error as { keyValue?: unknown }).keyValue;
+    if (
+      typeof keyValue === "object" &&
+      keyValue !== null &&
+      "username" in keyValue
+    ) {
+      response.status(409).json({
+        message: "Ese nombre de usuario ya está en uso.",
+      });
+      return;
+    }
     response.status(409).json({
       message: "Ya existe una cuenta con ese correo electrónico.",
     });

@@ -16,11 +16,17 @@ import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 let mongo: MongoMemoryServer;
 
 async function createTestUser(
-  overrides: { name?: string; email?: string; password?: string } = {},
+  overrides: {
+    username?: string;
+    displayName?: string;
+    email?: string;
+    password?: string;
+  } = {},
 ) {
   const passwordHash = await hashPassword(overrides.password ?? "secreto123");
   return User.create({
-    name: overrides.name ?? "Ana Pérez",
+    username: overrides.username ?? "anaperez",
+    displayName: overrides.displayName ?? "Ana Pérez",
     email: overrides.email ?? "ana@dcc.uchile.cl",
     passwordHash,
   });
@@ -40,16 +46,18 @@ beforeEach(async () => {
 });
 
 describe("updateProfileData", () => {
-  it("actualiza nombre y correo normalizado con la contraseña correcta", async () => {
+  it("actualiza identidad y correo normalizados con la contraseña correcta", async () => {
     const user = await createTestUser();
 
     const updated = await updateProfileData(user._id.toString(), {
-      name: "  Ana P.  ",
+      username: "  AnaP  ",
+      displayName: "  Ana P.  ",
       email: "  ANA@DCC.UCHILE.CL  ",
       currentPassword: "secreto123",
     });
 
-    expect(updated?.name).toBe("Ana P.");
+    expect(updated?.username).toBe("anap");
+    expect(updated?.displayName).toBe("Ana P.");
     expect(updated?.email).toBe("ana@dcc.uchile.cl");
     expect(updated?.toProfileJSON().emailVerified).toBe(false);
   });
@@ -59,24 +67,26 @@ describe("updateProfileData", () => {
 
     await expect(
       updateProfileData(user._id.toString(), {
-        name: "Otro Nombre",
+        username: "otro",
+        displayName: "Otro Nombre",
         email: "otro@dcc.uchile.cl",
         currentPassword: "incorrecta",
       }),
     ).rejects.toBeInstanceOf(UnauthorizedError);
 
     const reloaded = await User.findById(user._id);
-    expect(reloaded?.name).toBe("Ana Pérez");
+    expect(reloaded?.username).toBe("anaperez");
     expect(reloaded?.email).toBe("ana@dcc.uchile.cl");
   });
 
   it("rechaza con 409 el correo de otro usuario sin distinguir mayúsculas", async () => {
     const user = await createTestUser();
-    await createTestUser({ email: "otro@dcc.uchile.cl" });
+    await createTestUser({ username: "otro", email: "otro@dcc.uchile.cl" });
 
     await expect(
       updateProfileData(user._id.toString(), {
-        name: "Ana Pérez",
+        username: "anaperez",
+        displayName: "Ana Pérez",
         email: "OTRO@DCC.UCHILE.CL",
         currentPassword: "secreto123",
       }),
@@ -86,21 +96,44 @@ describe("updateProfileData", () => {
     expect(reloaded?.email).toBe("ana@dcc.uchile.cl");
   });
 
-  it("acepta conservar el propio correo", async () => {
+  it("rechaza con 409 el username de otro usuario sin distinguir mayúsculas", async () => {
+    const user = await createTestUser();
+    await createTestUser({ username: "otro", email: "otro@dcc.uchile.cl" });
+
+    await expect(
+      updateProfileData(user._id.toString(), {
+        username: "OTRO",
+        displayName: "Ana Pérez",
+        email: "ana@dcc.uchile.cl",
+        currentPassword: "secreto123",
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Ese nombre de usuario ya está en uso.",
+    });
+
+    const reloaded = await User.findById(user._id);
+    expect(reloaded?.username).toBe("anaperez");
+  });
+
+  it("acepta conservar el propio correo y username", async () => {
     const user = await createTestUser();
 
     const updated = await updateProfileData(user._id.toString(), {
-      name: "Ana Renombrada",
+      username: "AnaPerez",
+      displayName: "Ana Renombrada",
       email: "ana@dcc.uchile.cl",
       currentPassword: "secreto123",
     });
 
-    expect(updated?.name).toBe("Ana Renombrada");
+    expect(updated?.username).toBe("anaperez");
+    expect(updated?.displayName).toBe("Ana Renombrada");
   });
 
   it("devuelve null para un usuario inexistente", async () => {
     const updated = await updateProfileData("6712a4f3c9b1e24a8f0d1234", {
-      name: "Nadie",
+      username: "nadie",
+      displayName: "Nadie",
       email: "nadie@dcc.uchile.cl",
       currentPassword: "secreto123",
     });

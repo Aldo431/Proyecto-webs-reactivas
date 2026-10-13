@@ -17,7 +17,8 @@ export interface CartLineDocument {
 }
 
 export interface UserFields {
-  name: string;
+  username: string;
+  displayName: string;
   email: string;
   passwordHash: string;
   emailVerified: boolean;
@@ -26,6 +27,8 @@ export interface UserFields {
   cart: CartLineDocument[];
   createdAt: Date;
   updatedAt: Date;
+  /** Legado previo a 007: solo se lee para adoptar `username`/`displayName`. */
+  name?: string;
 }
 
 export interface UserMethods {
@@ -39,12 +42,27 @@ export type UserDocument = HydratedDocument<UserFields, UserMethods>;
 
 const userSchema = new Schema<UserFields, UserModel, UserMethods>(
   {
+    username: {
+      type: String,
+      required: [true, "El nombre de usuario es obligatorio."],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      minlength: [1, "El nombre de usuario es obligatorio."],
+      maxlength: [80, "El nombre de usuario no puede superar los 80 caracteres."],
+    },
+    displayName: {
+      type: String,
+      required: [true, "El nombre a mostrar es obligatorio."],
+      trim: true,
+      minlength: [1, "El nombre a mostrar es obligatorio."],
+      maxlength: [80, "El nombre a mostrar no puede superar los 80 caracteres."],
+    },
+    // Legado previo a 007: se conserva para adoptar documentos antiguos.
     name: {
       type: String,
-      required: [true, "El nombre es obligatorio."],
+      required: false,
       trim: true,
-      minlength: [1, "El nombre es obligatorio."],
-      maxlength: [80, "El nombre no puede superar los 80 caracteres."],
     },
     email: {
       type: String,
@@ -88,9 +106,11 @@ const userSchema = new Schema<UserFields, UserModel, UserMethods>(
 );
 
 userSchema.methods.toPublicJSON = function (): PublicUser {
+  const username = this.username ?? this.name ?? "";
   return {
     id: this._id.toString(),
-    name: this.name,
+    username,
+    displayName: this.displayName ?? this.name ?? username,
     email: this.email,
   };
 };
@@ -98,9 +118,11 @@ userSchema.methods.toPublicJSON = function (): PublicUser {
 // Los documentos creados antes de 006 no tienen estos campos: se normalizan
 // aquí para responder igual sin script de migración (plan 006, D2).
 userSchema.methods.toProfileJSON = function (): UserProfile {
+  const username = this.username ?? this.name ?? "";
   return {
     id: this._id.toString(),
-    name: this.name,
+    username,
+    displayName: this.displayName ?? this.name ?? username,
     email: this.email,
     emailVerified: this.emailVerified ?? false,
     favorites: this.favorites ?? [],
