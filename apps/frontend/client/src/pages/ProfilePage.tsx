@@ -1,14 +1,9 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { updateProfileSchema, type UserProfile } from "@tiendadcc/utils";
-import { FavoriteToggle } from "../components/FavoriteToggle.tsx";
+import { FavoriteProductCard } from "../components/FavoriteProductCard.tsx";
 import { Header } from "../components/Header.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Badge } from "../components/ui/badge.tsx";
@@ -24,8 +19,13 @@ import { useCart } from "../context/CartContext.tsx";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 import { getProductById } from "../logic/productLookup.ts";
-import { parseProducts } from "../logic/productParse.ts";
-import { paginate } from "../logic/profilePagination.ts";
+import { parseProducts, type Product } from "../logic/productParse.ts";
+import {
+  FAVORITES_PAGE_SIZE,
+  formatViewedAt,
+  HISTORY_PAGE_SIZE,
+  paginate,
+} from "../logic/profilePagination.ts";
 import {
   fetchProfile,
   removeFavorite,
@@ -35,16 +35,27 @@ import productsJson from "../data/products.json";
 
 const productCatalog = parseProducts(productsJson);
 
-const EDIT_FIELD_ORDER = ["name", "email", "currentPassword"] as const;
+const EDIT_FIELD_ORDER = [
+  "username",
+  "displayName",
+  "email",
+  "currentPassword",
+] as const;
 
 interface EditValues {
-  name: string;
+  username: string;
+  displayName: string;
   email: string;
   currentPassword: string;
 }
 
 function valuesFromProfile(profile: UserProfile): EditValues {
-  return { name: profile.name, email: profile.email, currentPassword: "" };
+  return {
+    username: profile.username,
+    displayName: profile.displayName,
+    email: profile.email,
+    currentPassword: "",
+  };
 }
 
 // Vista de perfil (spec 006, RF-8/RF-9): modo lectura con datos, estado,
@@ -63,7 +74,8 @@ export function ProfilePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<"read" | "edit">("read");
   const [values, setValues] = useState<EditValues>({
-    name: "",
+    username: "",
+    displayName: "",
     email: "",
     currentPassword: "",
   });
@@ -71,7 +83,10 @@ export function ProfilePage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [historyPage, setHistoryPage] = useState<number>(1);
+  const [favoritesPage, setFavoritesPage] = useState<number>(1);
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(
+    HISTORY_PAGE_SIZE,
+  );
   const [favoritePending, setFavoritePending] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
@@ -133,15 +148,68 @@ export function ProfilePage() {
     [profile],
   );
 
-  const historyProducts = useMemo(
+  const historyItems = useMemo(
     () =>
       (profile?.history ?? [])
-        .map((visit) => getProductById(productCatalog, visit.productId))
-        .filter((product) => product !== undefined),
+        .map((visit) => {
+          const product = getProductById(productCatalog, visit.productId);
+          if (product === undefined) {
+            return undefined;
+          }
+          return { product, viewedAt: visit.viewedAt };
+        })
+        .filter(
+          (entry): entry is { product: Product; viewedAt: string } =>
+            entry !== undefined,
+        ),
     [profile],
   );
 
-  const historyPageData = paginate(historyProducts, historyPage);
+  const favoritesPageData = paginate(
+    favoriteProducts,
+    favoritesPage,
+    FAVORITES_PAGE_SIZE,
+  );
+  const visibleHistoryItems = historyItems.slice(0, visibleHistoryCount);
+  const historyListRef = useRef<HTMLUListElement>(null);
+  const [canScrollHistoryLeft, setCanScrollHistoryLeft] =
+    useState<boolean>(false);
+  const [canScrollHistoryRight, setCanScrollHistoryRight] =
+    useState<boolean>(false);
+
+  function updateHistoryScrollEdges() {
+    const list = historyListRef.current;
+    if (list === null) {
+      return;
+    }
+    setCanScrollHistoryLeft(list.scrollLeft > 0);
+    setCanScrollHistoryRight(
+      list.scrollLeft + list.clientWidth < list.scrollWidth - 1,
+    );
+  }
+
+  useEffect(() => {
+    updateHistoryScrollEdges();
+  }, [visibleHistoryItems.length]);
+
+  // Desplaza exactamente una tarjeta para mostrarla completa, igual que el
+  // gesto de desplazamiento en móvil (que sigue funcionando de forma nativa).
+  function scrollHistory(direction: 1 | -1) {
+    const list = historyListRef.current;
+    if (list === null) {
+      return;
+    }
+    const firstItem = list.querySelector(":scope > li");
+    const step =
+      (firstItem instanceof HTMLElement ? firstItem.offsetWidth : 0) + 12;
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    list.scrollBy?.({
+      left: direction * step,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }
 
   function handleEditChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
@@ -254,7 +322,7 @@ export function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showBackButton />
+      <Header />
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
         <h1 className="font-mono text-3xl font-bold text-foreground">
           Mi perfil
@@ -299,13 +367,21 @@ export function ProfilePage() {
               <CardContent className="flex flex-col gap-4">
                 {mode === "read" ? (
                   <>
-                    <dl className="flex flex-col gap-2">
+                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <dt className="font-sans text-sm text-muted-foreground">
-                          Nombre
+                          Nombre de usuario
+                        </dt>
+                        <dd className="font-mono text-base text-foreground">
+                          {profile.username}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-sans text-sm text-muted-foreground">
+                          Nombre a mostrar
                         </dt>
                         <dd className="font-sans text-base text-foreground">
-                          {profile.name}
+                          {profile.displayName}
                         </dd>
                       </div>
                       <div>
@@ -345,16 +421,28 @@ export function ProfilePage() {
                 ) : (
                   <form noValidate onSubmit={handleSubmit}>
                     <div className="flex flex-col gap-4">
-                      <TextField
-                        label="Nombre"
-                        name="name"
-                        type="text"
-                        autoComplete="name"
-                        value={values.name}
-                        onChange={handleEditChange}
-                        disabled={submitting}
-                        error={fieldErrors.name}
-                      />
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <TextField
+                          label="Nombre de usuario"
+                          name="username"
+                          type="text"
+                          autoComplete="username"
+                          value={values.username}
+                          onChange={handleEditChange}
+                          disabled={submitting}
+                          error={fieldErrors.username}
+                        />
+                        <TextField
+                          label="Nombre a mostrar"
+                          name="displayName"
+                          type="text"
+                          autoComplete="nickname"
+                          value={values.displayName}
+                          onChange={handleEditChange}
+                          disabled={submitting}
+                          error={fieldErrors.displayName}
+                        />
+                      </div>
                       <TextField
                         label="Correo electrónico"
                         name="email"
@@ -458,29 +546,59 @@ export function ProfilePage() {
                     </Button>
                   </>
                 ) : (
-                  <ul className="flex flex-col gap-2">
-                    {favoriteProducts.map((product) => (
-                      <li
-                        key={product.id}
-                        className="flex items-center justify-between gap-2"
+                  <>
+                    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {favoritesPageData.pageItems.map((product) => (
+                        <li key={product.id}>
+                          <FavoriteProductCard
+                            product={product}
+                            onRemove={(productId) => {
+                              void handleRemoveFavorite(productId);
+                            }}
+                            removeDisabled={favoritePending !== null}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {favoritesPageData.totalPages > 1 && (
+                      <nav
+                        aria-label="Paginación de favoritos"
+                        className="flex items-center gap-2"
                       >
-                        <Link
-                          to={`/producto/${product.id}`}
-                          className="font-sans text-sm text-primary hover:underline"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={favoritesPageData.page <= 1}
+                          onClick={() =>
+                            setFavoritesPage(favoritesPageData.page - 1)
+                          }
+                          aria-label="Página anterior de favoritos"
                         >
-                          {product.name}
-                        </Link>
-                        <FavoriteToggle
-                          productName={product.name}
-                          isFavorite
-                          disabled={favoritePending !== null}
-                          onToggle={() => {
-                            void handleRemoveFavorite(product.id);
-                          }}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                          Anterior
+                        </Button>
+                        <span className="font-sans text-sm text-muted-foreground">
+                          Página {favoritesPageData.page} de{" "}
+                          {favoritesPageData.totalPages}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={
+                            favoritesPageData.page >=
+                            favoritesPageData.totalPages
+                          }
+                          onClick={() =>
+                            setFavoritesPage(favoritesPageData.page + 1)
+                          }
+                          aria-label="Página siguiente de favoritos"
+                        >
+                          Siguiente
+                        </Button>
+                      </nav>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -490,7 +608,7 @@ export function ProfilePage() {
                 <CardTitle className="font-mono">Historial</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                {historyProducts.length === 0 ? (
+                {historyItems.length === 0 ? (
                   <>
                     <p className="font-sans text-sm text-muted-foreground">
                       Aún no visitaste productos. Tus últimas visitas
@@ -507,54 +625,61 @@ export function ProfilePage() {
                   </>
                 ) : (
                   <>
-                    <ul className="flex flex-col gap-2">
-                      {historyPageData.pageItems.map((product) => (
-                        <li key={product.id}>
-                          <Link
-                            to={`/producto/${product.id}`}
-                            className="font-sans text-sm text-primary hover:underline"
-                          >
-                            {product.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                    {historyPageData.totalPages > 1 && (
-                      <nav
-                        aria-label="Paginación del historial"
-                        className="flex items-center gap-2"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        type="button"
+                        aria-label="Ver visitas más recientes"
+                        disabled={!canScrollHistoryLeft}
+                        onClick={() => scrollHistory(-1)}
+                        className="shrink-0"
                       >
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={historyPageData.page <= 1}
-                          onClick={() =>
-                            setHistoryPage(historyPageData.page - 1)
-                          }
-                          aria-label="Página anterior del historial"
-                        >
-                          Anterior
-                        </Button>
-                        <span className="font-sans text-sm text-muted-foreground">
-                          Página {historyPageData.page} de{" "}
-                          {historyPageData.totalPages}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            historyPageData.page >= historyPageData.totalPages
-                          }
-                          onClick={() =>
-                            setHistoryPage(historyPageData.page + 1)
-                          }
-                          aria-label="Página siguiente del historial"
-                        >
-                          Siguiente
-                        </Button>
-                      </nav>
+                        <ChevronLeft aria-hidden="true" />
+                      </Button>
+                      <ul
+                        ref={historyListRef}
+                        onScroll={updateHistoryScrollEdges}
+                        className="flex min-w-0 flex-1 snap-x gap-3 overflow-x-auto pb-2"
+                      >
+                        {visibleHistoryItems.map(({ product, viewedAt }) => (
+                          <li
+                            key={`${product.id}-${viewedAt}`}
+                            className="w-64 shrink-0 snap-start"
+                          >
+                            <FavoriteProductCard
+                              product={product}
+                              viewedAtLabel={formatViewedAt(viewedAt)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        type="button"
+                        aria-label="Ver visitas más antiguas"
+                        disabled={!canScrollHistoryRight}
+                        onClick={() => scrollHistory(1)}
+                        className="shrink-0"
+                      >
+                        <ChevronRight aria-hidden="true" />
+                      </Button>
+                    </div>
+                    {visibleHistoryItems.length < historyItems.length && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        onClick={() =>
+                          setVisibleHistoryCount(
+                            (count) => count + HISTORY_PAGE_SIZE,
+                          )
+                        }
+                      >
+                        Cargar anteriores
+                      </Button>
                     )}
                   </>
                 )}

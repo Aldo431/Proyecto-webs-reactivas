@@ -13,17 +13,25 @@ import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 
-const FIELD_ORDER = ["name", "email", "password", "passwordConfirm"] as const;
+const FIELD_ORDER = [
+  "username",
+  "displayName",
+  "email",
+  "password",
+  "passwordConfirm",
+] as const;
 
 interface RegisterValues {
-  name: string;
+  username: string;
+  displayName: string;
   email: string;
   password: string;
   passwordConfirm: string;
 }
 
 const EMPTY_VALUES: RegisterValues = {
-  name: "",
+  username: "",
+  displayName: "",
   email: "",
   password: "",
   passwordConfirm: "",
@@ -112,7 +120,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showBackButton />
+      <Header />
       <main className="mx-auto flex max-w-md flex-col px-4 py-14">
         <h1 className="mb-8 text-3xl font-bold text-foreground">Registro</h1>
         <form
@@ -121,14 +129,24 @@ export function RegisterPage() {
           onSubmit={handleSubmit}
         >
           <TextField
-            label="Nombre"
-            name="name"
+            label="Nombre de usuario"
+            name="username"
             type="text"
-            autoComplete="name"
-            value={values.name}
+            autoComplete="username"
+            value={values.username}
             onChange={handleChange}
             disabled={submitting}
-            error={fieldErrors.name}
+            error={fieldErrors.username}
+          />
+          <TextField
+            label="Nombre a mostrar"
+            name="displayName"
+            type="text"
+            autoComplete="nickname"
+            value={values.displayName}
+            onChange={handleChange}
+            disabled={submitting}
+            error={fieldErrors.displayName}
           />
           <TextField
             label="Correo electrónico"

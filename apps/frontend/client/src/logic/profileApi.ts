@@ -121,10 +121,11 @@ export async function updateProfile(
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      // Solo viajan nombre, correo y contraseña actual: favorites, history y
-      // cart no existen en UpdateProfileInput y nunca se envían (RF-3).
+      // Solo viajan identidad, correo y contraseña actual: favorites, history
+      // y cart no existen en UpdateProfileInput y nunca se envían (006/RF-3).
       body: JSON.stringify({
-        name: input.name,
+        username: input.username,
+        displayName: input.displayName,
         email: input.email,
         currentPassword: input.currentPassword,
       }),

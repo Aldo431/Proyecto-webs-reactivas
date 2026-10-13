@@ -14,7 +14,8 @@ const okUser = {
 
 const baseProfile = {
   id: okUser.id,
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   emailVerified: false,
   favorites: ["taza-dcc"],
@@ -118,6 +119,7 @@ describe("ProfilePage", () => {
     expect(
       await screen.findByRole("heading", { name: "Mi perfil" }),
     ).toBeDefined();
+    expect(screen.getByText("anaperez")).toBeDefined();
     expect(screen.getByText("Ana Pérez")).toBeDefined();
     expect(screen.getByText("ana@dcc.uchile.cl")).toBeDefined();
     expect(screen.getByText("Pendiente de verificación")).toBeDefined();
@@ -130,7 +132,11 @@ describe("ProfilePage", () => {
   });
 
   it("edita con valores pre-rellenados y refleja el éxito", async () => {
-    const updated = { ...baseProfile, name: "Ana P." };
+    const updated = {
+      ...baseProfile,
+      username: "anap",
+      displayName: "Ana P.",
+    };
     stubProfileFetch(
       () => json(200, baseProfile),
       () => json(200, updated),
@@ -141,10 +147,14 @@ describe("ProfilePage", () => {
       await screen.findByRole("button", { name: "Editar perfil" }),
     );
 
-    expect(field("Nombre").value).toBe("Ana Pérez");
+    expect(field("Nombre de usuario").value).toBe("anaperez");
+    expect(field("Nombre a mostrar").value).toBe("Ana Pérez");
     expect(field("Correo electrónico").value).toBe("ana@dcc.uchile.cl");
 
-    fireEvent.change(field("Nombre"), { target: { value: "Ana P." } });
+    fireEvent.change(field("Nombre de usuario"), {
+      target: { value: "anap" },
+    });
+    fireEvent.change(field("Nombre a mostrar"), { target: { value: "Ana P." } });
     fireEvent.change(field("Contraseña actual"), {
       target: { value: "secreto123" },
     });
@@ -155,6 +165,7 @@ describe("ProfilePage", () => {
     expect(
       await screen.findByText("Perfil actualizado correctamente."),
     ).toBeDefined();
+    expect(screen.getByText("anap")).toBeDefined();
     expect(screen.getByText("Ana P.")).toBeDefined();
 
     const puts = fetchCalls.filter(
@@ -162,7 +173,8 @@ describe("ProfilePage", () => {
     );
     expect(puts).toHaveLength(1);
     expect(puts[0]?.body).toEqual({
-      name: "Ana P.",
+      username: "anap",
+      displayName: "Ana P.",
       email: "ana@dcc.uchile.cl",
       currentPassword: "secreto123",
     });
@@ -179,12 +191,14 @@ describe("ProfilePage", () => {
       await screen.findByRole("button", { name: "Editar perfil" }),
     );
 
-    fireEvent.change(field("Nombre"), { target: { value: "   " } });
+    fireEvent.change(field("Nombre a mostrar"), { target: { value: "   " } });
     fireEvent.click(
       screen.getByRole("button", { name: "Guardar cambios" }),
     );
 
-    expect(await screen.findByText("El nombre es obligatorio.")).toBeDefined();
+    expect(
+      await screen.findByText("El nombre a mostrar es obligatorio."),
+    ).toBeDefined();
     expect(
       fetchCalls.filter(
         (call) => call.url === "/api/users/me" && call.method === "PUT",
@@ -203,7 +217,7 @@ describe("ProfilePage", () => {
       await screen.findByRole("button", { name: "Editar perfil" }),
     );
 
-    fireEvent.change(field("Nombre"), { target: { value: "Ana P." } });
+    fireEvent.change(field("Nombre a mostrar"), { target: { value: "Ana P." } });
     fireEvent.change(field("Contraseña actual"), {
       target: { value: "otra" },
     });
@@ -214,7 +228,32 @@ describe("ProfilePage", () => {
     expect(
       await screen.findByText("La contraseña actual es incorrecta."),
     ).toBeDefined();
-    expect(field("Nombre").value).toBe("Ana P.");
+    expect(field("Nombre a mostrar").value).toBe("Ana P.");
+  });
+
+  it("muestra el 409 de username sin perder los datos", async () => {
+    stubProfileFetch(
+      () => json(200, baseProfile),
+      () => json(409, { message: "Ese nombre de usuario ya está en uso." }),
+    );
+
+    renderProfile();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Editar perfil" }),
+    );
+
+    fireEvent.change(field("Nombre de usuario"), { target: { value: "otro" } });
+    fireEvent.change(field("Contraseña actual"), {
+      target: { value: "secreto123" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Guardar cambios" }),
+    );
+
+    expect(
+      await screen.findByText("Ese nombre de usuario ya está en uso."),
+    ).toBeDefined();
+    expect(field("Nombre de usuario").value).toBe("otro");
   });
 
   it("cancela sin enviar ni conservar cambios", async () => {
@@ -228,7 +267,7 @@ describe("ProfilePage", () => {
       await screen.findByRole("button", { name: "Editar perfil" }),
     );
 
-    fireEvent.change(field("Nombre"), { target: { value: "Ana P." } });
+    fireEvent.change(field("Nombre a mostrar"), { target: { value: "Ana P." } });
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
     expect(screen.getByText("Ana Pérez")).toBeDefined();
@@ -264,7 +303,7 @@ describe("ProfilePage", () => {
     expect(await screen.findByText("Ana Pérez")).toBeDefined();
   });
 
-  it("pagina el historial de 10 en 10", async () => {
+  it("carga el historial por lotes con fecha en español", async () => {
     const history = Array.from({ length: 12 }, (_, index) => ({
       productId: ["taza-dcc", "polera-dcc", "sticker-dcc"][index % 3] as string,
       viewedAt: `2026-10-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`,
@@ -276,9 +315,47 @@ describe("ProfilePage", () => {
 
     renderProfile();
 
+    const firstBatch = await screen.findAllByText(/Visto el/);
+    expect(firstBatch).toHaveLength(10);
+    expect(
+      screen
+        .getByRole("button", { name: "Ver visitas más recientes" })
+        .getAttribute("disabled"),
+    ).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver visitas más antiguas" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Cargar anteriores" }),
+    ).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cargar anteriores" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Visto el/)).toHaveLength(12);
+      expect(
+        screen.queryByRole("button", { name: "Cargar anteriores" }),
+      ).toBeNull();
+    });
+  });
+
+  it("pagina las favoritas de 12 en 12", async () => {
+    const favorites = Array.from(
+      { length: 13 },
+      (_, index) =>
+        ["taza-dcc", "polera-dcc", "sticker-dcc"][index % 3] as string,
+    );
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites }),
+      () => json(200, baseProfile),
+    );
+
+    renderProfile();
+
     expect(await screen.findByText("Página 1 de 2")).toBeDefined();
     fireEvent.click(
-      screen.getByRole("button", { name: "Página siguiente del historial" }),
+      screen.getByRole("button", { name: "Página siguiente de favoritos" }),
     );
 
     await waitFor(() => {
@@ -286,7 +363,7 @@ describe("ProfilePage", () => {
     });
   });
 
-  it("quita un favorito del perfil y lo refleja", async () => {
+  it("elimina un favorito del perfil y lo refleja", async () => {
     stubProfileFetch(
       () => json(200, baseProfile),
       () => json(200, baseProfile),
@@ -294,10 +371,10 @@ describe("ProfilePage", () => {
 
     renderProfile();
 
-    const toggle = await screen.findByRole("button", {
-      name: "Quitar Taza DCC de favoritos",
+    const removeButton = await screen.findByRole("button", {
+      name: "Eliminar Taza DCC de favoritos",
     });
-    fireEvent.click(toggle);
+    fireEvent.click(removeButton);
 
     await waitFor(() => {
       expect(screen.queryByText("Taza DCC")).toBeNull();

@@ -107,7 +107,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showBackButton />
+      <Header />
       <main className="mx-auto flex max-w-md flex-col px-4 py-14">
         <h1 className="mb-8 text-3xl font-bold text-foreground">
           Iniciar sesión

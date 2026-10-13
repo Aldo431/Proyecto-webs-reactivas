@@ -3,12 +3,14 @@ import { fetchCurrentUser, login, logout, register } from "./authApi.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
 };
 
 const registerInput = {
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   password: "secreto123",
   passwordConfirm: "secreto123",
@@ -26,7 +28,7 @@ afterEach(() => {
 });
 
 describe("register", () => {
-  it("envía solo nombre, correo y contraseña y devuelve el usuario en 201", async () => {
+  it("envía username, displayName, correo y contraseña y devuelve el usuario en 201", async () => {
     const fetchMock = vi.fn(async () => json(201, okUser));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -42,7 +44,8 @@ describe("register", () => {
     expect(init.method).toBe("POST");
     expect(init.credentials).toBe("include");
     expect(JSON.parse(init.body as string)).toEqual({
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       password: "secreto123",
     });

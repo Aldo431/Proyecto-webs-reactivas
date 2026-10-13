@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { HISTORY_PAGE_SIZE, paginate } from "./profilePagination.ts";
+import {
+  FAVORITES_PAGE_SIZE,
+  formatViewedAt,
+  HISTORY_PAGE_SIZE,
+  paginate,
+} from "./profilePagination.ts";
 
 describe("paginate", () => {
   it("recorta páginas de 10 con el total correcto", () => {
@@ -29,5 +34,29 @@ describe("paginate", () => {
       page: 1,
       totalPages: 1,
     });
+  });
+});
+
+describe("FAVORITES_PAGE_SIZE", () => {
+  it("vale 12 y pagina las favoritas", () => {
+    expect(FAVORITES_PAGE_SIZE).toBe(12);
+    const items = Array.from({ length: 13 }, (_, index) => `f${index}`);
+    const page = paginate(items, 1, FAVORITES_PAGE_SIZE);
+
+    expect(page.pageItems).toHaveLength(12);
+    expect(page.totalPages).toBe(2);
+  });
+});
+
+describe("formatViewedAt", () => {
+  it("formatea la fecha en español de Chile", () => {
+    const label = formatViewedAt("2026-10-13T10:00:00.000Z");
+
+    expect(label).toContain("2026");
+    expect(label).toMatch(/oct/i);
+  });
+
+  it("devuelve vacío ante un valor inválido", () => {
+    expect(formatViewedAt("no-es-fecha")).toBe("");
   });
 });

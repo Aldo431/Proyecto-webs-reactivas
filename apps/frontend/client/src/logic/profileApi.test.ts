@@ -10,7 +10,8 @@ import {
 
 const okProfile = {
   id: "6712a4f3c9b1e24a8f0d1234",
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   emailVerified: false,
   favorites: ["taza-dcc"],
@@ -55,12 +56,13 @@ describe("fetchProfile", () => {
 });
 
 describe("updateProfile", () => {
-  it("envía solo nombre, correo y contraseña actual", async () => {
+  it("envía identidad, correo y contraseña actual", async () => {
     const fetchMock = vi.fn(async () => json(200, okProfile));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await updateProfile({
-      name: "Ana P.",
+      username: "anap",
+      displayName: "Ana P.",
       email: "nueva@dcc.uchile.cl",
       currentPassword: "secreto123",
     });
@@ -75,7 +77,8 @@ describe("updateProfile", () => {
     expect(init.method).toBe("PUT");
     expect(init.credentials).toBe("include");
     expect(JSON.parse(init.body as string)).toEqual({
-      name: "Ana P.",
+      username: "anap",
+      displayName: "Ana P.",
       email: "nueva@dcc.uchile.cl",
       currentPassword: "secreto123",
     });
@@ -87,7 +90,8 @@ describe("updateProfile", () => {
       json(400, { message: "Revisa los datos ingresados.", fieldErrors }),
     ));
     const invalid = await updateProfile({
-      name: "Ana",
+      username: "ana",
+      displayName: "Ana",
       email: "x",
       currentPassword: "secreto123",
     });
@@ -101,7 +105,8 @@ describe("updateProfile", () => {
       json(401, { message: "La contraseña actual es incorrecta." }),
     ));
     const unauthorized = await updateProfile({
-      name: "Ana",
+      username: "ana",
+      displayName: "Ana",
       email: "ana@dcc.uchile.cl",
       currentPassword: "otra",
     });

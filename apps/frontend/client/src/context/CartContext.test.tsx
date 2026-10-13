@@ -7,13 +7,15 @@ import { clearInMemoryFallbackForTests } from "../logic/cartStorage.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
 };
 
 const serverProfile = {
   id: okUser.id,
-  name: okUser.name,
+  username: okUser.username,
+  displayName: okUser.displayName,
   email: okUser.email,
   emailVerified: false,
   favorites: [],

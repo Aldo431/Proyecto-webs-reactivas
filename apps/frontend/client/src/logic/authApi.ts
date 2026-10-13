@@ -85,7 +85,8 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
-        name: input.name,
+        username: input.username,
+        displayName: input.displayName,
         email: input.email,
         password: input.password,
       }),

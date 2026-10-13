@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Heart } from "lucide-react";
 import { Header } from "../components/Header.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { FavoriteToggle } from "../components/FavoriteToggle.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
 import productsJson from "../data/products.json";
@@ -79,7 +79,7 @@ export function ProductDetailPage() {
   if (product === undefined) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Header showBackButton={true} backLabel="Volver al inicio" />
+        <Header />
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-3xl font-bold text-brand-900">
             Producto no encontrado
@@ -94,7 +94,7 @@ export function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header showBackButton={true} backLabel="Volver al inicio" />
+      <Header />
       <main className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <img
@@ -129,14 +129,26 @@ export function ProductDetailPage() {
               >
                 Agregar al carrito
               </Button>
-              <FavoriteToggle
-                productName={product.name}
-                isFavorite={isFavorite}
+              <Button
+                variant="outline"
+                type="button"
+                aria-pressed={isFavorite}
+                aria-label={
+                  isFavorite
+                    ? `Quitar ${product.name} de favoritos`
+                    : `Agregar ${product.name} a favoritos`
+                }
                 disabled={toggling || authState.status === "loading"}
-                onToggle={() => {
+                onClick={() => {
                   void handleToggleFavorite();
                 }}
-              />
+              >
+                <Heart
+                  aria-hidden="true"
+                  fill={isFavorite ? "currentColor" : "none"}
+                />
+                {isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+              </Button>
             </div>
             {favoriteError !== null && (
               <p role="alert" className="mt-2 text-sm text-destructive">
