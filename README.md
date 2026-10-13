@@ -7,10 +7,10 @@ Página web de venta de productos del Departamento de Ciencias de la Computació
 | Capa | Tecnología |
 |---|---|
 | Frontend | React 19 + Vite + Tailwind v4 |
-| Backend | Express (pendiente de especificar) |
-| Base de datos | MongoDB (Mongoose) (pendiente de especificar) |
-| Validación | Zod |
-| Tests | Vitest + Testing Library |
+| Backend | Express + Mongoose (MongoDB) |
+| Base de datos | MongoDB (modelo `User`) |
+| Validación | Zod (esquemas compartidos en `utils/`) |
+| Tests | Vitest + Testing Library + supertest |
 
 La constitución del proyecto vive en `docs/constitution.md`; define las reglas de stack, orden de trabajo, separación de lógica/UI, política de tests, persistencia e idioma.
 
@@ -18,7 +18,8 @@ La constitución del proyecto vive en `docs/constitution.md`; define las reglas 
 
 ```
 apps/frontend/client/   Aplicación React (componentes, páginas, hooks, lógica)
-apps/backend/           Backend Express (integrado como parte del stack)
+apps/backend/           Backend Express (rutas, controladores, servicios, modelos)
+utils/                  Esquemas Zod y tipos compartidos (@tiendadcc/utils)
 docs/                   Constitución del proyecto
 specs/<id>/             Spec, plan y tareas por funcionalidad
 ```
@@ -41,10 +42,10 @@ Reglas clave: no se escribe código sin spec previa, no se agregan dependencias 
 
 ## Instalación
 
-Las dependencias viven dentro de `apps/frontend/client` (un solo `node_modules` y un solo `package-lock.json`). Instala desde la raíz:
+El repositorio usa workspaces npm (`apps/frontend/client`, `apps/backend`, `utils`). Instala desde la raíz:
 
 ```bash
-npm install --prefix apps/frontend/client
+npm install
 ```
 
 ## Variables de entorno
@@ -85,30 +86,53 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Levanta Vite en `http://localhost:5173` con hot reload |
-| `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) |
+| `npm run dev -w backend` | Levanta la API en `http://localhost:3001` (requiere `apps/backend/.env` y MongoDB) |
+| `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
 | `npm run build` | Compila la app a `apps/frontend/client/dist` |
 
 ## Cómo correr el proyecto
 
 ```bash
-npm run dev
+npm run dev            # frontend en http://localhost:5173
+npm run dev -w backend # API en http://localhost:3001 (otra terminal)
 ```
 
-Abre `http://localhost:5173` en el navegador.
+Abre `http://localhost:5173` en el navegador. Sin backend ni MongoDB, la tienda funciona salvo autenticación, perfil y sincronización (usan la API).
 
-## Funcionalidad actual (spec 001)
+## Funcionalidad actual (specs 001–007)
 
-Landing **solo frontend** con tres vistas por enrutamiento de hash (funcionan por URL directa y con recarga):
+Tienda con enrutamiento de hash (funciona por URL directa y con recarga). Estética "IDE institucional" (tema oscuro, specs/00-design-system).
 
 | URL | Vista |
 |---|---|
-| `http://localhost:5173/#/` | Inicio: marca "TiendaDCC", descripción, accesos a registro/login y vista previa de productos de ejemplo |
-| `http://localhost:5173/#/registro` | Formulario de registro (nombre, correo, contraseña y confirmación) |
-| `http://localhost:5173/#/iniciar-sesion` | Formulario de inicio de sesión (correo y contraseña) |
+| `http://localhost:5173/#/` | Inicio: marca, accesos de sesión y productos destacados |
+| `http://localhost:5173/#/registro` | Registro (nombre de usuario, nombre a mostrar, correo, contraseña y confirmación) |
+| `http://localhost:5173/#/iniciar-sesion` | Inicio de sesión (correo y contraseña) |
+| `http://localhost:5173/#/catalogo` | Catálogo con filtro por categoría y tarjetas con acciones directas |
+| `http://localhost:5173/#/producto/:id` | Detalle con agregar al carrito y a favoritos |
+| `http://localhost:5173/#/perfil` | Perfil (solo con sesión): datos editables, carrito, favoritos e historial |
 
-Los formularios aún **no funcionan**: su envío no valida ni envía datos (frontend-only, sin backend). La paleta visual usa azul institucional U. de Chile con acento rojo.
+### Autenticación y sesión (005)
 
-Detalles verificables: `specs/001-tiendaDCC/spec.md`, `plan.md` y `tasks.md`.
+Registro e inicio de sesión reales contra MongoDB: contraseñas con hash (bcryptjs), sesión en JWT firmado (`JWT_SECRET`, 7 días) transportado en cookie `httpOnly` `SameSite=Lax`, y restauración con `GET /api/auth/me`. El frontend consume la API por el proxy de Vite (`/api` → `http://localhost:3001`), con credenciales incluidas. Cerrar sesión no altera el carrito local.
+
+### Modelo `User` y API (005–007)
+
+El documento persiste `username` (único, minúsculas, editable en el perfil), `displayName`, `email`, `passwordHash`, `emailVerified`, `favorites`, `history` y `cart`. Los esquemas Zod viven en `utils/` y se revalidan en el servidor.
+
+| Método y ruta | Descripción |
+|---|---|
+| `POST /api/auth/register` | Crea la cuenta e inicia sesión (`201`; `409` ante correo o `username` duplicado) |
+| `POST /api/auth/login` | Autentica (`200`; `401` genérico ante fallo) |
+| `POST /api/auth/logout` | Borra la cookie (`204`, idempotente) |
+| `GET /api/auth/me` | Sesión actual (`200` o `401`) |
+| `GET /api/users/me` | Perfil con favoritos, historial y carrito |
+| `PUT /api/users/me` | Actualiza identidad y correo con contraseña actual (`401`/`409` según el caso) |
+| `POST /api/users/me/favorites` · `DELETE /api/users/me/favorites/:id` | Favoritos idempotentes por cuenta |
+| `POST /api/users/me/history` | Visitas (tope 67, recientes primero) |
+| `PUT /api/users/me/cart` | Reemplazo validado del carrito de la cuenta |
+
+El carrito vive en `localStorage` (clave `cart`) y se sincroniza con la cuenta: al iniciar sesión fusiona lo invitado sumando cantidades (con aviso), sin duplicar en recargas; favoritos e historial son por cuenta. Detalles verificables: `specs/005-user-auth/`, `specs/006-user-profile/` y `specs/007-profile-polish/` (spec, plan y tareas de cada una).
 
 ## Tests
 
@@ -116,4 +140,4 @@ Detalles verificables: `specs/001-tiendaDCC/spec.md`, `plan.md` y `tasks.md`.
 npm run check   # tipos + tests
 ```
 
-La estrategia de tests por spec está en `specs/<id>/plan.md`. La lógica pura (p. ej. `routeParser`, `productParse`) exige cobertura; la presentación pura no.
+La estrategia de tests por spec está en `specs/<id>/plan.md`. La lógica pura y el backend (p. ej. esquemas Zod, fusión del carrito, servicios y rutas con `mongodb-memory-server`) exigen cobertura; la presentación pura no.
