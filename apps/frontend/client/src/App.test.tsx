@@ -9,10 +9,12 @@ import {
   stubAuthFetch,
   type FetchRoutes,
 } from "./test/authMocks.ts";
+import { notFoundRoute, productRoutes } from "./test/productMocks.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
 };
 
@@ -31,7 +33,7 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
-  routes = stubAuthFetch();
+  routes = stubAuthFetch(productRoutes());
 });
 
 afterEach(() => {
@@ -59,13 +61,13 @@ describe("App", () => {
     expect(await screen.findByText("Sticker DCC")).toBeDefined();
   });
 
-  it("navigates to register without reloading and back via Volver", async () => {
+  it("navigates to register without reloading and back via the logo", async () => {
     renderAt("/");
     fireEvent.click(
       await screen.findByRole("link", { name: "Registrarse ahora" }),
     );
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Volver" }));
+    fireEvent.click(screen.getByRole("link", { name: "TiendaDCC" }));
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),
     ).toBeDefined();
@@ -111,24 +113,25 @@ describe("App", () => {
       await screen.findByRole("heading", { name: "Polera DCC" }),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: "Volver al inicio" }),
+      screen.getByRole("button", { name: "Agregar al carrito" }),
     ).toBeDefined();
   });
 
   it("renders the not-found state for an unknown product id", async () => {
+    routes["/api/products/inexistente"] = notFoundRoute();
     renderAt("/producto/inexistente");
     expect(
       await screen.findByRole("heading", { name: "Producto no encontrado" }),
     ).toBeDefined();
     expect(
-      screen.getByRole("button", { name: "Volver al inicio" }),
+      screen.getByRole("link", { name: "TiendaDCC" }),
     ).toBeDefined();
   });
 
-  it("returns home from the detail via Volver al inicio", async () => {
+  it("returns home from the detail via the logo", async () => {
     renderAt("/producto/taza-dcc");
     fireEvent.click(
-      await screen.findByRole("button", { name: "Volver al inicio" }),
+      await screen.findByRole("link", { name: "TiendaDCC" }),
     );
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),
@@ -140,7 +143,7 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Todas" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Tazas" })).toBeDefined();
-    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(await screen.findByText("Taza DCC")).toBeDefined();
     expect(screen.getByText("Polera DCC")).toBeDefined();
   });
 
@@ -150,6 +153,7 @@ describe("App", () => {
       await screen.findByRole("link", { name: "Ver Catálogo" }),
     );
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
+    await screen.findByText("Polera DCC");
     fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
     expect(screen.getByText("Taza DCC")).toBeDefined();
     expect(screen.queryByText("Polera DCC")).toBeNull();
@@ -165,17 +169,20 @@ describe("App", () => {
     );
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     fireEvent.click(
-      screen.getByRole("button", { name: "Volver al inicio" }),
+      screen.getByRole("link", { name: "TiendaDCC" }),
     );
     expect(
       await screen.findByRole("heading", { name: "TiendaDCC" }),
     ).toBeDefined();
   });
 
-  it("shows the user name and Cerrar sesión when authenticated", async () => {
+  it("shows the displayName button and Cerrar sesión when authenticated", async () => {
     routes["/api/auth/me"] = () => jsonResponse(200, okUser);
     renderAt("/");
-    expect(await screen.findByText("Ana Pérez")).toBeDefined();
+    const profileButton = await screen.findByRole("button", {
+      name: "Mi perfil",
+    });
+    expect(profileButton.textContent).toContain("Ana Pérez");
     expect(
       screen.getByRole("button", { name: "Cerrar sesión" }),
     ).toBeDefined();

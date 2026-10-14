@@ -15,7 +15,8 @@ describe("issuesToFieldErrors", () => {
 
   it("ubica la confirmación distinta en passwordConfirm", () => {
     const result = registerInputSchema.safeParse({
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       password: "secreto123",
       passwordConfirm: "otra12345",
@@ -27,9 +28,10 @@ describe("issuesToFieldErrors", () => {
     });
   });
 
-  it("recorta el nombre y reporta el vacío", () => {
+  it("recorta la identidad y reporta el vacío", () => {
     const result = registerInputSchema.safeParse({
-      name: "   ",
+      username: "anaperez",
+      displayName: "   ",
       email: "ana@dcc.uchile.cl",
       password: "secreto123",
       passwordConfirm: "secreto123",
@@ -37,7 +39,7 @@ describe("issuesToFieldErrors", () => {
     if (result.success) throw new Error("se esperaba un error de validación");
 
     expect(issuesToFieldErrors(result.error)).toEqual({
-      name: "El nombre es obligatorio.",
+      displayName: "El nombre a mostrar es obligatorio.",
     });
   });
 });

@@ -7,7 +7,8 @@ import {
 } from "./authSchemas.ts";
 
 const validRegister = {
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   password: "secreto123",
   passwordConfirm: "secreto123",
@@ -18,16 +19,18 @@ describe("registerInputSchema", () => {
     expect(registerInputSchema.safeParse(validRegister).success).toBe(true);
   });
 
-  it("recorta espacios de nombre y correo", () => {
+  it("recorta espacios y normaliza el username a minúsculas", () => {
     const result = registerInputSchema.safeParse({
       ...validRegister,
-      name: "  Ana Pérez  ",
+      username: "  AnaPerez  ",
+      displayName: "  Ana Pérez  ",
       email: "  ana@dcc.uchile.cl  ",
     });
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.name).toBe("Ana Pérez");
+      expect(result.data.username).toBe("anaperez");
+      expect(result.data.displayName).toBe("Ana Pérez");
       expect(result.data.email).toBe("ana@dcc.uchile.cl");
     }
   });
@@ -39,9 +42,26 @@ describe("registerInputSchema", () => {
     ).toBe(false);
   });
 
-  it("rechaza un nombre vacío o solo con espacios", () => {
+  it("rechaza un username vacío o solo con espacios", () => {
     expect(
-      registerInputSchema.safeParse({ ...validRegister, name: "   " }).success,
+      registerInputSchema.safeParse({ ...validRegister, username: "   " })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rechaza un username de más de 80 caracteres", () => {
+    expect(
+      registerInputSchema.safeParse({
+        ...validRegister,
+        username: "a".repeat(81),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rechaza un displayName vacío", () => {
+    expect(
+      registerInputSchema.safeParse({ ...validRegister, displayName: "  " })
+        .success,
     ).toBe(false);
   });
 
@@ -150,7 +170,8 @@ describe("publicUserSchema", () => {
   it("acepta el contrato público del usuario", () => {
     const result = publicUserSchema.safeParse({
       id: "6712a4f3c9b1e24a8f0d1234",
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
     });
 
@@ -160,7 +181,8 @@ describe("publicUserSchema", () => {
   it("ignora campos desconocidos como passwordHash", () => {
     const result = publicUserSchema.safeParse({
       id: "6712a4f3c9b1e24a8f0d1234",
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       passwordHash: "$2b$10$hash",
     });

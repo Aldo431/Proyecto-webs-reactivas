@@ -14,7 +14,8 @@ import { LoginPage } from "./LoginPage.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
 };
 

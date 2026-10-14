@@ -23,6 +23,8 @@ const ALLOWED_IMPORTS = new Set([
   "tailwind-merge",
   "lucide-react",
   "@/lib/utils",
+  // alert-dialog builds its buttons from the shadcn `Button` primitive.
+  "@/components/ui/button",
 ]);
 
 const HEADER_LABELS = ["Origen:", "URL:", "Incorporado:", "Cambios:"];

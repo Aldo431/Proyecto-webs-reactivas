@@ -10,7 +10,8 @@ let mongo: MongoMemoryServer;
 let app: Express;
 
 const validUser = {
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   password: "secreto123",
   passwordConfirm: "secreto123",
@@ -50,7 +51,8 @@ describe("POST /api/auth/register", () => {
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
       id: expect.any(String),
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
     });
     expect(response.body).not.toHaveProperty("passwordHash");
@@ -73,6 +75,20 @@ describe("POST /api/auth/register", () => {
     expect(response.status).toBe(409);
     expect(response.body.message).toBe(
       "Ya existe una cuenta con ese correo electrónico.",
+    );
+    expect(await User.countDocuments()).toBe(1);
+  });
+
+  it("responde 409 ante un username ya registrado sin distinguir caso", async () => {
+    await request(app).post("/api/auth/register").send(validUser);
+
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send({ ...validUser, username: "ANAPEREZ", email: "otra@dcc.uchile.cl" });
+
+    expect(response.status).toBe(409);
+    expect(response.body.message).toBe(
+      "Ese nombre de usuario ya está en uso.",
     );
     expect(await User.countDocuments()).toBe(1);
   });
@@ -124,7 +140,8 @@ describe("POST /api/auth/login", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       id: expect.any(String),
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
     });
     expect(response.headers["set-cookie"]).toBeDefined();
@@ -176,7 +193,8 @@ describe("GET /api/auth/me", () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       id: expect.any(String),
-      name: "Ana Pérez",
+      username: "anaperez",
+      displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
     });
   });

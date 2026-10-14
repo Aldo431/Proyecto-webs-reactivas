@@ -16,7 +16,8 @@ let mongo: MongoMemoryServer;
 
 const SECRET = "unit-test-secret";
 const validRequest = {
-  name: "Ana Pérez",
+  username: "anaperez",
+  displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   password: "secreto123",
 };
@@ -58,14 +59,16 @@ describe("signToken / verifyToken", () => {
 });
 
 describe("createUser", () => {
-  it("crea el usuario con correo normalizado y hash", async () => {
+  it("crea el usuario con correo y username normalizados y hash", async () => {
     const user = await createUser({
       ...validRequest,
+      username: "  AnaPerez  ",
       email: "  Ana@DCC.uchile.CL  ",
     });
 
     expect(user.email).toBe("ana@dcc.uchile.cl");
-    expect(user.name).toBe("Ana Pérez");
+    expect(user.username).toBe("anaperez");
+    expect(user.displayName).toBe("Ana Pérez");
     expect(user.passwordHash).not.toBe(validRequest.password);
   });
 
@@ -75,6 +78,21 @@ describe("createUser", () => {
     await expect(
       createUser({ ...validRequest, email: "ANA@DCC.UCHILE.CL" }),
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("rechaza un username duplicado aunque cambie el caso", async () => {
+    await createUser(validRequest);
+
+    await expect(
+      createUser({
+        ...validRequest,
+        username: "ANAPEREZ",
+        email: "otra@dcc.uchile.cl",
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Ese nombre de usuario ya está en uso.",
+    });
   });
 });
 

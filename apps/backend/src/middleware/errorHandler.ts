@@ -21,6 +21,16 @@ function isBodyParseError(error: unknown): boolean {
   );
 }
 
+// body-parser rechaza los cuerpos que exceden el límite de su ruta con
+// `type: "entity.too.large"` y estado 413.
+function isPayloadTooLargeError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { type?: unknown }).type === "entity.too.large"
+  );
+}
+
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -55,6 +65,13 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
+  if (isPayloadTooLargeError(error)) {
+    response.status(413).json({
+      message: "Los datos enviados superan el tamaño máximo permitido.",
+    });
+    return;
+  }
+
   if (isBodyParseError(error)) {
     response.status(400).json({
       message: "El cuerpo de la petición no es un JSON válido.",
@@ -68,6 +85,17 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   if (isDuplicateKeyError(error)) {
+    const keyValue = (error as { keyValue?: unknown }).keyValue;
+    if (
+      typeof keyValue === "object" &&
+      keyValue !== null &&
+      "username" in keyValue
+    ) {
+      response.status(409).json({
+        message: "Ese nombre de usuario ya está en uso.",
+      });
+      return;
+    }
     response.status(409).json({
       message: "Ya existe una cuenta con ese correo electrónico.",
     });

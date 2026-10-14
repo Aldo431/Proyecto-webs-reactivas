@@ -1,10 +1,17 @@
 import { z } from "zod";
 
-const nameField = z
+const usernameField = z
   .string()
   .trim()
-  .min(1, "El nombre es obligatorio.")
-  .max(80, "El nombre no puede superar los 80 caracteres.");
+  .toLowerCase()
+  .min(1, "El nombre de usuario es obligatorio.")
+  .max(80, "El nombre de usuario no puede superar los 80 caracteres.");
+
+const displayNameField = z
+  .string()
+  .trim()
+  .min(1, "El nombre a mostrar es obligatorio.")
+  .max(80, "El nombre a mostrar no puede superar los 80 caracteres.");
 
 const emailField = z
   .string()
@@ -17,7 +24,8 @@ const passwordField = z
   .max(100, "La contraseña no puede superar los 100 caracteres.");
 
 const registerBaseSchema = z.object({
-  name: nameField,
+  username: usernameField,
+  displayName: displayNameField,
   email: emailField,
   password: passwordField,
 });
@@ -40,7 +48,8 @@ export const loginInputSchema = z.object({
 
 export const publicUserSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
+  username: z.string().min(1),
+  displayName: z.string().min(1),
   email: z.email(),
 });
 

@@ -14,7 +14,7 @@ export function HomePage() {
   return (
     <div className="min-h-screen">
       <SkipLink targetRef={mainRef} />
-      <Header showBackButton={false} />
+      <Header />
       <main ref={mainRef} tabIndex={-1} className="outline-none">
         <HomeHero />
         <FeaturedProducts />

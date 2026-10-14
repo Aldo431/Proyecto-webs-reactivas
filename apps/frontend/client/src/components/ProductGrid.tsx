@@ -1,4 +1,4 @@
-import type { Product } from "../logic/productParse.ts";
+import type { Product } from "@tiendadcc/utils";
 import { ProductCard } from "./ProductCard.tsx";
 
 interface ProductGridProps {

@@ -1,35 +1,50 @@
-import productsJson from "../data/products.json";
 import {
   FEATURED_PRODUCT_COUNT,
   selectFeaturedProducts,
 } from "./productLookup.ts";
-import { type Product, parseProducts } from "./productParse.ts";
+import {
+  type ProductListResult,
+  fetchMyProducts,
+  fetchProducts,
+} from "./productApi.ts";
+import type { Product } from "@tiendadcc/utils";
 
-// Where the home page gets its featured products from (Home RF-7). Callers
-// only see this contract, never the data origin.
-export type FeaturedProductsSource = () => Promise<Product[]>;
+// Where a page gets a list of products from. Callers only see this contract,
+// never the data origin (Home RF-7, spec 008 RF-14).
+export type ProductListSource = () => Promise<Product[]>;
 
-// Builds a source from a loader of raw JSON shaped like products.json
-// (`{ products: Product[] }`). The data is validated with the Zod schema and
-// reduced to the featured selection; the promise rejects if the loader
-// rejects or the data is invalid (which drives the error state, Home RF-5).
-//
-// Switching to the API only means passing another loader, e.g.:
-//   createFeaturedProductsSource(async () => {
-//     const response = await fetch("/api/products?featured=true");
-//     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-//     return response.json();
-//   });
-export function createFeaturedProductsSource(
-  loadRaw: () => Promise<unknown>,
-): FeaturedProductsSource {
-  return async () =>
-    selectFeaturedProducts(
-      parseProducts(await loadRaw()),
-      FEATURED_PRODUCT_COUNT,
-    );
+// Where the home page gets its featured products from (Home RF-7).
+export type FeaturedProductsSource = ProductListSource;
+
+// Turns an API result into the promise the pages' hooks expect: a failure
+// rejects, which drives the error state (Home RF-5).
+async function unwrap(result: ProductListResult): Promise<Product[]> {
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+  return result.products;
 }
 
-// Current source: the catalog bundled with the app, so there is no network.
+// Builds the featured source from a loader of already validated products
+// (the API returns them under `?featured=true`). The selection still applies
+// the `featured` flag and the cap, so the rule lives in one place (Home RF-8).
+export function createFeaturedProductsSource(
+  loadProducts: ProductListSource,
+): FeaturedProductsSource {
+  return async () =>
+    selectFeaturedProducts(await loadProducts(), FEATURED_PRODUCT_COUNT);
+}
+
 export const fetchFeaturedProducts: FeaturedProductsSource =
-  createFeaturedProductsSource(() => Promise.resolve(productsJson));
+  createFeaturedProductsSource(async () =>
+    unwrap(await fetchProducts({ featured: true })),
+  );
+
+// The whole catalog, loaded once; the category filter runs locally (spec 008,
+// RF-14).
+export const fetchCatalogProducts: ProductListSource = async () =>
+  unwrap(await fetchProducts());
+
+// The signed-in user's own publications (spec 008, RF-19).
+export const fetchMyPublications: ProductListSource = async () =>
+  unwrap(await fetchMyProducts());

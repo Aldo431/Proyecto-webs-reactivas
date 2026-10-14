@@ -44,13 +44,23 @@ export async function createUser(
   input: RegisterRequest,
 ): Promise<UserDocument> {
   const email = input.email.trim().toLowerCase();
-  const existing = await User.findOne({ email });
-  if (existing) {
+  const username = input.username.trim().toLowerCase();
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
     throw new ConflictError();
+  }
+  const existingUsername = await User.findOne({ username });
+  if (existingUsername) {
+    throw new ConflictError("Ese nombre de usuario ya está en uso.");
   }
 
   const passwordHash = await hashPassword(input.password);
-  return User.create({ name: input.name, email, passwordHash });
+  return User.create({
+    username,
+    displayName: input.displayName.trim(),
+    email,
+    passwordHash,
+  });
 }
 
 export async function authenticateUser(

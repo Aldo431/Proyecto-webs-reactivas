@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { Product } from "@tiendadcc/utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { makeProduct } from "./productFixtures.ts";
-import type { Product } from "./productParse.ts";
 import type { FeaturedProductsSource } from "./productRepository.ts";
 import { useFeaturedProducts } from "./useFeaturedProducts.ts";
 

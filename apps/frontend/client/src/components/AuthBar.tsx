@@ -32,7 +32,7 @@ export function AuthBar() {
       <nav aria-label="Accesos de usuario" className={layout}>
         <span className="text-sm text-foreground">
           Hola,{" "}
-          <span className="font-mono font-semibold">{state.user.name}</span>
+          <span className="font-mono font-semibold">{state.user.displayName}</span>
         </span>
         <Button asChild variant="secondary" size="lg">
           <Link to="/catalogo">Ver Catálogo</Link>
