@@ -37,8 +37,8 @@ const errorHandler = (
       error: `${field} "${value}" is already in use`
     });
   // TODO (P4): token expirado (TokenExpiredError)
-  else {
-    next(error);
+  else if (error.name === "TokenExpiredError") {
+    response.status(401).json({ error: "token expired" });
   }
 };
 
@@ -49,7 +49,27 @@ export const withUser = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  res.status(501).json({ error: "not implemented" });
+  try {
+    const authReq = req;
+    const token = authReq.cookies?.token;
+    if (!token) {
+      res.status(401).json({ error: "token missing" });
+      return;
+    }else {
+      const decodedToken = jwt.verify(token, config.JWT_SECRET);
+      const csrfToken = req.headers["x-csrf-token"];
+      if (typeof decodedToken === "object" && decodedToken.id && decodedToken.csrf == csrfToken) {
+        authReq.userId = decodedToken.id;
+        next();
+        return;
+      } else {
+        res.status(401).json({ error: "invalid token" });
+        return;
+      }
+    }
+  } catch (error) {
+    res.status(401).json({ error: "invalid token" });
+  }
 };
 
 // TODO (P5): withOptionalUser

@@ -37,13 +37,22 @@ router.post("/", async (request, response) => {
 });
 
 // TODO (P4): usuario de la sesión actual (protegido con withUser).
-router.get("/me", async (request, response) => {
-  response.status(501).json({ error: "not implemented" });
+router.get("/me", withUser, async (request, response) => {
+  const user = await User.findById(request.userId);
+  if (!user) {
+    return response.status(401).json({ error: "invalid token" });
+  }
+  return response.json(user.toJSON());
 });
 
 // TODO (P4): cerrar sesión.
-router.post("/logout", async (request, response) => {
-  response.status(501).json({ error: "not implemented" });
+router.post("/logout", async (_request, response) => {
+  response.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  return response.status(204).end();
 });
 
 export default router;
