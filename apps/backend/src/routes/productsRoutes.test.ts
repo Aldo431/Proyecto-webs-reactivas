@@ -41,6 +41,10 @@ function ids(body: { id: string }[]): string[] {
   return body.map((product) => product.id);
 }
 
+function pageIds(body: { products: { id: string }[] }): string[] {
+  return ids(body.products);
+}
+
 describe("GET /api/products", () => {
   it("responde 200 con una lista vacía si no hay productos", async () => {
     const response = await request(app).get("/api/products");
@@ -231,6 +235,192 @@ describe("GET /api/products", () => {
     );
 
     expect(ids(response.body)).toEqual([match._id.toString()]);
+  });
+});
+
+describe("GET /api/products (búsqueda, orden y precio)", () => {
+  it("filtra por subcadena del nombre insensible a mayúsculas", async () => {
+    const taza = await createProduct(ana.id, { name: "Taza DCC" });
+    await createProduct(ana.id, { name: "Polera DCC" });
+
+    for (const q of ["taza", "TAZA", "Taz"]) {
+      const response = await request(app).get(
+        `/api/products?q=${encodeURIComponent(q)}`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(pageIds(response.body)).toEqual([taza._id.toString()]);
+    }
+  });
+
+  it("ignora las tildes al buscar", async () => {
+    const tazon = await createProduct(ana.id, { name: "Tazón Andino" });
+    await createProduct(ana.id, { name: "Polera DCC" });
+
+    const response = await request(app).get("/api/products?q=tazon");
+
+    expect(response.status).toBe(200);
+    expect(pageIds(response.body)).toEqual([tazon._id.toString()]);
+  });
+
+  it("trata los caracteres especiales como literales sin fallar", async () => {
+    await createProduct(ana.id, { name: "Taza DCC" });
+
+    const response = await request(app).get(
+      `/api/products?q=${encodeURIComponent("(taza)+")}`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.products).toEqual([]);
+    expect(response.body.total).toBe(0);
+  });
+
+  it("ordena por precio menor y mayor", async () => {
+    const cheap = await createProduct(ana.id, {
+      name: "Barato",
+      price: 1500,
+    });
+    const mid = await createProduct(ana.id, { name: "Medio", price: 6000 });
+    const expensive = await createProduct(ana.id, {
+      name: "Caro",
+      price: 12000,
+    });
+
+    const ascending = await request(app).get(
+      "/api/products?orden=precio-menor",
+    );
+    const descending = await request(app).get(
+      "/api/products?orden=precio-mayor",
+    );
+
+    expect(ascending.status).toBe(200);
+    expect(pageIds(ascending.body)).toEqual([
+      cheap._id.toString(),
+      mid._id.toString(),
+      expensive._id.toString(),
+    ]);
+    expect(descending.status).toBe(200);
+    expect(pageIds(descending.body)).toEqual([
+      expensive._id.toString(),
+      mid._id.toString(),
+      cheap._id.toString(),
+    ]);
+  });
+
+  it("ordena por nombre de la A a la Z", async () => {
+    const beta = await createProduct(ana.id, { name: "Beta" });
+    const alfa = await createProduct(ana.id, { name: "alfa" });
+    const zeta = await createProduct(ana.id, { name: "Zeta" });
+
+    const response = await request(app).get("/api/products?orden=nombre");
+
+    expect(response.status).toBe(200);
+    expect(pageIds(response.body)).toEqual([
+      alfa._id.toString(),
+      beta._id.toString(),
+      zeta._id.toString(),
+    ]);
+  });
+
+  it("acota por precio mínimo y máximo combinados", async () => {
+    await createProduct(ana.id, { name: "Barato", price: 1500 });
+    const mid = await createProduct(ana.id, { name: "Medio", price: 6000 });
+    await createProduct(ana.id, { name: "Caro", price: 12000 });
+
+    const response = await request(app).get(
+      "/api/products?min=5000&max=9000",
+    );
+
+    expect(response.status).toBe(200);
+    expect(pageIds(response.body)).toEqual([mid._id.toString()]);
+  });
+
+  it("responde 400 con min mayor que max y con orden inválido", async () => {
+    const flipped = await request(app).get("/api/products?min=9000&max=5000");
+    const badSort = await request(app).get("/api/products?orden=raro");
+
+    expect(flipped.status).toBe(400);
+    expect(badSort.status).toBe(400);
+  });
+});
+
+describe("GET /api/products (paginación)", () => {
+  async function seedCatalog(count: number) {
+    const created = [];
+    for (let index = 0; index < count; index += 1) {
+      created.push(
+        await createProduct(ana.id, {
+          name: `Producto ${index}`,
+          price: 1000 + index,
+        }),
+      );
+    }
+    return created;
+  }
+
+  it("devuelve la primera página con totales en un objeto", async () => {
+    await seedCatalog(10);
+
+    const response = await request(app).get("/api/products?pagina=1");
+
+    expect(response.status).toBe(200);
+    expect(response.body.total).toBe(10);
+    expect(response.body.pagina).toBe(1);
+    expect(response.body.porPagina).toBe(9);
+    expect(response.body.totalPaginas).toBe(2);
+    expect(response.body.products).toHaveLength(9);
+  });
+
+  it("devuelve la segunda página con el resto", async () => {
+    await seedCatalog(10);
+
+    const response = await request(app).get("/api/products?pagina=2");
+
+    expect(response.status).toBe(200);
+    expect(response.body.pagina).toBe(2);
+    expect(response.body.totalPaginas).toBe(2);
+    expect(response.body.products).toHaveLength(1);
+  });
+
+  it("ajusta la página excedida a la última con resultados", async () => {
+    await seedCatalog(10);
+
+    const response = await request(app).get("/api/products?pagina=999");
+
+    expect(response.status).toBe(200);
+    expect(response.body.pagina).toBe(2);
+    expect(response.body.products).toHaveLength(1);
+  });
+
+  it("responde 400 con página inválida", async () => {
+    await seedCatalog(1);
+
+    const response = await request(app).get("/api/products?pagina=0");
+
+    expect(response.status).toBe(400);
+  });
+
+  it("responde el objeto paginado con cualquier clave nueva", async () => {
+    await createProduct(ana.id, { name: "Taza DCC" });
+
+    const response = await request(app).get("/api/products?q=taza");
+
+    expect(response.status).toBe(200);
+    expect(response.body.total).toBe(1);
+    expect(response.body.products).toHaveLength(1);
+  });
+
+  it("mantiene el arreglo simple sin claves nuevas", async () => {
+    await createProduct(ana.id, { name: "Taza DCC", category: "Tazas" });
+    await createProduct(ana.id, { name: "Polera DCC", category: "Poleras" });
+
+    const plain = await request(app).get("/api/products");
+    const filtered = await request(app).get("/api/products?categoria=Tazas");
+
+    expect(Array.isArray(plain.body)).toBe(true);
+    expect(plain.body).toHaveLength(2);
+    expect(Array.isArray(filtered.body)).toBe(true);
+    expect(filtered.body).toHaveLength(1);
   });
 });
 

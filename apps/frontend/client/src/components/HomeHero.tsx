@@ -10,7 +10,7 @@ import DecryptedText from "./reactbits/DecryptedText.tsx";
 const HERO_COMMAND = "./tiendadcc --start";
 const HERO_OUTPUT_LINES = [
   "Hola, mundo.",
-  "Compila tu estilo: tazas, poleras y stickers.",
+  "Compila tu estilo: tazas, poleras, stickers y pins.",
 ] as const;
 
 // Every delay and duration below comes from this timeline, which keeps the

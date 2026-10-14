@@ -34,7 +34,7 @@ Tareas pequeñas (≈20–30 min c/u) en orden de dependencia. Cada una indica l
 
 - [x] **7. Implementar panel lateral (`CartItemRow`, `CartEmptyState`, `CartDrawer`)**
     RF: RF-2, RF-4, RF-5, RF-6, RF-9 (más RNF-3, RNF-4, RNF-5)
-    Hecho cuando: renderizo el drawer derecho (`role="dialog"`, `aria-modal`, `aria-labelledby`) con backdrop, body lock y scroll interno, responsive (`calc(100vw - 32px)` en móvil, máx 420 px), animación `base` 250 ms desactivada con `reduced-motion`, cierre con "✕" (`aria-label="Cerrar carrito"`), backdrop y `Escape`, retorno de foco al activador y cierre al navegar; filas con `+`/`-`/papelera y `aria-label` en español, subtotal/total en `font-mono`, pie con "Vaciar carrito" (limpia directo) y "Finalizar compra" (solo cierra), y vacío con "Tu carrito está vacío." + "Explorar catálogo" hacia `#/catalogo`.
+    Hecho cuando: renderizo el drawer derecho (`role="dialog"`, `aria-modal`, `aria-labelledby`) con backdrop, body lock y scroll interno, responsive (`calc(100vw - 32px)` en móvil, máx 420 px), animación `base` 250 ms desactivada con `reduced-motion`, cierre con "✕" (`aria-label="Cerrar carrito"`), backdrop y `Escape`, retorno de foco al activador y cierre al navegar; filas con `+`/`-`/papelera y `aria-label` en español, subtotal/total en `font-mono`, pie con "Vaciar carrito" (limpia directo) y "Finalizar compra" (vacía y cierra), y vacío con "Tu carrito está vacío." + "Explorar catálogo" hacia `#/catalogo`.
 
 ## Fase 3 — Integración en vistas (depende de 2, 6, 7)
 
@@ -50,7 +50,7 @@ Tareas pequeñas (≈20–30 min c/u) en orden de dependencia. Cada una indica l
 
 - [x] **10. Verificación QA según criterios de finalización y accesibilidad**
     RF: RF-1…RF-9, RNF-1…RNF-8
-    Hecho cuando: verifico manualmente agregar desde detalle y tarjetas, `+`/`-`/papelera/vaciar, "Finalizar compra" solo cierra, "Explorar catálogo" cierra y va a `#/catalogo`, recarga F5 persiste desde clave `cart`, cierre con `Escape`/backdrop/✕ con retorno de foco, teclado completo, 360 px sin scroll horizontal y `reduced-motion` sin deslizamiento, sin llamadas de red y con consola limpia.
+    Hecho cuando: verifico manualmente agregar desde detalle y tarjetas, `+`/`-`/papelera/vaciar, "Finalizar compra" vacía y cierra, "Explorar catálogo" cierra y va a `#/catalogo`, recarga F5 persiste desde clave `cart`, cierre con `Escape`/backdrop/✕ con retorno de foco, teclado completo, 360 px sin scroll horizontal y `reduced-motion` sin deslizamiento, sin llamadas de red y con consola limpia.
 
 - [x] **11. Cierre: `npm run check` en verde**
     RF: RNF-7, criterio de finalización 11

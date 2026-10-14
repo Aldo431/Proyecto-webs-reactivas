@@ -4,7 +4,7 @@ import { HERO_BUDGET_MS, buildHeroTimeline } from "./heroTimeline.ts";
 const COMMAND = "./tiendadcc --start";
 const OUTPUT_LINES = [
   "Hola, mundo.",
-  "Compila tu estilo: tazas, poleras y stickers.",
+  "Compila tu estilo: tazas, poleras, stickers y pins.",
 ];
 
 describe("buildHeroTimeline", () => {

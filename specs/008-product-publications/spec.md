@@ -36,7 +36,7 @@ Lo que **NO** incluye: servicios externos de imágenes (S3, Cloudinary, etc.), m
 El sistema deberá persistir los productos en MongoDB con un modelo Mongoose y exponerlos con un contrato público estable. Nuevo; supersede el `id` de texto de `products.json` (001/RF-x, 002, 003).
 Criterios de aceptación:
 - Cuando se cree un producto, su documento deberá contener `name` (String, requerido, `trim`, 1–80), `description` (String, requerido, `trim`, 1–1000), `category` (String, requerido, enum `PRODUCT_CATEGORIES`), `price` (Number entero, requerido, > 0), `image` (String, requerido), `featured` (Boolean, por defecto `false`), `seller` (`ObjectId` con `ref: "User"`, requerido) y `createdAt`/`updatedAt` (`timestamps`).
-- Cuando se defina `PRODUCT_CATEGORIES`, deberá ser exactamente `["Tazas", "Poleras", "Stickers"]` (las categorías actuales del catálogo), exportado desde `@tiendadcc/utils` como única fuente de verdad.
+- Cuando se defina `PRODUCT_CATEGORIES`, deberá ser exactamente `["Tazas", "Poleras", "Stickers", "Pins"]` (las tres originales más `Pins`, agregada para el pin del CaDCC), exportado desde `@tiendadcc/utils` como única fuente de verdad.
 - Cuando el backend responda con un producto, deberá usar el contrato público `{ id, name, description, category, price, image, featured, seller: { id, username, displayName }, createdAt, updatedAt }`, donde `id` es el `_id` de Mongo como string y `createdAt`/`updatedAt` son fechas ISO.
 - Cuando se serialice `seller`, no deberá exponer `email`, `passwordHash`, `favorites`, `history`, `cart` ni `__v`.
 - Cuando `favorites`, `history` y `cart` de `User` referencien productos, deberán seguir guardando strings (ahora el `_id` como string): el modelo y las rutas de `/api/users` no cambian.

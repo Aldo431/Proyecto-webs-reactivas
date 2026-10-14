@@ -11,5 +11,8 @@
     "dev": "npm run dev -w tiendadcc-client",
     "build": "npm run build -w tiendadcc-client",
     "check": "npm run check -w @tiendadcc/utils && npm run check -w backend && npm run check -w tiendadcc-client"
+  },
+  "overrides": {
+    "vite": "^6.4.3"
   }
 }

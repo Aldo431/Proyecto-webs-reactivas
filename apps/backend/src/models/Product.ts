@@ -70,6 +70,7 @@ const productSchema = new Schema<ProductFields>(
 );
 
 productSchema.index({ createdAt: -1, _id: -1 });
+productSchema.index({ price: 1, createdAt: -1, _id: -1 });
 
 export const Product = model<ProductFields>("Product", productSchema);
 

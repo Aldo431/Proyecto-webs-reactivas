@@ -13,6 +13,7 @@ import {
   productImageSchema,
   productListQuerySchema,
   productListSchema,
+  productPageSchema,
   productSchema,
   updateProductInputSchema,
   uploadImageSchema,
@@ -73,7 +74,7 @@ function firstMessage(
 
 describe("PRODUCT_CATEGORIES", () => {
   it("contiene las categorías actuales del catálogo", () => {
-    expect([...PRODUCT_CATEGORIES]).toEqual(["Tazas", "Poleras", "Stickers"]);
+    expect([...PRODUCT_CATEGORIES]).toEqual(["Tazas", "Poleras", "Stickers", "Pins"]);
   });
 
   it("productCategorySchema rechaza categorías desconocidas", () => {
@@ -479,11 +480,11 @@ describe("productSchema", () => {
 });
 
 describe("productListQuerySchema", () => {
-  it("acepta una consulta vacía", () => {
+  it("acepta una consulta vacía con orden y página por defecto", () => {
     const result = productListQuerySchema.safeParse({});
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data).toEqual({});
+      expect(result.data).toEqual({ orden: "recientes", pagina: 1 });
     }
   });
 
@@ -546,7 +547,7 @@ describe("productListQuerySchema", () => {
       categoria: "Poleras",
       featured: "true",
       ids: "a,b",
-      orden: "precio",
+      vendedor: "x",
     });
 
     expect(result.success).toBe(true);
@@ -555,7 +556,106 @@ describe("productListQuerySchema", () => {
         categoria: "Poleras",
         featured: true,
         ids: ["a", "b"],
+        orden: "recientes",
+        pagina: 1,
       });
     }
+  });
+});
+
+describe("productListQuerySchema (búsqueda, orden, precios y página)", () => {
+  it("acepta q con texto y recorta espacios", () => {
+    const result = productListQuerySchema.safeParse({ q: "  taza " });
+    expect(result.success && result.data.q).toBe("taza");
+  });
+
+  it("trata q vacío o solo espacios como ausente", () => {
+    for (const q of ["", "   "]) {
+      const result = productListQuerySchema.safeParse({ q });
+      expect(result.success && result.data.q).toBeUndefined();
+    }
+  });
+
+  it("rechaza q de más de 100 caracteres", () => {
+    expect(
+      productListQuerySchema.safeParse({ q: "a".repeat(101) }).success,
+    ).toBe(false);
+    expect(
+      productListQuerySchema.safeParse({ q: "a".repeat(100) }).success,
+    ).toBe(true);
+  });
+
+  it("acepta los cuatro órdenes y rechaza otro valor", () => {
+    for (const orden of [
+      "recientes",
+      "precio-menor",
+      "precio-mayor",
+      "nombre",
+    ]) {
+      expect(productListQuerySchema.safeParse({ orden }).success).toBe(true);
+    }
+    expect(productListQuerySchema.safeParse({ orden: "precio" }).success).toBe(
+      false,
+    );
+  });
+
+  it("convierte pagina a número y rechaza 0, negativos y no numéricos", () => {
+    const ok = productListQuerySchema.safeParse({ pagina: "2" });
+    expect(ok.success && ok.data.pagina).toBe(2);
+    for (const pagina of ["0", "-1", "abc", "1.5"]) {
+      expect(productListQuerySchema.safeParse({ pagina }).success).toBe(false);
+    }
+  });
+
+  it("acepta min y max enteros mayor o igual a 0 y rechaza negativos", () => {
+    const result = productListQuerySchema.safeParse({ min: "5000", max: "9000" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.min).toBe(5000);
+      expect(result.data.max).toBe(9000);
+    }
+    expect(productListQuerySchema.safeParse({ min: "-1" }).success).toBe(false);
+    expect(productListQuerySchema.safeParse({ max: "10.5" }).success).toBe(
+      false,
+    );
+  });
+
+  it("rechaza min mayor que max", () => {
+    expect(
+      productListQuerySchema.safeParse({ min: "9000", max: "5000" }).success,
+    ).toBe(false);
+    expect(
+      productListQuerySchema.safeParse({ min: "5000", max: "5000" }).success,
+    ).toBe(true);
+  });
+});
+
+describe("productPageSchema", () => {
+  it("acepta una página válida", () => {
+    expect(
+      productPageSchema.safeParse({
+        products: [],
+        total: 0,
+        pagina: 1,
+        porPagina: 9,
+        totalPaginas: 0,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rechaza porPagina distinto de 9 y totales negativos", () => {
+    const base = {
+      products: [],
+      total: 0,
+      pagina: 1,
+      porPagina: 9,
+      totalPaginas: 0,
+    };
+    expect(
+      productPageSchema.safeParse({ ...base, porPagina: 12 }).success,
+    ).toBe(false);
+    expect(productPageSchema.safeParse({ ...base, total: -1 }).success).toBe(
+      false,
+    );
   });
 });

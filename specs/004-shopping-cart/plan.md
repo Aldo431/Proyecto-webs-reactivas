@@ -40,7 +40,7 @@ Organización dentro del frontend existente (`apps/frontend/client/src/`), separ
     - Se cierra automáticamente al navegar (p. ej. "Explorar catálogo").
     - Cabecera con título "Tu Carrito" y botón cerrar (visual "✕", `aria-label="Cerrar carrito"`).
     - Cuerpo con lista deslizable de `CartItemRow` o `CartEmptyState`.
-    - Pie con desglose de subtotal/total, botón "Vaciar carrito" (limpia directo) y botón mock "Finalizar compra" (solo cierra). *(RF-2, RF-5, RF-6, RF-9)*
+    - Pie con desglose de subtotal/total, botón "Vaciar carrito" (limpia directo) y botón "Finalizar compra" (vacía y cierra). *(RF-2, RF-5, RF-6, RF-9)*
   - `CartItemRow.tsx`: Fila individual: miniatura, nombre, precio unitario en `font-mono`, botones `-` y `+` con `aria-label` en español, botón eliminar (icono `Trash2`) y subtotal de línea. *(RF-4, RF-5)*
   - `CartEmptyState.tsx`: Mensaje "Tu carrito está vacío." con botón "Explorar catálogo" que cierra el drawer y navega a `#/catalogo`. *(RF-6)*
   - `ProductCard.tsx`: Mantiene el `Link` al detalle y añade el botón "Agregar" fuera del `Link` (contenedor no interactivo) con `aria-label="Agregar <nombre> al carrito"`, que agrega sin navegar. Muestra el precio formateado en `font-mono`. *(RF-3, RF-8)*
@@ -123,7 +123,7 @@ Estructura persistida en `localStorage` (clave `cart`):
 - Alternativa descartada: **Parseo directo con `JSON.parse` sin esquema ni revalidación**. Riesgo de crasheo y de precios obsoletos si el catálogo cambia.
 
 **D4 — Panel lateral accesible con Tailwind v4 y primitivas locales, mock de finalizar.**
-- Justificación: Tokens y primitivas `Button`/`Badge` aseguran el sistema "IDE institucional" (Spec 00) sin librerías pesadas. Foco atrapado/retornado, `Escape`, body lock y cierre al navegar cumplen accesibilidad. "Vaciar" limpia directo y "Finalizar compra" solo cierra, pues el pago real está fuera de alcance. *(RF-2, RF-6, RF-9, RNF-3, RNF-4, RNF-5)*
+- Justificación: Tokens y primitivas `Button`/`Badge` aseguran el sistema "IDE institucional" (Spec 00) sin librerías pesadas. Foco atrapado/retornado, `Escape`, body lock y cierre al navegar cumplen accesibilidad. "Vaciar" limpia directo y "Finalizar compra" vacía y cierra, pues el pago real está fuera de alcance. *(RF-2, RF-6, RF-9, RNF-3, RNF-4, RNF-5)*
 - Alternativa descartada: **Instalar Radix UI Dialog o Vaul**. Viola §1 al añadir dependencias innecesarias.
 
 **D5 — Precios como enteros CLP.**
@@ -169,7 +169,7 @@ Estructura persistida en `localStorage` (clave `cart`):
   - Detalle → "Agregar al carrito" abre el drawer con el producto.
   - Tarjeta → "Agregar" suma sin navegar al detalle.
   - `+`/`-`/papelera/vaciar actualizan subtotal/total al instante; `-` en 1 elimina.
-  - "Finalizar compra" solo cierra sin cambiar el carrito ni llamar red.
+  - "Finalizar compra" vacía el carrito y cierra sin llamar red.
   - "Explorar catálogo" cierra y navega a `#/catalogo`.
   - Recarga (F5) persiste el carrito válido desde clave `cart`.
   - `Escape`/backdrop/✕ cierran y retornan foco al botón del encabezado.
@@ -190,7 +190,7 @@ Estructura persistida en `localStorage` (clave `cart`):
 | `CartEmptyState.tsx` con enlace a catálogo | RF-6 |
 | `cartStorage.ts` clave `cart` con Zod y revalidación | RF-7 |
 | `products.json` + `ProductSchema` con `price`, precio en detalle y tarjetas | RF-8 |
-| "Vaciar carrito" (`clearCart`) y "Finalizar compra" mock que cierra | RF-9 |
+| "Vaciar carrito" (`clearCart`) y "Finalizar compra" (vacía y cierra) | RF-9 |
 | Pruebas unitarias de lógica pura en Vitest | Verificación RF-1 a RF-9 (§4) |
 
 ---

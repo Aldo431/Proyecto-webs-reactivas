@@ -11,6 +11,7 @@ import {
   deleteProduct,
   findPublicProduct,
   getProductImage,
+  listProductPage,
   listProducts,
   listProductsBySeller,
   updateProduct,
@@ -34,7 +35,17 @@ export const listProductsHandler: RequestHandler = async (
   response,
 ) => {
   const query = productListQuerySchema.parse(request.query);
-  response.status(200).json(await listProducts(query));
+  // Con claves nuevas (`q`, `orden`, `pagina`, `min`, `max`) se responde el
+  // objeto paginado; sin ellas, el arreglo simple de 008 para no romper
+  // inicio, carrito, favoritos e historial (spec 009, RF-4).
+  const paginated = ["q", "orden", "pagina", "min", "max"].some(
+    (key) => request.query[key] !== undefined,
+  );
+  if (!paginated) {
+    response.status(200).json(await listProducts(query));
+    return;
+  }
+  response.status(200).json(await listProductPage(query));
 };
 
 export const listMyProductsHandler: RequestHandler = async (

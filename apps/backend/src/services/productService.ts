@@ -1,5 +1,6 @@
 import type { AnyObject, FilterQuery } from "mongoose";
 import {
+  CATALOG_PAGE_SIZE,
   parseDataUrl,
   type CreateProductInput,
   type Product as PublicProduct,
@@ -51,15 +52,66 @@ export const READ_PROJECTION: AnyObject = {
 
 const NEWEST_FIRST = { createdAt: -1, _id: -1 } as const;
 
+// Collation español que ignora mayúsculas y tildes en comparaciones y
+// ordenamientos de texto (spec 009, RF-1, RF-2).
+const SPANISH_COLLATION = { locale: "es", strength: 2 } as const;
+
+type SortSpec = { [field: string]: 1 | -1 };
+
+// Órdenes del catálogo (spec 009, RF-2), todos con desempate total para que
+// las páginas sean estables.
+const SORT_MAP: Record<ProductListQuery["orden"], SortSpec> = {
+  recientes: { ...NEWEST_FIRST },
+  "precio-menor": { price: 1, createdAt: -1, _id: -1 },
+  "precio-mayor": { price: -1, createdAt: -1, _id: -1 },
+  nombre: { name: 1, _id: 1 },
+};
+
+// Escapa un texto para usarlo como literal dentro de una regex (el `q` de
+// búsqueda nunca se interpreta como patrón).
+export function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const DIACRITIC_GROUPS: Record<string, string> = {
+  a: "aáàäâ",
+  e: "eéèëê",
+  i: "iíìïî",
+  o: "oóòöô",
+  u: "uúùüû",
+};
+
+// Convierte un texto en un patrón que ignora las tildes: cada vocal acepta
+// sus variantes con diacríticos. Con `$options: "i"` también ignora
+// mayúsculas (la `ñ` no se expande: es una letra distinta en español).
+export function diacriticInsensitivePattern(value: string): string {
+  return [...value]
+    .map((char) => {
+      const group = DIACRITIC_GROUPS[char.toLowerCase()];
+      if (group === undefined) {
+        return escapeRegExp(char);
+      }
+      return `[${group}]`;
+    })
+    .join("");
+}
+
 type ProductRow = Omit<ProductWithSeller, "seller"> & {
   seller: ProductWithSeller["seller"] | null;
 };
 
 async function findProducts(
   filter: FilterQuery<ProductFields>,
+  sort: SortSpec = { ...NEWEST_FIRST },
+  page?: { skip: number; limit: number },
 ): Promise<ProductWithSeller[]> {
-  const products = await Product.find(filter, READ_PROJECTION)
-    .sort(NEWEST_FIRST)
+  let query = Product.find(filter, READ_PROJECTION)
+    .sort(sort)
+    .collation(SPANISH_COLLATION);
+  if (page !== undefined) {
+    query = query.skip(page.skip).limit(page.limit);
+  }
+  const products = await query
     .populate("seller", "username displayName")
     .lean<ProductRow[]>();
   // Un vendedor inexistente no puede serializarse sin datos inventados
@@ -69,9 +121,9 @@ async function findProducts(
   );
 }
 
-export async function listProducts(
-  query: ProductListQuery,
-): Promise<PublicProduct[]> {
+// Filtro MongoDB con los criterios combinables (categoría, destacados,
+// texto, rango de precios). Sin `ids`: esa parte vive en `listProducts`.
+function buildProductFilter(query: ProductListQuery): FilterQuery<ProductFields> {
   const filter: FilterQuery<ProductFields> = {};
   if (query.categoria !== undefined) {
     filter.category = query.categoria;
@@ -79,6 +131,57 @@ export async function listProducts(
   if (query.featured !== undefined) {
     filter.featured = query.featured;
   }
+  if (query.q !== undefined) {
+    filter.name = {
+      $regex: diacriticInsensitivePattern(query.q),
+      $options: "i",
+    };
+  }
+  if (query.min !== undefined || query.max !== undefined) {
+    filter.price = {
+      ...(query.min !== undefined ? { $gte: query.min } : {}),
+      ...(query.max !== undefined ? { $lte: query.max } : {}),
+    };
+  }
+  return filter;
+}
+
+export interface ProductPageResult {
+  products: PublicProduct[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+  totalPaginas: number;
+}
+
+// Listado paginado del catálogo (spec 009, RF-4): cuenta las coincidencias,
+// ajusta la página excedida a la última y devuelve una sola página con los
+// totales para numerar.
+export async function listProductPage(
+  query: ProductListQuery,
+): Promise<ProductPageResult> {
+  const filter = buildProductFilter(query);
+  const total = await Product.countDocuments(filter);
+  const totalPaginas = Math.ceil(total / CATALOG_PAGE_SIZE);
+  const pagina = total === 0 ? 1 : Math.min(query.pagina, totalPaginas);
+  const products = await findProducts(filter, SORT_MAP[query.orden], {
+    skip: (pagina - 1) * CATALOG_PAGE_SIZE,
+    limit: CATALOG_PAGE_SIZE,
+  });
+  return {
+    products: products.map(toPublicProduct),
+    total,
+    pagina,
+    porPagina: CATALOG_PAGE_SIZE,
+    totalPaginas,
+  };
+}
+
+export async function listProducts(
+  query: ProductListQuery,
+): Promise<PublicProduct[]> {
+  const filter = buildProductFilter(query);
+
   const requestedIds = query.ids?.filter(isObjectIdString);
   if (requestedIds !== undefined) {
     if (requestedIds.length === 0) {
@@ -87,7 +190,7 @@ export async function listProducts(
     filter._id = { $in: requestedIds };
   }
 
-  const products = await findProducts(filter);
+  const products = await findProducts(filter, SORT_MAP[query.orden]);
   if (requestedIds === undefined) {
     return products.map(toPublicProduct);
   }
