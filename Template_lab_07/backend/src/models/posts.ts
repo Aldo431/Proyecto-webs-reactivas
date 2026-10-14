@@ -6,6 +6,7 @@ export interface Post {
   thread?: mongoose.Types.ObjectId;
   parent?: mongoose.Types.ObjectId;
   createdAt: Date;
+  user?: mongoose.Types.ObjectId;
   updatedAt: Date;
   likes: number;
   dislikes: number;
@@ -28,6 +29,7 @@ const postSchema = new mongoose.Schema<Post>(
     },
     thread: { type: Schema.Types.ObjectId, ref: "Post", default: null },
     parent: { type: Schema.Types.ObjectId, ref: "Post", default: null },
+    user: { type: Schema.Types.ObjectId, ref: "User", default: null },
     likes: { type: Number, default: 0 },
     dislikes: { type: Number, default: 0 },
   },
