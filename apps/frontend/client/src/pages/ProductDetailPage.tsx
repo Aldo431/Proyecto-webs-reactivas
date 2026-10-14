@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CircleAlert, Heart } from "lucide-react";
 import { Header } from "../components/Header.tsx";
+import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
@@ -82,7 +83,7 @@ export function ProductDetailPage() {
 
   if (productState.status === "loading") {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
           <p role="status" className="text-muted-foreground">
@@ -95,7 +96,7 @@ export function ProductDetailPage() {
 
   if (productState.status === "error") {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <main className="mx-auto max-w-3xl px-4 py-16">
           <div
@@ -117,13 +118,13 @@ export function ProductDetailPage() {
 
   if (product === undefined) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         <Header />
         <main className="mx-auto max-w-3xl px-4 py-16 text-center">
-          <h1 className="text-3xl font-bold text-brand-900">
+          <h1 className="text-3xl font-bold text-foreground">
             Producto no encontrado
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-muted-foreground">
             El producto que buscas no existe o ya no está disponible.
           </p>
         </main>
@@ -132,7 +133,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -142,16 +143,16 @@ export function ProductDetailPage() {
             className="w-full rounded-2xl object-cover"
           />
           <div>
-            <span className="inline-block rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700">
+            <Badge variant="secondary" className="font-mono">
               {product.category}
-            </span>
-            <h1 className="mt-2 text-3xl font-bold text-brand-900">
+            </Badge>
+            <h1 className="mt-2 text-3xl font-bold text-foreground">
               {product.name}
             </h1>
             <p className="mt-2 font-mono text-xl font-bold text-card-foreground">
               {formatPriceCLP(product.price)}
             </p>
-            <p className="mt-4 text-slate-600">{product.description}</p>
+            <p className="mt-4 text-muted-foreground">{product.description}</p>
             <p className="mt-4 font-sans text-sm text-muted-foreground">
               Publicado por {product.seller.displayName}
             </p>

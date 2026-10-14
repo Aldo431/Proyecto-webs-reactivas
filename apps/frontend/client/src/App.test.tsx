@@ -9,7 +9,7 @@ import {
   stubAuthFetch,
   type FetchRoutes,
 } from "./test/authMocks.ts";
-import { notFoundRoute, productRoutes } from "./test/productMocks.ts";
+import { catalogPageResponse, notFoundRoute, productRoutes } from "./test/productMocks.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -34,6 +34,20 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   routes = stubAuthFetch(productRoutes());
+  // Catalog pages carry varying queries (?orden, ?pagina, ?q…): answer any
+  // unmatched catalog URL with a paginated envelope (spec 009).
+  vi.mocked(globalThis.fetch).mockImplementation((input) => {
+    const url = String(input);
+    const exact = routes[url];
+    if (exact) {
+      return Promise.resolve(exact());
+    }
+    const paged = catalogPageResponse("GET", url);
+    if (paged) {
+      return Promise.resolve(paged);
+    }
+    throw new Error(`Sin respuesta simulada para ${url}`);
+  });
 });
 
 afterEach(() => {
@@ -155,7 +169,7 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Catálogo" })).toBeDefined();
     await screen.findByText("Polera DCC");
     fireEvent.click(screen.getByRole("button", { name: "Tazas" }));
-    expect(screen.getByText("Taza DCC")).toBeDefined();
+    expect(await screen.findByText("Taza DCC")).toBeDefined();
     expect(screen.queryByText("Polera DCC")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Tazas" }).getAttribute("aria-pressed"),

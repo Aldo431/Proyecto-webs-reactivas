@@ -54,6 +54,6 @@ describe("catalogPathForCategory", () => {
 
 describe("CATEGORY_SHORTCUTS", () => {
   it("lists the home page shortcuts", () => {
-    expect(CATEGORY_SHORTCUTS).toEqual(["Tazas", "Poleras", "Stickers"]);
+    expect(CATEGORY_SHORTCUTS).toEqual(["Tazas", "Poleras", "Stickers", "Pins"]);
   });
 });

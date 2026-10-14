@@ -60,6 +60,12 @@ describe("parseSeedProducts", () => {
       "taza-dcc",
       "polera-dcc",
       "sticker-dcc",
+      "pin-cadcc",
+      "polera-sushi-cats",
+      "polera-meme",
+      "pin-dcc-2",
+      "taza-2",
+      "taza-3",
     ]);
     expect(catalog.every((product) => product.image.startsWith("/images/"))).toBe(
       true,
@@ -157,10 +163,14 @@ describe("seedProducts", () => {
   it("crea los productos del JSON con el vendedor y sus imágenes actuales", async () => {
     const summary = await run();
 
-    expect(summary).toMatchObject({ created: 3, updated: 0, usersRemapped: 0 });
+    expect(summary).toMatchObject({
+      created: catalog.length,
+      updated: 0,
+      usersRemapped: 0,
+    });
     const seller = await User.findOne({ email: SEED_SELLER.email }).lean();
     const stored = await Product.find({}).sort({ name: 1 }).lean();
-    expect(stored).toHaveLength(3);
+    expect(stored).toHaveLength(catalog.length);
     for (const product of stored) {
       expect(product.seller.toString()).toBe(seller?._id.toString());
       const source = catalog.find((entry) => entry.name === product.name);
@@ -177,20 +187,36 @@ describe("seedProducts", () => {
   it("deja los productos en el orden del JSON al listar del más reciente al más antiguo", async () => {
     await run();
 
-    const all = await listProducts({});
-    const featured = await listProducts({ featured: true });
+    const all = await listProducts({ orden: "recientes", pagina: 1 });
+    const featured = await listProducts({
+      featured: true,
+      orden: "recientes",
+      pagina: 1,
+    });
 
     const jsonOrder = catalog.map((product) => product.name);
-    expect(jsonOrder).toEqual(["Taza DCC", "Polera DCC", "Sticker DCC"]);
+    expect(jsonOrder).toEqual([
+      "Taza DCC",
+      "Polera DCC",
+      "Sticker DCC",
+      "Pin cadcc",
+      "Polera sushi cats",
+      "Polera meme",
+      "Pin dcc",
+      "Taza dcc",
+      "Taza cadcc",
+    ]);
     expect(all.map((product) => product.name)).toEqual(jsonOrder);
-    expect(featured.map((product) => product.name)).toEqual(jsonOrder);
+    expect(featured.map((product) => product.name)).toEqual(
+      catalog.filter((product) => product.featured).map((product) => product.name),
+    );
   });
 
   it("mantiene ese orden al ejecutarlo de nuevo", async () => {
     await run();
     await run();
 
-    const all = await listProducts({});
+    const all = await listProducts({ orden: "recientes", pagina: 1 });
 
     expect(all.map((product) => product.name)).toEqual(
       catalog.map((product) => product.name),
@@ -214,11 +240,11 @@ describe("seedProducts", () => {
     expect(second).toMatchObject({
       sellerCreated: false,
       created: 0,
-      updated: 3,
+      updated: catalog.length,
       usersRemapped: 0,
     });
     expect(third.sellerCreated).toBe(false);
-    expect(await Product.countDocuments()).toBe(3);
+    expect(await Product.countDocuments()).toBe(catalog.length);
     expect(await User.countDocuments()).toBe(1);
     const secondIds = (await Product.find({}).sort({ name: 1 }).lean()).map(
       (product) => product._id.toString(),
@@ -260,7 +286,7 @@ describe("seedProducts", () => {
 
     await run();
 
-    expect(await Product.countDocuments()).toBe(4);
+    expect(await Product.countDocuments()).toBe(catalog.length + 1);
     const mine = await Product.findOne({ seller: other._id }).lean();
     expect(mine).toMatchObject({ price: 9999, image: "/images/mia.png" });
   });

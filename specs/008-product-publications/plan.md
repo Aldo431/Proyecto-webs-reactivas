@@ -8,7 +8,7 @@ Plan de implementación para la spec `008-product-publications`. Respeta la cons
 Se trabaja sobre lo construido en 005–007: `@tiendadcc/utils` compartido, `User` con `favorites`/`history`/`cart` como strings, `requireAuth` + `errorHandler` (`HttpError`, ZodError → 400), `AuthContext`, `CartContext` con huella sincronizada, `profileApi.ts` y `useFeaturedProducts`. La lógica vive en servicios del backend y en funciones/hooks puros del frontend, nunca en componentes (§3).
 
 - **Esquemas compartidos** — `utils/src/productSchemas.ts` (nuevo) *(RF-1, RF-2, RF-3, RF-5)*
-  - `PRODUCT_CATEGORIES = ["Tazas", "Poleras", "Stickers"] as const`, `productCategorySchema = z.enum(PRODUCT_CATEGORIES)`.
+  - `PRODUCT_CATEGORIES = ["Tazas", "Poleras", "Stickers", "Pins"] as const`, `productCategorySchema = z.enum(PRODUCT_CATEGORIES)`.
   - `MAX_IMAGE_BYTES = 1_048_576`, `ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]`, `MAX_PRODUCT_PRICE = 10_000_000`, `MAX_IDS_PER_QUERY = 100`.
   - Helpers puros: `parseDataUrl(value)` → `{ mime, base64 } | null`, `base64DecodedBytes(base64)` (longitud × 3/4 − relleno, sin decodificar todo), `hasImageSignature(mime, base64)` (decodifica solo los primeros 12 bytes con un decodificador base64 puro propio, porque `utils/tsconfig.json` no incluye `atob`/`Buffer` en sus tipos).
   - `uploadImageSchema`: string → `superRefine` con mensajes en español en este orden: obligatoria → formato data URL/tipo → base64 válido → tamaño ≤ 1 MB → firma.

@@ -4,6 +4,7 @@ import { exampleProducts } from "../test/productMocks.ts";
 import {
   createProduct,
   deleteProduct,
+  fetchCatalogPage,
   fetchMyProducts,
   fetchProduct,
   fetchProducts,
@@ -113,6 +114,75 @@ describe("fetchProducts", () => {
     stubNetworkFailure();
 
     expect(await fetchProducts()).toEqual({ ok: false, message: NETWORK_MESSAGE });
+  });
+});
+
+describe("fetchCatalogPage", () => {
+  const examplePage = {
+    products: exampleProducts,
+    total: 3,
+    pagina: 1,
+    porPagina: 9,
+    totalPaginas: 1,
+  };
+
+  it("builds the query from all the filters", async () => {
+    const fetchMock = stubFetch(() => jsonResponse(200, examplePage));
+
+    await fetchCatalogPage({
+      q: "taza",
+      orden: "precio-menor",
+      pagina: 2,
+      min: 5000,
+      max: 9000,
+      categoria: "Tazas",
+    });
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      "/api/products?q=taza&orden=precio-menor&pagina=2&min=5000&max=9000&categoria=Tazas",
+    );
+  });
+
+  it("parses the paginated envelope", async () => {
+    stubFetch(() => jsonResponse(200, examplePage));
+
+    expect(await fetchCatalogPage({ pagina: 1 })).toEqual({
+      ok: true,
+      page: examplePage,
+    });
+  });
+
+  it("returns an unexpected-response failure when the payload is invalid", async () => {
+    stubFetch(() => jsonResponse(200, { products: [], total: "muchos" }));
+
+    expect(await fetchCatalogPage()).toEqual({
+      ok: false,
+      message: UNEXPECTED_MESSAGE,
+    });
+  });
+
+  it("translates a 400 with field errors", async () => {
+    stubFetch(() =>
+      jsonResponse(400, {
+        message: "Revisa los datos ingresados.",
+        fieldErrors: { min: "El precio mínimo no puede superar al máximo." },
+      }),
+    );
+
+    expect(await fetchCatalogPage({ min: 9000, max: 5000 })).toEqual({
+      ok: false,
+      message: "Revisa los datos ingresados.",
+      fieldErrors: { min: "El precio mínimo no puede superar al máximo." },
+    });
+  });
+
+  it("translates a network failure", async () => {
+    stubNetworkFailure();
+
+    expect(await fetchCatalogPage()).toEqual({
+      ok: false,
+      message: NETWORK_MESSAGE,
+    });
   });
 });
 

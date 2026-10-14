@@ -1,10 +1,13 @@
 import {
   MAX_IDS_PER_QUERY,
   productListSchema,
+  productPageSchema,
   productSchema,
   type CreateProductInput,
   type Product,
   type ProductCategory,
+  type ProductListQuery,
+  type ProductPage,
   type UpdateProductInput,
 } from "@tiendadcc/utils";
 import { z } from "zod";
@@ -22,6 +25,10 @@ export type ProductListResult =
   | { ok: true; products: Product[] }
   | ProductFailure;
 
+export type CatalogPageResult =
+  | { ok: true; page: ProductPage }
+  | ProductFailure;
+
 export type ProductResult = { ok: true; product: Product } | ProductFailure;
 
 export type DeleteProductResult = { ok: true } | ProductFailure;
@@ -29,6 +36,15 @@ export type DeleteProductResult = { ok: true } | ProductFailure;
 export interface ProductFilters {
   categoria?: ProductCategory;
   featured?: boolean;
+}
+
+export interface CatalogPageFilters {
+  q?: string;
+  orden?: ProductListQuery["orden"];
+  pagina?: number;
+  min?: number;
+  max?: number;
+  categoria?: ProductCategory;
 }
 
 interface ApiErrorBody {
@@ -166,6 +182,53 @@ export function fetchProducts(
   }
   const query = params.length > 0 ? `?${params.join("&")}` : "";
   return readList(query, "No se pudieron cargar los productos.");
+}
+
+async function readPage(
+  path: string,
+  fallbackMessage: string,
+): Promise<CatalogPageResult> {
+  try {
+    const response = await fetch(buildUrl(path), {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.status === 200) {
+      const parsed = await parseBody(response, productPageSchema);
+      return parsed.ok ? { ok: true, page: parsed.data } : parsed;
+    }
+    return failureFromStatus(response, fallbackMessage);
+  } catch {
+    return networkFailure();
+  }
+}
+
+// Página del catálogo con búsqueda, orden, rango de precios y paginación
+// (spec 009, RF-4, RF-6). Siempre pide una página al backend.
+export function fetchCatalogPage(
+  filters: CatalogPageFilters = {},
+): Promise<CatalogPageResult> {
+  const params: string[] = [];
+  if (filters.q !== undefined && filters.q !== "") {
+    params.push(`q=${encodeURIComponent(filters.q)}`);
+  }
+  if (filters.orden !== undefined) {
+    params.push(`orden=${encodeURIComponent(filters.orden)}`);
+  }
+  if (filters.pagina !== undefined) {
+    params.push(`pagina=${String(filters.pagina)}`);
+  }
+  if (filters.min !== undefined) {
+    params.push(`min=${String(filters.min)}`);
+  }
+  if (filters.max !== undefined) {
+    params.push(`max=${String(filters.max)}`);
+  }
+  if (filters.categoria !== undefined) {
+    params.push(`categoria=${encodeURIComponent(filters.categoria)}`);
+  }
+  const query = params.length > 0 ? `?${params.join("&")}` : "";
+  return readPage(query, "No se pudieron cargar los productos.");
 }
 
 // Resuelve ids guardados (carrito, favoritos, historial) contra el backend.

@@ -3,7 +3,7 @@
 ## Contexto y objetivo
 Actualmente la tienda permite explorar productos en el inicio y en el catálogo (`specs/003-products-catalog`), así como ver el detalle individual (`specs/002-product-detail`). En el encabezado (`Header`), el acceso al carrito existe solo como marcador inactivo (`ComingSoonItem` con etiqueta "Carrito" en `apps/frontend/client/src/components/Header.tsx`). El catálogo (`apps/frontend/client/src/data/products.json`) no tiene campo de precio y el esquema Zod (`productParse.ts`) no lo valida. La tarjeta (`ProductCard.tsx`) es un `Link` completo al detalle.
 
-Esta spec define un **carrito solo frontend en panel lateral (drawer)**: agregar desde detalle y desde tarjetas (catálogo e inicio), modificar cantidades, eliminar, vaciar, ver subtotales y total en pesos chilenos, y persistir en `localStorage` con clave `cart`. Incluye botón mock `Finalizar compra` que solo cierra el panel. No hay backend, pagos ni stock dinámico. Para montos se sanciona `price` en `products.json` y en Zod.
+Esta spec define un **carrito solo frontend en panel lateral (drawer)**: agregar desde detalle y desde tarjetas (catálogo e inicio), modificar cantidades, eliminar, vaciar, ver subtotales y total en pesos chilenos, y persistir en `localStorage` con clave `cart`. El botón `Finalizar compra` vacía el carrito y cierra el panel (sin pago real). No hay backend, pagos ni stock dinámico. Para montos se sanciona `price` en `products.json` y en Zod.
 
 Lo que NO incluye aún: pasarela de pago, stock validado, auth/sync en nube, cupones/despacho/impuestos, página `/carrito` dedicada, sync entre pestañas, selector de cantidad ni tope por producto.
 
@@ -19,7 +19,7 @@ Lo que NO incluye aún: pasarela de pago, stock validado, auth/sync en nube, cup
 - Como comprador, quiero aumentar, disminuir, eliminar o vaciar productos en el panel, para ajustar mi pedido.
 - Como comprador, quiero ver subtotal por producto y total en pesos chilenos, para saber cuánto gastaría.
 - Como comprador, quiero que el carrito se conserve al recargar, para no perder mi selección.
-- Como comprador, quiero un botón "Finalizar compra" que cierre el panel por ahora, para dejar el checkout real a futuro.
+- Como comprador, quiero un botón "Finalizar compra" que vacíe el carrito y cierre el panel, para terminar mi compra por ahora.
 
 ## Requisitos funcionales
 
@@ -100,7 +100,7 @@ Mientras haya artículos en el carrito, el sistema deberá ofrecer vaciar todo y
 Criterios de aceptación:
 - Cuando haya artículos, el pie del panel deberá mostrar los botones "Vaciar carrito" y "Finalizar compra".
 - Cuando el usuario active "Vaciar carrito", todos los artículos deberán removerse de inmediato sin confirmación, persistirse el vacío y mostrarse el estado vacío (RF-6, RF-7).
-- Cuando el usuario active "Finalizar compra", el panel deberá cerrarse sin modificar el carrito, sin llamadas de red y sin navegar.
+- Cuando el usuario active "Finalizar compra", todos los artículos deberán removerse (como "Vaciar carrito"), el panel deberá cerrarse, sin llamadas de red y sin navegar.
 
 ## Requisitos no funcionales
 - **RNF-1 Idioma.** Todo texto orientado al usuario final en español (constitución §6). Identificadores, tipos y funciones en inglés.
@@ -126,7 +126,7 @@ Criterios de aceptación:
 - Sin conexión: funcionamiento idéntico por ser estático (RNF-2).
 
 ## Fuera de alcance
-- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; "Finalizar compra" es solo cierre mock (RF-9).
+- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; "Finalizar compra" vacía y cierra sin cobrar (RF-9).
 - Stock/inventario dinámico validado contra base de datos; sin tope en esta fase.
 - Autenticación o sincronización en la nube / entre dispositivos y entre pestañas.
 - Cupones, despacho, impuestos adicionales.
@@ -143,7 +143,7 @@ Esta tarea se considera terminada cuando:
 4. El panel permite incrementar, decrementar (en 1 elimina) y eliminar con papelera (RF-4).
 5. Subtotal y total se calculan al instante y se muestran en formato chileno sin errores de flotante (RF-5).
 6. Vacío muestra "Tu carrito está vacío." con "Explorar catálogo" que cierra y va a `#/catalogo`, sin totales ni acciones (RF-6).
-7. "Vaciar carrito" limpia directo y "Finalizar compra" solo cierra sin red ni cambios (RF-9).
+7. "Vaciar carrito" limpia directo y "Finalizar compra" vacía el carrito y cierra, sin red (RF-9).
 8. El carrito persiste en `localStorage` clave `cart`, revalida contra catálogo, tolera corrupto/deshabilitado y recarga sin perder selección válida (RF-7).
 9. El panel cumple diseño "IDE institucional", responsive 360px–desktop, foco atrapado/retornado, `Escape`, etiquetas en español y movimiento reducido (RNF-3, RNF-4, RNF-5).
 10. La lógica pura tiene tests Vitest (RNF-7).
@@ -156,6 +156,6 @@ Esta tarea se considera terminada cuando:
 - [RESUELTO] Precios: enteros CLP en `products.json` (6000/12000/1500), validados `z.number().int().positive()`, mostrados en detalle y tarjetas con `Intl.NumberFormat('es-CL')`.
 - [RESUELTO] Persistencia: solo frontend en `localStorage` clave `cart`; al cargar se revalida (descarta ids inexistentes, actualiza nombre/precio/imagen del catálogo, corruptos → `[]`); sin sync entre pestañas; fallback en memoria si deshabilitado/cuota.
 - [RESUELTO] Badge: suma de unidades; oculto en 0; "99+" sobre 99.
-- [RESUELTO] Pie del drawer: "Vaciar carrito" limpia directo sin confirmar; "Finalizar compra" mock que solo cierra el panel.
+- [RESUELTO] Pie del drawer: "Vaciar carrito" limpia directo sin confirmar; "Finalizar compra" vacía el carrito y cierra el panel (sin pago real).
 - [RESUELTO] Drawer: responsive (`calc(100vw - 32px)` en móvil, máx 420 px desktop), animación `base` 250 ms con `reduced-motion` sin animación, body lock, cierra con ✕/backdrop/`Escape` y al navegar, retorna foco al activador.
 - [RESUELTO] Rutas visibles con `HashRouter`: `#/catalogo`, `#/producto/:id`; abrir/cerrar drawer no cambia la URL salvo "Explorar catálogo".

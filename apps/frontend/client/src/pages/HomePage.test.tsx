@@ -52,9 +52,9 @@ describe("HomePage", () => {
     const heading = screen.getByRole("heading", { name: "Categorías" });
     const section = heading.closest("section");
     expect(section).not.toBeNull();
-    expect(within(section as HTMLElement).getAllByRole("link")).toHaveLength(3);
+    expect(within(section as HTMLElement).getAllByRole("link")).toHaveLength(4);
     expect(
-      ["Tazas", "Poleras", "Stickers"].map((name) =>
+      ["Tazas", "Poleras", "Stickers", "Pins"].map((name) =>
         within(section as HTMLElement)
           .getByRole("link", { name })
           .getAttribute("href"),
@@ -63,6 +63,7 @@ describe("HomePage", () => {
       "/catalogo?categoria=tazas",
       "/catalogo?categoria=poleras",
       "/catalogo?categoria=stickers",
+      "/catalogo?categoria=pins",
     ]);
 
     // Let the featured products finish loading before the test ends.
@@ -207,7 +208,7 @@ describe("HomePage", () => {
       const text = terminalText(container);
       expect(text).toContain("./tiendadcc --start");
       expect(text).toContain("Hola, mundo.");
-      expect(text).toContain("Compila tu estilo: tazas, poleras y stickers.");
+      expect(text).toContain("Compila tu estilo: tazas, poleras, stickers y pins.");
       expect(screen.getByRole("heading", { level: 1, name: "TiendaDCC" }))
         .toBeDefined();
       // The visible (aria-hidden) scramble text is already final.

@@ -158,7 +158,10 @@ export function CartDrawer() {
                   variant="default"
                   type="button"
                   className="flex-1"
-                  onClick={closeCart}
+                  onClick={() => {
+                    clearCart();
+                    closeCart();
+                  }}
                 >
                   Finalizar compra
                 </Button>

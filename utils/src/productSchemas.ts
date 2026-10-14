@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // Categorías del catálogo (spec 008, RF-1): única fuente de verdad para el
 // modelo, la API, los filtros y los formularios.
-export const PRODUCT_CATEGORIES = ["Tazas", "Poleras", "Stickers"] as const;
+export const PRODUCT_CATEGORIES = ["Tazas", "Poleras", "Stickers", "Pins"] as const;
 
 export const productCategorySchema = z.enum(PRODUCT_CATEGORIES, {
   error: "Selecciona una categoría válida.",
@@ -18,6 +18,17 @@ export const ALLOWED_IMAGE_TYPES = [
 ] as const;
 export const MAX_PRODUCT_PRICE = 10_000_000;
 export const MAX_IDS_PER_QUERY = 100;
+
+// Límites de la búsqueda paginada del catálogo (spec 009): texto, órdenes y
+// tamaño de página.
+export const SEARCH_MAX_LENGTH = 100;
+export const CATALOG_PAGE_SIZE = 9;
+export const SORT_ORDERS = [
+  "recientes",
+  "precio-menor",
+  "precio-mayor",
+  "nombre",
+] as const;
 
 const IMAGE_REQUIRED_MESSAGE = "La imagen es obligatoria.";
 const IMAGE_TYPE_MESSAGE =
@@ -235,7 +246,17 @@ export const updateProductInputSchema = createProductInputSchema
     { message: "No hay cambios para guardar." },
   );
 
-// Parámetros de `GET /api/products` (RF-5).
+// Parámetros de `GET /api/products` (RF-5, más búsqueda, orden, rango de
+// precios y paginación de la spec 009). Los valores vacíos equivalen a
+// ausentes; cada campo inválido rechaza toda la consulta con mensaje en
+// español.
+function emptyToUndefined(value: unknown): unknown {
+  if (typeof value === "string" && value.trim() === "") {
+    return undefined;
+  }
+  return value;
+}
+
 export const productListQuerySchema = z.object({
   categoria: productCategorySchema.optional(),
   featured: z
@@ -258,6 +279,67 @@ export const productListQuerySchema = z.object({
       message: `Puedes consultar como máximo ${MAX_IDS_PER_QUERY} productos a la vez.`,
     })
     .optional(),
+  q: z.preprocess(
+    emptyToUndefined,
+    z
+      .string({ error: "La búsqueda es inválida." })
+      .trim()
+      .min(1, "Escribe al menos un carácter para buscar.")
+      .max(
+        SEARCH_MAX_LENGTH,
+        `La búsqueda no puede superar los ${SEARCH_MAX_LENGTH} caracteres.`,
+      )
+      .optional(),
+  ),
+  orden: z
+    .enum(SORT_ORDERS, {
+      error: "El orden debe ser recientes, precio-menor, precio-mayor o nombre.",
+    })
+    .default("recientes"),
+  pagina: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number({ error: "La página debe ser un número entero mayor o igual a 1." })
+      .int("La página debe ser un número entero mayor o igual a 1.")
+      .min(1, "La página debe ser un número entero mayor o igual a 1.")
+      .default(1),
+  ),
+  min: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number({
+        error: "El precio mínimo debe ser un número entero mayor o igual a 0.",
+      })
+      .int("El precio mínimo debe ser un número entero mayor o igual a 0.")
+      .min(0, "El precio mínimo debe ser un número entero mayor o igual a 0.")
+      .optional(),
+  ),
+  max: z.preprocess(
+    emptyToUndefined,
+    z.coerce
+      .number({
+        error: "El precio máximo debe ser un número entero mayor o igual a 0.",
+      })
+      .int("El precio máximo debe ser un número entero mayor o igual a 0.")
+      .min(0, "El precio máximo debe ser un número entero mayor o igual a 0.")
+      .optional(),
+  ),
+}).refine(
+  (query) =>
+    query.min === undefined ||
+    query.max === undefined ||
+    query.min <= query.max,
+  { message: "El precio mínimo no puede superar al máximo." },
+);
+
+// Respuesta paginada del catálogo (spec 009, RF-4): los productos de la
+// página más los totales para numerar.
+export const productPageSchema = z.object({
+  products: z.array(productSchema),
+  total: z.number().int().min(0),
+  pagina: z.number().int().min(1),
+  porPagina: z.literal(CATALOG_PAGE_SIZE),
+  totalPaginas: z.number().int().min(0),
 });
 
 export type ProductCategory = z.infer<typeof productCategorySchema>;
@@ -266,3 +348,4 @@ export type Product = z.infer<typeof productSchema>;
 export type CreateProductInput = z.infer<typeof createProductInputSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductInputSchema>;
 export type ProductListQuery = z.infer<typeof productListQuerySchema>;
+export type ProductPage = z.infer<typeof productPageSchema>;

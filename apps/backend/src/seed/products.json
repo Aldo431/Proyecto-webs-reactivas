@@ -6,7 +6,7 @@
       "category": "Tazas",
       "price": 6000,
       "image": "/images/taza-dcc.png",
-      "description": "Taza de cerámica con el logo del DCC.",
+      "description": "Taza de cerámica con el profe goat del dcc.",
       "featured": true
     },
     {
@@ -26,6 +26,60 @@
       "image": "/images/sticker-dcc.png",
       "description": "Stickers con el logo del DCC.",
       "featured": true
+    },
+    {
+      "id": "pin-cadcc",
+      "name": "Pin cadcc",
+      "category": "Pins",
+      "price": 2000,
+      "image": "/images/pin-dcc.jpg",
+      "description": "Pin del departamento de estudiantes del dcc.",
+      "featured": false
+    },
+    {
+      "id": "polera-sushi-cats",
+      "name": "Polera sushi cats",
+      "category": "Poleras",
+      "price": 5000,
+      "image": "/images/polera-sushi-cats.jpg",
+      "description": "Polera de algodón perteneciente a una profesora legendaria del dcc.",
+      "featured": false
+    },
+    {
+      "id": "polera-meme",
+      "name": "Polera meme",
+      "category": "Poleras",
+      "price": 6700,
+      "image": "/images/polera-meme.png",
+      "description": "Polera de algodón con estampado.",
+      "featured": false
+    },
+    {
+      "id": "pin-dcc-2",
+      "name": "Pin dcc",
+      "category": "Pins",
+      "price": 2000,
+      "image": "/images/pin-dcc-2.jpg",
+      "description": "Pin con el logo del DCC.",
+      "featured": false
+    },
+    {
+      "id": "taza-2",
+      "name": "Taza dcc",
+      "category": "Tazas",
+      "price": 5000,
+      "image": "/images/taza-2.jpg",
+      "description": "Taza de cerámica con el logo del DCC.",
+      "featured": false
+    },
+    {
+      "id": "taza-3",
+      "name": "Taza cadcc",
+      "category": "Tazas",
+      "price": 5000,
+      "image": "/images/taza-3.jpg",
+      "description": "Taza de cerámica con el logo del CaDCC.",
+      "featured": false
     }
   ]
 }
