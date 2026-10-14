@@ -1,6 +1,6 @@
 # tiendaDCC
 
-Página web de venta de productos del Departamento de Ciencias de la Computación (DCC) de la Universidad de Chile (tazas, poleras, stickers, etc.).
+Página web de venta de productos del Departamento de Ciencias de la Computación (DCC) de la Universidad de Chile (tazas, poleras, stickers, pins, etc.).
 
 ## Stack
 
@@ -8,7 +8,7 @@ Página web de venta de productos del Departamento de Ciencias de la Computació
 |---|---|
 | Frontend | React 19 + Vite + Tailwind v4 |
 | Backend | Express + Mongoose (MongoDB) |
-| Base de datos | MongoDB (modelo `User`) |
+| Base de datos | MongoDB (modelos `User` y `Product`) |
 | Validación | Zod (esquemas compartidos en `utils/`) |
 | Tests | Vitest + Testing Library + supertest |
 
@@ -101,7 +101,7 @@ npm run dev -w backend # API en http://localhost:3001 (otra terminal)
 
 ### Seed de productos (spec 008)
 
-Carga el catálogo inicial (`apps/backend/src/seed/products.json`: Taza, Polera y Sticker DCC) en MongoDB, con sus imágenes `/images/...` y a nombre del vendedor de prueba `tiendadcc` (`vendedor@tiendadcc.cl`).
+Carga el catálogo inicial (`apps/backend/src/seed/products.json`: 3 originales más Pin cadcc, Polera sushi cats, Polera meme, Pin dcc, Taza dcc y Taza cadcc) en MongoDB, con sus imágenes `/images/...` y a nombre del vendedor de prueba `tiendadcc` (`vendedor@tiendadcc.cl`).
 
 ```bash
 # 1. En apps/backend/.env define MONGODB_URI y SEED_SELLER_PASSWORD (≥ 8 caracteres)
@@ -112,12 +112,12 @@ npm run seed -w backend
 - Valida el entorno antes de conectar: si falta `SEED_SELLER_PASSWORD` (o `MONGODB_URI`) termina con un mensaje en español y no escribe nada.
 - Es **idempotente**: crea el vendedor solo si no existe (no cambia su contraseña si ya existe) y actualiza los productos por vendedor + nombre, sin duplicarlos.
 - Reemplaza los ids antiguos (`taza-dcc`, `polera-dcc`, `sticker-dcc`) por los `_id` nuevos en los favoritos, el historial y el carrito de las cuentas existentes; las demás referencias no se tocan.
-- Crea los productos del último al primero, de modo que el listado público (del más reciente al más antiguo) conserve el orden del JSON: Taza, Polera, Sticker. En una base ya sembrada con una versión anterior el orden no cambia al re-ejecutar; para reordenar hay que borrar esos productos y volver a correr el seed.
+- Crea los productos del último al primero, de modo que el listado público (del más reciente al más antiguo) conserve el orden del JSON. En una base ya sembrada con una versión anterior el orden no cambia al re-ejecutar; para reordenar hay que borrar esos productos y volver a correr el seed.
 - Escribe en la base indicada por `MONGODB_URI`: revisa que apunte a desarrollo antes de ejecutarlo.
 
 Abre `http://localhost:5173` en el navegador. Inicio, catálogo, detalle, autenticación, perfil y publicaciones usan la API: necesitan el backend, MongoDB y haber ejecutado el seed para ver productos.
 
-## Funcionalidad actual (specs 001–008)
+## Funcionalidad actual (specs 001–009)
 
 Tienda con enrutamiento de hash (funciona por URL directa y con recarga). Estética "IDE institucional" (tema oscuro, specs/00-design-system).
 
@@ -126,7 +126,7 @@ Tienda con enrutamiento de hash (funciona por URL directa y con recarga). Estét
 | `http://localhost:5173/#/` | Inicio: marca, accesos de sesión y productos destacados |
 | `http://localhost:5173/#/registro` | Registro (nombre de usuario, nombre a mostrar, correo, contraseña y confirmación) |
 | `http://localhost:5173/#/iniciar-sesion` | Inicio de sesión (correo y contraseña) |
-| `http://localhost:5173/#/catalogo` | Catálogo con filtro por categoría y tarjetas con acciones directas |
+| `http://localhost:5173/#/catalogo` | Catálogo con búsqueda por nombre, orden, rango de precios, filtro por categoría y páginas de 9, todo en la URL |
 | `http://localhost:5173/#/producto/:id` | Detalle con agregar al carrito y a favoritos |
 | `http://localhost:5173/#/perfil` | Perfil (solo con sesión): datos editables, carrito, favoritos e historial |
 | `http://localhost:5173/#/publicar` | Publicar un producto (solo con sesión): nombre, descripción, categoría, precio en CLP e imagen |
@@ -159,14 +159,14 @@ Los productos viven en MongoDB (modelo `Product`, con `seller` apuntando al usua
 
 | Método y ruta | Descripción |
 |---|---|
-| `GET /api/products` | Listado público (`?categoria=`, `?featured=true`, `?ids=a,b`) |
+| `GET /api/products` | Listado público (`?categoria=`, `?featured=true`, `?ids=a,b` y, para el catálogo, `?q=`, `?orden=recientes\|precio-menor\|precio-mayor\|nombre`, `?min=`, `?max=`, `?pagina=` con respuesta paginada `{ products, total, pagina, porPagina, totalPaginas }` de 9 por página) |
 | `GET /api/products/mine` | Publicaciones del usuario (`401` sin sesión) |
 | `GET /api/products/:id` · `GET /api/products/:id/image` | Detalle público e imagen |
 | `POST /api/products` | Publica (`201`; `400` por campo; `413` sobre 2 MB) |
 | `PATCH /api/products/:id` | Edición parcial del dueño (`403` si no lo es; `404`) |
 | `DELETE /api/products/:id` | Borra (`204`) y quita el id de favoritos, historial y carrito de todas las cuentas |
 
-Detalles verificables: `specs/008-product-publications/`.
+Detalles verificables: `specs/008-product-publications/` y `specs/009-product-search/`.
 
 El carrito vive en `localStorage` (clave `cart`) y se sincroniza con la cuenta: al iniciar sesión fusiona lo invitado sumando cantidades (con aviso), sin duplicar en recargas; favoritos e historial son por cuenta. Detalles verificables: `specs/005-user-auth/`, `specs/006-user-profile/` y `specs/007-profile-polish/` (spec, plan y tareas de cada una).
 
