@@ -31,6 +31,11 @@ const errorHandler = (
     response.status(400).json({ error: error.message });
   }
   // TODO (P2): username o email repetido (E11000)
+  else if (error.code === 11000) {
+    const [field, value] = Object.entries(error.keyValue ?? {})[0] ?? [];
+    response.status(400).json({
+      error: `${field} "${value}" is already in use`
+    });
   // TODO (P4): token expirado (TokenExpiredError)
   else {
     next(error);
