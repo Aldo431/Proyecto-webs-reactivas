@@ -1,26 +1,9 @@
 import { z } from "zod";
+import { usernameField, displayNameField, emailField } from "./identityFields.ts";
 
 // Tope del historial de navegación (spec 006, RF-5): el backend conserva como
 // máximo esta cantidad de visitas recientes por usuario.
 export const MAX_PROD_HISTORY = 67;
-
-const usernameField = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(1, "El nombre de usuario es obligatorio.")
-  .max(80, "El nombre de usuario no puede superar los 80 caracteres.");
-
-const displayNameField = z
-  .string()
-  .trim()
-  .min(1, "El nombre a mostrar es obligatorio.")
-  .max(80, "El nombre a mostrar no puede superar los 80 caracteres.");
-
-const emailField = z
-  .string()
-  .trim()
-  .pipe(z.email("Ingresa un correo electrónico válido."));
 
 const productIdField = z
   .string()

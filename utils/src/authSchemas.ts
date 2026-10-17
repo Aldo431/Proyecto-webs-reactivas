@@ -1,22 +1,5 @@
 import { z } from "zod";
-
-const usernameField = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(1, "El nombre de usuario es obligatorio.")
-  .max(80, "El nombre de usuario no puede superar los 80 caracteres.");
-
-const displayNameField = z
-  .string()
-  .trim()
-  .min(1, "El nombre a mostrar es obligatorio.")
-  .max(80, "El nombre a mostrar no puede superar los 80 caracteres.");
-
-const emailField = z
-  .string()
-  .trim()
-  .pipe(z.email("Ingresa un correo electrónico válido."));
+import { usernameField, displayNameField, emailField } from "./identityFields.ts";
 
 const passwordField = z
   .string()
