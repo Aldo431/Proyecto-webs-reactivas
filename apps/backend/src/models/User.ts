@@ -22,6 +22,9 @@ export interface UserFields {
   email: string;
   passwordHash: string;
   emailVerified: boolean;
+  sessionVersion: number;
+  resetToken: string | null;
+  resetTokenExpiry: Date | null;
   favorites: string[];
   history: HistoryVisit[];
   cart: CartLineDocument[];
@@ -78,6 +81,25 @@ const userSchema = new Schema<UserFields, UserModel, UserMethods>(
     emailVerified: {
       type: Boolean,
       default: false,
+    },
+    sessionVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    resetToken: {
+      type: String,
+      required: false,
+      default: null,
+      index: {
+        unique: true,
+        partialFilterExpression: { resetToken: { $type: "string" } },
+      },
+    },
+    resetTokenExpiry: {
+      type: Date,
+      required: false,
+      default: null,
     },
     favorites: {
       type: [String],

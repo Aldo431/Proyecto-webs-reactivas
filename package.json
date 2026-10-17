@@ -14,5 +14,12 @@
   },
   "overrides": {
     "vite": "^6.4.3"
+  },
+  "dependencies": {
+    "express-rate-limit": "^8.7.1",
+    "nodemailer": "^10.1.2"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
   }
 }
