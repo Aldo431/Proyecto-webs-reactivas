@@ -47,6 +47,9 @@ export function productRoutes(
   for (const product of products) {
     routes[`/api/products/${encodeURIComponent(product.id)}`] = () =>
       jsonResponse(200, product);
+    // Reviews are public and start empty (spec 010, RF-1).
+    routes[`/api/products/${encodeURIComponent(product.id)}/reviews`] = () =>
+      jsonResponse(200, { reviews: [], total: 0, promedioRating: null });
   }
   return routes;
 }

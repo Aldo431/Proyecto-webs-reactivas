@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CircleAlert, Heart } from "lucide-react";
 import { Header } from "../components/Header.tsx";
+import { ReviewList } from "../components/ReviewList.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
@@ -212,6 +213,7 @@ export function ProductDetailPage() {
             )}
           </div>
         </div>
+        <ReviewList productId={product.id} />
       </main>
     </div>
   );

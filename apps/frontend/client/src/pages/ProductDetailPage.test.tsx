@@ -211,6 +211,8 @@ describe("ProductDetailPage / datos desde la API", () => {
   it("distingue un error de red del 404 y permite reintentar", async () => {
     const routes = stubAuthFetch({
       "/api/products/taza-dcc": () => json(500, { message: "Falla" }),
+      "/api/products/taza-dcc/reviews": () =>
+        json(200, { reviews: [], total: 0, promedioRating: null }),
     });
 
     renderDetail("taza-dcc");
@@ -273,5 +275,23 @@ describe("ProductDetailPage / datos desde la API", () => {
     expect(
       screen.queryByRole("link", { name: "Editar publicación" }),
     ).toBeNull();
+  });
+
+  it("renderiza la sección de reseñas bajo el detalle", async () => {
+    stubAuthFetch({
+      ...productRoutes(),
+      "/api/products/taza-dcc/reviews": () =>
+        json(200, { reviews: [], total: 0, promedioRating: null }),
+    });
+
+    renderDetail("taza-dcc");
+
+    await screen.findByRole("heading", { name: "Taza DCC" });
+    expect(
+      await screen.findByRole("heading", { name: "Reseñas" }),
+    ).toBeDefined();
+    expect(
+      await screen.findByText("Sé el primero en reseñar este producto."),
+    ).toBeDefined();
   });
 });
