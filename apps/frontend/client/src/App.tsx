@@ -7,6 +7,7 @@ import { OnlyAnonymousRoute } from "./components/OnlyAnonymousRoute.tsx";
 import { OnlyAuthenticatedRoute } from "./components/OnlyAuthenticatedRoute.tsx";
 import { CatalogPage } from "./pages/CatalogPage.tsx";
 import { EditProductPage } from "./pages/EditProductPage.tsx";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { MyProductsPage } from "./pages/MyProductsPage.tsx";
@@ -14,6 +15,7 @@ import { ProductDetailPage } from "./pages/ProductDetailPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
 import { PublishProductPage } from "./pages/PublishProductPage.tsx";
 import { RegisterPage } from "./pages/RegisterPage.tsx";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage.tsx";
 
 // Maps each URL path to its page. HashRouter keeps navigation client-side
 // (everything after # never reaches a server), and "*" renders home
@@ -38,6 +40,8 @@ export function AppRoutes() {
           </OnlyAnonymousRoute>
         }
       />
+      <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
+      <Route path="/resetear-clave/:token" element={<ResetPasswordPage />} />
       <Route path="/producto/:id" element={<ProductDetailPage />} />
       <Route path="/catalogo" element={<CatalogPage />} />
       <Route

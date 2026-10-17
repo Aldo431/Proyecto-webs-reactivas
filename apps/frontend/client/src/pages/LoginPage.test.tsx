@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../context/AuthContext.tsx";
 import { CartProvider } from "../context/CartContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
+import { ForgotPasswordPage } from "./ForgotPasswordPage.tsx";
 import { LoginPage } from "./LoginPage.tsx";
 
 const okUser = {
@@ -19,13 +20,14 @@ const okUser = {
   email: "ana@dcc.uchile.cl",
 };
 
-function renderPage() {
+function renderPage(initialEntry: string | { pathname: string; state?: unknown } = "/iniciar-sesion") {
   return render(
-    <MemoryRouter initialEntries={["/iniciar-sesion"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <AuthProvider>
         <CartProvider>
           <Routes>
             <Route path="/iniciar-sesion" element={<LoginPage />} />
+            <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
             <Route path="/" element={<div>Inicio</div>} />
           </Routes>
         </CartProvider>
@@ -44,6 +46,22 @@ describe("LoginPage", () => {
     renderPage();
     expect(await screen.findByLabelText("Correo electrónico")).toBeDefined();
     expect(screen.getByLabelText("Contraseña")).toBeDefined();
+  });
+
+  it("offers the forgot-password route", async () => {
+    stubAuthFetch();
+    renderPage();
+    fireEvent.click(await screen.findByRole("link", { name: "¿Olvidaste tu contraseña?" }));
+    expect(await screen.findByRole("heading", { name: "Recuperar contraseña" })).toBeDefined();
+    expect(screen.getByLabelText("Correo electrónico")).toBeDefined();
+  });
+
+  it("shows the reset success notice after arriving from the reset route", async () => {
+    stubAuthFetch();
+    renderPage({ pathname: "/iniciar-sesion", state: { notice: "password-reset-success" } });
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "Contraseña restablecida con éxito. Ya puedes iniciar sesión.",
+    );
   });
 
   it("shows per-field errors and does not send the request", async () => {
