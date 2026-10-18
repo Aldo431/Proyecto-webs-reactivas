@@ -106,6 +106,23 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: "Registro" })).toBeDefined();
   });
 
+  it("renders password recovery on a direct entry", async () => {
+    renderAt("/recuperar-clave");
+    expect(
+      await screen.findByRole("heading", { name: "Recuperar contraseña" }),
+    ).toBeDefined();
+    expect(screen.getByLabelText("Correo electrónico")).toBeDefined();
+  });
+
+  it("renders the reset form on a direct entry with a valid token", async () => {
+    const token = "a".repeat(64);
+    routes[`/api/auth/validate-reset-token/${token}`] = () =>
+      jsonResponse(200, { valid: true });
+    renderAt(`/resetear-clave/${token}`);
+    expect(await screen.findByLabelText("Nueva contraseña")).toBeDefined();
+    expect(screen.getByLabelText("Confirmar contraseña")).toBeDefined();
+  });
+
   it("renders the home page on an unknown path", async () => {
     renderAt("/ruta-rara");
     expect(

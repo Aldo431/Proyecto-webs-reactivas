@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { getEnv } from "../config/env.ts";
 import { UnauthorizedError } from "../errors.ts";
-import { findUserById, verifyToken } from "../services/authService.ts";
+import { findUserById, verifySessionToken } from "../services/authService.ts";
 import { SESSION_COOKIE } from "../services/session.ts";
 
 export const requireAuth: RequestHandler = async (request, _response, next) => {
@@ -10,13 +10,13 @@ export const requireAuth: RequestHandler = async (request, _response, next) => {
     throw new UnauthorizedError();
   }
 
-  const userId = verifyToken(token, getEnv().jwtSecret);
-  if (!userId) {
+  const session = verifySessionToken(token, getEnv().jwtSecret);
+  if (!session) {
     throw new UnauthorizedError();
   }
 
-  const user = await findUserById(userId);
-  if (!user) {
+  const user = await findUserById(session.userId);
+  if (!user || (user.sessionVersion ?? 0) !== session.sessionVersion) {
     throw new UnauthorizedError();
   }
 

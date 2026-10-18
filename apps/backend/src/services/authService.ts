@@ -20,24 +20,49 @@ export function verifyPassword(
   return bcrypt.compare(password, passwordHash);
 }
 
-export function signToken(userId: string, secret: string): string {
-  return jwt.sign({ sub: userId }, secret, { expiresIn: TOKEN_EXPIRES_IN });
+export function signToken(
+  userId: string,
+  secret: string,
+  sessionVersion = 0,
+): string {
+  return jwt.sign({ sub: userId, sessionVersion }, secret, {
+    expiresIn: TOKEN_EXPIRES_IN,
+  });
 }
 
-export function verifyToken(token: string, secret: string): string | null {
+export interface VerifiedSessionToken {
+  userId: string;
+  sessionVersion: number;
+}
+
+export function verifySessionToken(
+  token: string,
+  secret: string,
+): VerifiedSessionToken | null {
   try {
     const payload = jwt.verify(token, secret);
     if (
       typeof payload === "object" &&
       payload !== null &&
-      typeof payload.sub === "string"
+      typeof payload.sub === "string" &&
+      (payload.sessionVersion === undefined ||
+        (typeof payload.sessionVersion === "number" &&
+          Number.isInteger(payload.sessionVersion) &&
+          payload.sessionVersion >= 0))
     ) {
-      return payload.sub;
+      return {
+        userId: payload.sub,
+        sessionVersion: payload.sessionVersion ?? 0,
+      };
     }
     return null;
   } catch {
     return null;
   }
+}
+
+export function verifyToken(token: string, secret: string): string | null {
+  return verifySessionToken(token, secret)?.userId ?? null;
 }
 
 export async function createUser(

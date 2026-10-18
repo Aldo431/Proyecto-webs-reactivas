@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  forgotPasswordInputSchema,
   loginInputSchema,
   publicUserSchema,
   registerInputSchema,
   registerRequestSchema,
+  resetPasswordInputSchema,
 } from "./authSchemas.ts";
 
 const validRegister = {
@@ -190,6 +192,158 @@ describe("publicUserSchema", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data).not.toHaveProperty("passwordHash");
+    }
+  });
+});
+
+describe("forgotPasswordInputSchema", () => {
+  it("acepta un correo electrónico válido", () => {
+    const result = forgotPasswordInputSchema.safeParse({
+      email: "test@example.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza un correo electrónico inválido", () => {
+    const result = forgotPasswordInputSchema.safeParse({
+      email: "correo-invalido",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Correo electrónico inválido."
+      );
+    }
+  });
+
+  it("rechaza un correo electrónico vacío", () => {
+    const result = forgotPasswordInputSchema.safeParse({
+      email: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("recorta espacios y rechaza correos sobre 255 caracteres", () => {
+    const trimmed = forgotPasswordInputSchema.safeParse({
+      email: "  ana@example.com  ",
+    });
+    expect(trimmed.success).toBe(true);
+    if (trimmed.success) expect(trimmed.data.email).toBe("ana@example.com");
+
+    expect(
+      forgotPasswordInputSchema.safeParse({
+        email: `${"a".repeat(244)}@example.com`,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("resetPasswordInputSchema", () => {
+  const validToken = "a".repeat(64);
+
+  it("acepta un token válido de 64 caracteres hexadecimales", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: validToken,
+      password: "nuevaPassword123",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("acepta un token con caracteres hexadecimales mixtos", () => {
+    const mixedToken = "abcdef0123456789".repeat(4);
+    const result = resetPasswordInputSchema.safeParse({
+      token: mixedToken,
+      password: "password123",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza un token de 63 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: "a".repeat(63),
+      password: "password123",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "El token de restablecimiento no es válido."
+      );
+    }
+  });
+
+  it("rechaza un token de 65 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: "a".repeat(65),
+      password: "password123",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "El token de restablecimiento no es válido."
+      );
+    }
+  });
+
+  it("rechaza un token con caracteres no hexadecimales", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: "g".repeat(64),
+      password: "password123",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "El token de restablecimiento no es válido."
+      );
+    }
+  });
+
+  it("rechaza un token con caracteres especiales", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: "a".repeat(63) + "-",
+      password: "password123",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("acepta una contraseña de 8 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: validToken,
+      password: "12345678",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("acepta una contraseña de 100 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: validToken,
+      password: "a".repeat(100),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza una contraseña de 7 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: validToken,
+      password: "1234567",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "La contraseña debe tener al menos 8 caracteres."
+      );
+    }
+  });
+
+  it("rechaza una contraseña de 101 caracteres", () => {
+    const result = resetPasswordInputSchema.safeParse({
+      token: validToken,
+      password: "a".repeat(101),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "La contraseña no puede superar los 100 caracteres."
+      );
     }
   });
 });

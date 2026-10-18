@@ -1,4 +1,4 @@
-import { useId, type ChangeEventHandler } from "react";
+import { useId, type ChangeEventHandler, type Ref } from "react";
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 
@@ -12,6 +12,7 @@ interface TextFieldProps {
   autoComplete?: string | undefined;
   disabled?: boolean | undefined;
   inputMode?: "numeric" | undefined;
+  inputRef?: Ref<HTMLInputElement> | undefined;
 }
 
 // Controlled field with an accessible error (RF-12, RNF-4): the label is
@@ -28,6 +29,7 @@ export function TextField({
   autoComplete,
   disabled,
   inputMode,
+  inputRef,
 }: TextFieldProps) {
   const inputId = useId();
   const errorId = `${inputId}-error`;
@@ -37,6 +39,7 @@ export function TextField({
     <div className="space-y-2">
       <Label htmlFor={inputId}>{label}</Label>
       <Input
+        ref={inputRef}
         id={inputId}
         name={name}
         type={type}

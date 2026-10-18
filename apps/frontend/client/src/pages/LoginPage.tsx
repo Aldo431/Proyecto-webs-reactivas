@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginInputSchema } from "@tiendadcc/utils";
 import { Header } from "../components/Header.tsx";
 import { TextField } from "../components/TextField.tsx";
@@ -28,12 +28,23 @@ const EMPTY_VALUES: LoginValues = { email: "", password: "" };
 // reflects the session and navigates home.
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [values, setValues] = useState<LoginValues>(EMPTY_VALUES);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showResetNotice] = useState(
+    () =>
+      (location.state as { notice?: unknown } | null)?.notice ===
+      "password-reset-success",
+  );
   const formErrorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (!showResetNotice) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, navigate, showResetNotice]);
 
   // Move focus to the error region when only a general message is shown (RF-7).
   useEffect(() => {
@@ -112,6 +123,14 @@ export function LoginPage() {
         <h1 className="mb-8 text-3xl font-bold text-foreground">
           Iniciar sesión
         </h1>
+        {showResetNotice && (
+          <p
+            role="status"
+            className="mb-5 rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground"
+          >
+            Contraseña restablecida con éxito. Ya puedes iniciar sesión.
+          </p>
+        )}
         <form
           className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-sm"
           noValidate
@@ -156,6 +175,14 @@ export function LoginPage() {
           >
             Iniciar sesión
           </Button>
+          <p className="text-center text-sm">
+            <Link
+              className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+              to="/recuperar-clave"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
         </form>
       </main>
     </div>
