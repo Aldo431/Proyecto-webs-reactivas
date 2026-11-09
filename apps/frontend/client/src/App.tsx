@@ -11,6 +11,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
 import { MyProductsPage } from "./pages/MyProductsPage.tsx";
+import { PaymentPage } from "./pages/PaymentPage.tsx";
 import { ProductDetailPage } from "./pages/ProductDetailPage.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
 import { PublishProductPage } from "./pages/PublishProductPage.tsx";
@@ -44,6 +45,14 @@ export function AppRoutes() {
       <Route path="/resetear-clave/:token" element={<ResetPasswordPage />} />
       <Route path="/producto/:id" element={<ProductDetailPage />} />
       <Route path="/catalogo" element={<CatalogPage />} />
+      <Route
+        path="/pago"
+        element={
+          <OnlyAuthenticatedRoute>
+            <PaymentPage />
+          </OnlyAuthenticatedRoute>
+        }
+      />
       <Route
         path="/perfil"
         element={
