@@ -11,6 +11,7 @@ import { Header } from "../components/Header.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
+import { returnPathFromState } from "../logic/returnPath.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 
 const FIELD_ORDER = ["email", "password"] as const;
@@ -39,6 +40,9 @@ export function LoginPage() {
       (location.state as { notice?: unknown } | null)?.notice ===
       "password-reset-success",
   );
+  // If a protected route sent the user to login, return to it after signing
+  // in (011 RF-2). Only internal, single-slash paths are accepted.
+  const returnTo = returnPathFromState(location.state);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -104,7 +108,7 @@ export function LoginPage() {
     setSubmitting(false);
 
     if (result.ok) {
-      navigate("/");
+      navigate(returnTo);
       return;
     }
     if (result.fieldErrors !== undefined) {

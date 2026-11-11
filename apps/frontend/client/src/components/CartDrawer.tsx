@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { useCart } from "../context/CartContext.tsx";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
@@ -21,6 +21,7 @@ export function CartDrawer() {
   const panelRef = useRef<HTMLElement>(null);
   const openerRef = useRef<Element | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     closeCart();
@@ -159,8 +160,7 @@ export function CartDrawer() {
                   type="button"
                   className="flex-1"
                   onClick={() => {
-                    clearCart();
-                    closeCart();
+                    navigate("/pago");
                   }}
                 >
                   Finalizar compra

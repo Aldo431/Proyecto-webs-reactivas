@@ -29,6 +29,7 @@ function renderPage(initialEntry: string | { pathname: string; state?: unknown }
             <Route path="/iniciar-sesion" element={<LoginPage />} />
             <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
             <Route path="/" element={<div>Inicio</div>} />
+            <Route path="/pago" element={<div>Pago (sonda)</div>} />
           </Routes>
         </CartProvider>
       </AuthProvider>
@@ -179,6 +180,38 @@ describe("LoginPage", () => {
     const routes = stubAuthFetch();
     routes["/api/auth/login"] = () => jsonResponse(200, okUser);
     renderPage();
+
+    fireEvent.change(await screen.findByLabelText("Correo electrónico"), {
+      target: { value: "ana@dcc.uchile.cl" },
+    });
+    fireEvent.change(screen.getByLabelText("Contraseña"), {
+      target: { value: "secreto123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+
+    expect(await screen.findByText("Inicio")).toBeDefined();
+  });
+
+  it("returns to the protected route passed as state.from on success", async () => {
+    const routes = stubAuthFetch();
+    routes["/api/auth/login"] = () => jsonResponse(200, okUser);
+    renderPage({ pathname: "/iniciar-sesion", state: { from: "/pago" } });
+
+    fireEvent.change(await screen.findByLabelText("Correo electrónico"), {
+      target: { value: "ana@dcc.uchile.cl" },
+    });
+    fireEvent.change(screen.getByLabelText("Contraseña"), {
+      target: { value: "secreto123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+
+    expect(await screen.findByText("Pago (sonda)")).toBeDefined();
+  });
+
+  it("ignores an external state.from and navigates home", async () => {
+    const routes = stubAuthFetch();
+    routes["/api/auth/login"] = () => jsonResponse(200, okUser);
+    renderPage({ pathname: "/iniciar-sesion", state: { from: "//evil.example.com" } });
 
     fireEvent.change(await screen.findByLabelText("Correo electrónico"), {
       target: { value: "ana@dcc.uchile.cl" },
