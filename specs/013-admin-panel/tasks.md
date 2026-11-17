@@ -76,7 +76,7 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
     RF: RF-11, RF-14
     Hecho cuando: filtros en la URL, tabla con desplazamiento propio, switch de destacado con aviso y reversión ante error, eliminar con confirmación y aviso, paginación y vacío; su test de página pasa.
 
-- [ ] **16. Sección Usuarios**
+- [x] **16. Sección Usuarios**
     RF: RF-12, RF-14
     Hecho cuando: filtros en la URL, tabla con insignias de rol, "(tú)" y "Tu cuenta" en la propia fila, diálogo de cambio de rol con los textos de la spec y aviso; su test de página pasa.
 
