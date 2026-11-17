@@ -6,6 +6,8 @@ import {
   registerInputSchema,
   registerRequestSchema,
   resetPasswordInputSchema,
+  USER_ROLES,
+  userRoleSchema,
 } from "./authSchemas.ts";
 
 const validRegister = {
@@ -168,16 +170,61 @@ describe("loginInputSchema", () => {
   });
 });
 
+describe("userRoleSchema", () => {
+  it("define una sola vez los roles válidos", () => {
+    expect(USER_ROLES).toEqual(["user", "admin"]);
+  });
+
+  it("acepta user y admin", () => {
+    expect(userRoleSchema.safeParse("user").success).toBe(true);
+    expect(userRoleSchema.safeParse("admin").success).toBe(true);
+  });
+
+  it("rechaza cualquier otro valor", () => {
+    expect(userRoleSchema.safeParse("superadmin").success).toBe(false);
+    expect(userRoleSchema.safeParse("ADMIN").success).toBe(false);
+    expect(userRoleSchema.safeParse(undefined).success).toBe(false);
+  });
+});
+
 describe("publicUserSchema", () => {
+  const validPublicUser = {
+    id: "6712a4f3c9b1e24a8f0d1234",
+    username: "anaperez",
+    displayName: "Ana Pérez",
+    email: "ana@dcc.uchile.cl",
+    role: "user",
+  };
+
   it("acepta el contrato público del usuario", () => {
+    expect(publicUserSchema.safeParse(validPublicUser).success).toBe(true);
+  });
+
+  it("acepta el rol admin", () => {
     const result = publicUserSchema.safeParse({
-      id: "6712a4f3c9b1e24a8f0d1234",
-      username: "anaperez",
-      displayName: "Ana Pérez",
-      email: "ana@dcc.uchile.cl",
+      ...validPublicUser,
+      role: "admin",
     });
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.role).toBe("admin");
+    }
+  });
+
+  it("rechaza un rol desconocido", () => {
+    const result = publicUserSchema.safeParse({
+      ...validPublicUser,
+      role: "superadmin",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza la ausencia de role", () => {
+    const { role: _role, ...withoutRole } = validPublicUser;
+
+    expect(publicUserSchema.safeParse(withoutRole).success).toBe(false);
   });
 
   it("ignora campos desconocidos como passwordHash", () => {
@@ -186,6 +233,7 @@ describe("publicUserSchema", () => {
       username: "anaperez",
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
+      role: "user",
       passwordHash: "$2b$10$hash",
     });
 

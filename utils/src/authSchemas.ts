@@ -58,11 +58,16 @@ export const resetPasswordResponseSchema = z.object({
   message: z.string().min(1),
 });
 
+export const USER_ROLES = ["user", "admin"] as const;
+
+export const userRoleSchema = z.enum(USER_ROLES);
+
 export const publicUserSchema = z.object({
   id: z.string().min(1),
   username: z.string().min(1),
   displayName: z.string().min(1),
   email: z.email(),
+  role: userRoleSchema,
 });
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
@@ -73,4 +78,5 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordInputSchema>;
 export type ValidateResetTokenResponse = z.infer<
   typeof validateResetTokenResponseSchema
 >;
+export type UserRole = z.infer<typeof userRoleSchema>;
 export type PublicUser = z.infer<typeof publicUserSchema>;
