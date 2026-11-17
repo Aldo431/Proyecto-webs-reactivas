@@ -80,7 +80,7 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
     RF: RF-12, RF-14
     Hecho cuando: filtros en la URL, tabla con insignias de rol, "(tú)" y "Tu cuenta" en la propia fila, diálogo de cambio de rol con los textos de la spec y aviso; su test de página pasa.
 
-- [ ] **17. Sección Reseñas**
+- [x] **17. Sección Reseñas**
     RF: RF-13, RF-14
     Hecho cuando: filtros y orden en la URL, tarjetas con estrellas accesibles y borde ámbar en las bajas, eliminar con confirmación y aviso, paginación y vacío; su test de página pasa.
 
