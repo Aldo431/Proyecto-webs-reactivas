@@ -50,15 +50,15 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 5 — Frontend: lógica (depende de 2)
 
-- [ ] **10. `logic/adminApi.ts`**
+- [x] **10. `logic/adminApi.ts`**
     RF: RF-10…RF-13
     Hecho cuando: las 8 funciones validan respuestas con Zod y devuelven mensajes en español por estado; `adminApi.test.ts` cubre éxito, 401, 403, 404 y respuesta inválida.
 
-- [ ] **11. `logic/adminQuery.ts` y `logic/adminFormat.ts`**
+- [x] **11. `logic/adminQuery.ts` y `logic/adminFormat.ts`**
     RF: RF-10…RF-14
     Hecho cuando: lectura/escritura de filtros en la URL (inválidos → default; cambiar filtro borra `pagina`), tiempo relativo, promedio con coma, texto de actividad, barras por categoría y rango "Mostrando X–Y de Z", todo con tests.
 
-- [ ] **12. Hooks `useAdminOverview` y `useAdminList`**
+- [x] **12. Hooks `useAdminOverview` y `useAdminList`**
     RF: RF-10, RF-14
     Hecho cuando: exponen `loading | error | ready` y `reload()`, `useAdminList` retrocede de página si la actual queda vacía, y tienen tests.
 

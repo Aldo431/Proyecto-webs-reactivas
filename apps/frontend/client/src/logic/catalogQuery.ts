@@ -47,7 +47,7 @@ function isSortOrder(value: string | null): value is SortOrder {
   );
 }
 
-function parsePageParam(rawValue: string | null): number {
+export function parsePageParam(rawValue: string | null): number {
   if (rawValue === null || rawValue.trim() === "") return 1;
   const value = Number(rawValue);
   return Number.isInteger(value) && value >= 1 ? value : 1;
