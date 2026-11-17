@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ADMIN_SECTIONS, isActiveSection } from "./adminSections.ts";
+import {
+  ADMIN_SECTIONS,
+  getAdminSection,
+  isActiveSection,
+} from "./adminSections.ts";
 
 describe("ADMIN_SECTIONS", () => {
   it("lists the four sections in order with unique paths", () => {
@@ -44,5 +48,15 @@ describe("isActiveSection", () => {
     expect(isActiveSection("/admin/usuarios", "/admin/usuarios-extra")).toBe(
       false,
     );
+  });
+});
+
+describe("getAdminSection", () => {
+  it("finds a section by path", () => {
+    expect(getAdminSection("/admin/usuarios").label).toBe("Usuarios");
+  });
+
+  it("throws for an unknown path", () => {
+    expect(() => getAdminSection("/admin/otra")).toThrow();
   });
 });

@@ -56,15 +56,15 @@ Tareas pequeñas (≈20–30 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 4 — Frontend: armazón del panel (depende de 10, 11)
 
-- [ ] **12. `AdminLayout` y las cuatro páginas**
+- [x] **12. `AdminLayout` y las cuatro páginas**
     RF: RF-7
     Hecho cuando: la barra lateral sigue el mockup (marca + insignia "admin", nav con íconos y `aria-current`, "Volver a la tienda", tarjeta del admin); las páginas muestran `h1` y descripción; bajo 768 px la nav es una fila de pestañas desplazable y no hay scroll horizontal en 360 px; `AdminLayout.test.tsx` pasa.
 
-- [ ] **13. Rutas anidadas en `App.tsx`**
+- [x] **13. Rutas anidadas en `App.tsx`**
     RF: RF-6, RF-7
     Hecho cuando: `#/admin`, `#/admin/productos`, `#/admin/usuarios` y `#/admin/resenas` renderizan dentro de `OnlyAdminRoute` + `AdminLayout`.
 
-- [ ] **14. Enlace "Administración" en el encabezado**
+- [x] **14. Enlace "Administración" en el encabezado**
     RF: RF-8
     Hecho cuando: solo con rol `admin` aparece en escritorio y en la hamburguesa; `Header.test.tsx` cubre anónimo, usuario y admin.
 

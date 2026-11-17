@@ -66,6 +66,73 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+function stubSession(user: typeof okUser | null) {
+  if (user === null) {
+    stubAuthFetch();
+    return;
+  }
+  stubAuthFetch({
+    "/api/auth/me": () =>
+      new Response(JSON.stringify(user), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+  });
+}
+
+describe("Header / enlace Administración (spec 012 RF-8)", () => {
+  it("no aparece para un visitante anónimo", async () => {
+    stubSession(null);
+    renderHeader();
+    await waitFor(() => {
+      expect(screen.getByTestId("auth-state").textContent).toBe("anonymous");
+    });
+
+    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
+  });
+
+  it("no aparece para un usuario normal", async () => {
+    stubSession(okUser);
+    renderHeader();
+    await waitFor(() => {
+      expect(screen.getByTestId("auth-state").textContent).toBe(
+        "authenticated",
+      );
+    });
+
+    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+    expect(screen.queryByRole("link", { name: "Administración" })).toBeNull();
+  });
+
+  it("aparece a un administrador en escritorio y en la hamburguesa", async () => {
+    stubSession({ ...okUser, role: "admin" });
+    renderHeader();
+    await waitFor(() => {
+      expect(screen.getByTestId("auth-state").textContent).toBe(
+        "authenticated",
+      );
+    });
+
+    const desktop = screen.getByRole("navigation", { name: "Principal" });
+    expect(
+      within(desktop)
+        .getByRole("link", { name: "Administración" })
+        .getAttribute("href"),
+    ).toBe("/admin");
+
+    fireEvent.click(screen.getByRole("button", { name: "Abrir menú" }));
+    const menu = screen.getByRole("navigation", { name: "Menú" });
+    expect(
+      within(menu)
+        .getByRole("link", { name: "Administración" })
+        .getAttribute("href"),
+    ).toBe("/admin");
+  });
+});
+
 describe("Header / accesos de cuenta", () => {
   it("redirige a /iniciar-sesion sin sesión y sin marcadores Próximamente", async () => {
     stubAuthFetch();

@@ -2,9 +2,15 @@ import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { HashRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.tsx";
 import { CartProvider } from "./context/CartContext.tsx";
+import { AdminLayout } from "./components/admin/AdminLayout.tsx";
 import { CartDrawer } from "./components/CartDrawer.tsx";
+import { OnlyAdminRoute } from "./components/OnlyAdminRoute.tsx";
 import { OnlyAnonymousRoute } from "./components/OnlyAnonymousRoute.tsx";
 import { OnlyAuthenticatedRoute } from "./components/OnlyAuthenticatedRoute.tsx";
+import { AdminOverviewPage } from "./pages/admin/AdminOverviewPage.tsx";
+import { AdminProductsPage } from "./pages/admin/AdminProductsPage.tsx";
+import { AdminReviewsPage } from "./pages/admin/AdminReviewsPage.tsx";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage.tsx";
 import { CatalogPage } from "./pages/CatalogPage.tsx";
 import { EditProductPage } from "./pages/EditProductPage.tsx";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.tsx";
@@ -85,6 +91,19 @@ export function AppRoutes() {
           </OnlyAuthenticatedRoute>
         }
       />
+      <Route
+        path="/admin"
+        element={
+          <OnlyAdminRoute>
+            <AdminLayout />
+          </OnlyAdminRoute>
+        }
+      >
+        <Route index element={<AdminOverviewPage />} />
+        <Route path="productos" element={<AdminProductsPage />} />
+        <Route path="usuarios" element={<AdminUsersPage />} />
+        <Route path="resenas" element={<AdminReviewsPage />} />
+      </Route>
       <Route path="*" element={<HomePage />} />
     </Routes>
   );

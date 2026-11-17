@@ -30,6 +30,14 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   },
 ];
 
+export function getAdminSection(path: string): AdminSection {
+  const section = ADMIN_SECTIONS.find((candidate) => candidate.path === path);
+  if (!section) {
+    throw new Error(`Sección de administración desconocida: ${path}`);
+  }
+  return section;
+}
+
 function trimTrailingSlash(pathname: string): string {
   return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 }
