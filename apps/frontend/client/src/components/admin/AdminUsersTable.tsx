@@ -22,7 +22,7 @@ export function AdminUsersTable({
   onChangeRole,
 }: AdminUsersTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+    <div className="relative overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[56rem] text-left text-sm">
         <thead className="text-xs text-muted-foreground">
           <tr>

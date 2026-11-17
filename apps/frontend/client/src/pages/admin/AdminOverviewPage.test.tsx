@@ -216,6 +216,8 @@ describe("AdminOverviewPage", () => {
       "article",
     ) as HTMLElement;
     expect(card.className).toContain("border-destructive");
+    // Un comentario sin espacios (una URL) no debe ensanchar la página.
+    expect(within(card).getByText("Llegó rota.").className).toContain("break-words");
     expect(within(card).getByText("Taza DCC")).toBeDefined();
     expect(within(card).getByRole("img", { name: "1 de 5 estrellas" })).toBeDefined();
     expect(within(card).getByText("@beto")).toBeDefined();

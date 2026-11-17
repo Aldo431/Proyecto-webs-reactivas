@@ -21,7 +21,7 @@ export function ActivityList({ events, now }: ActivityListProps) {
             key={`${event.type}-${event.at}-${index}`}
             className="flex flex-col gap-0.5 text-sm"
           >
-            <span>
+            <span className="break-words">
               <span className="font-mono text-foreground">{user}</span>{" "}
               <span className="text-muted-foreground">{text}</span>
             </span>

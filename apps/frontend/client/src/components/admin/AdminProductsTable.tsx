@@ -31,7 +31,7 @@ export function AdminProductsTable({
   onDelete,
 }: AdminProductsTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card">
+    <div className="relative overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[56rem] text-left text-sm">
         <thead className="text-xs text-muted-foreground">
           <tr>
@@ -60,7 +60,9 @@ export function AdminProductsTable({
                   </span>
                 </span>
               </td>
-              <td className="px-3 py-2 font-mono">@{product.seller.username}</td>
+              <td className="px-3 py-2 font-mono break-all">
+                @{product.seller.username}
+              </td>
               <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
                 {formatPriceCLP(product.price)}
               </td>

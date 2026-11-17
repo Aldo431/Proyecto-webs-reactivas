@@ -113,7 +113,10 @@ describe("AdminProductsPage / datos", () => {
     renderPage("/admin/productos?pagina=2");
 
     const table = await screen.findByRole("table");
+    // `relative` contiene el texto `sr-only` (position: absolute): sin él
+    // escaparía del recorte y ensancharía la página (verificado a 360 px).
     expect(table.parentElement?.className).toContain("overflow-x-auto");
+    expect(table.parentElement?.className).toContain("relative");
     expect(screen.getByText("Mostrando 21–40 de 45")).toBeDefined();
   });
 

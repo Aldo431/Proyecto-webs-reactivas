@@ -11,12 +11,14 @@ interface LowReviewCardProps {
 // (destructive) y las estrellas con su texto accesible.
 export function LowReviewCard({ review, now }: LowReviewCardProps) {
   return (
-    <article className="flex flex-col gap-1.5 rounded-lg border border-destructive p-3 text-sm">
+    <article className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-destructive p-3 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-mono font-semibold">{review.product.name}</h3>
+        <h3 className="font-mono font-semibold break-words">
+          {review.product.name}
+        </h3>
         <StarRatingDisplay rating={review.rating} />
       </div>
-      <p>{review.comment}</p>
+      <p className="break-words">{review.comment}</p>
       <p className="text-xs text-muted-foreground">
         <span className="font-mono">@{review.author.username}</span>
         {" · "}
