@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { getAdminSession } from "../controllers/adminController.ts";
+import {
+  deleteAdminProductHandler,
+  getAdminSession,
+  listAdminProductsHandler,
+  setProductFeaturedHandler,
+} from "../controllers/adminController.ts";
 import { requireAdmin, requireAuth } from "../middleware/auth.ts";
 
 export const adminRoutes = Router();
@@ -8,3 +13,6 @@ export const adminRoutes = Router();
 adminRoutes.use(requireAuth, requireAdmin);
 
 adminRoutes.get("/session", getAdminSession);
+adminRoutes.get("/products", listAdminProductsHandler);
+adminRoutes.patch("/products/:id/featured", setProductFeaturedHandler);
+adminRoutes.delete("/products/:id", deleteAdminProductHandler);

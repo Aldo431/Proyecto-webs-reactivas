@@ -14,6 +14,7 @@ import {
   type ProductFields,
   type ProductWithSeller,
 } from "../models/Product.ts";
+import { Review } from "../models/Review.ts";
 import { User } from "../models/User.ts";
 
 const PRODUCT_NOT_FOUND = "Producto no encontrado.";
@@ -50,13 +51,13 @@ export const READ_PROJECTION: AnyObject = {
   },
 };
 
-const NEWEST_FIRST = { createdAt: -1, _id: -1 } as const;
+export const NEWEST_FIRST = { createdAt: -1, _id: -1 } as const;
 
 // Collation español que ignora mayúsculas y tildes en comparaciones y
 // ordenamientos de texto (spec 009, RF-1, RF-2).
-const SPANISH_COLLATION = { locale: "es", strength: 2 } as const;
+export const SPANISH_COLLATION = { locale: "es", strength: 2 } as const;
 
-type SortSpec = { [field: string]: 1 | -1 };
+export type SortSpec = { [field: string]: 1 | -1 };
 
 // Órdenes del catálogo (spec 009, RF-2), todos con desempate total para que
 // las páginas sean estables.
@@ -100,7 +101,7 @@ type ProductRow = Omit<ProductWithSeller, "seller"> & {
   seller: ProductWithSeller["seller"] | null;
 };
 
-async function findProducts(
+export async function findProducts(
   filter: FilterQuery<ProductFields>,
   sort: SortSpec = { ...NEWEST_FIRST },
   page?: { skip: number; limit: number },
@@ -312,17 +313,20 @@ export async function updateProduct(
   return findPublicProduct(id);
 }
 
-// Borra el producto y quita su id de favoritos, historial y carrito de todas
-// las cuentas (RF-11). Si la limpieza falla el borrado se mantiene: el
-// frontend ya descarta referencias huérfanas (RF-15).
-export async function deleteProduct(
-  userId: string,
-  id: string,
-): Promise<void> {
-  await assertProductOwner(userId, id);
+// Borra el producto y limpia lo que lo referencia: sus reseñas (spec 013,
+// RF-5) y su id en favoritos, historial y carrito de todas las cuentas (008,
+// RF-11). La usan el dueño (`deleteProduct`) y el administrador. Si una
+// limpieza falla el borrado se mantiene: el frontend ya descarta referencias
+// huérfanas (008, RF-15) y los listados del panel excluyen reseñas huérfanas.
+export async function removeProductAndReferences(id: string): Promise<void> {
   const result = await Product.deleteOne({ _id: id });
   if (result.deletedCount === 0) {
     throw new NotFoundError(PRODUCT_NOT_FOUND);
+  }
+  try {
+    await Review.deleteMany({ product: id });
+  } catch (error) {
+    console.error("No se pudieron borrar las reseñas del producto.", error);
   }
   try {
     await User.updateMany(
@@ -338,4 +342,12 @@ export async function deleteProduct(
   } catch (error) {
     console.error("No se pudieron limpiar las referencias al producto.", error);
   }
+}
+
+export async function deleteProduct(
+  userId: string,
+  id: string,
+): Promise<void> {
+  await assertProductOwner(userId, id);
+  await removeProductAndReferences(id);
 }

@@ -14,6 +14,7 @@ import {
 import { MAX_IMAGE_BYTES } from "@tiendadcc/utils";
 import { createApp } from "../app.ts";
 import { Product } from "../models/Product.ts";
+import { Review } from "../models/Review.ts";
 import { User } from "../models/User.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 import {
@@ -23,6 +24,7 @@ import {
   makeImageBytes,
   type TestSeller,
 } from "../test/productFixtures.ts";
+import { seedReview } from "../test/reviewFixtures.ts";
 
 let mongo: MongoMemoryServer;
 let app: Express;
@@ -42,6 +44,7 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await Product.deleteMany({});
+  await Review.deleteMany({});
   await User.deleteMany({});
   ana = await createSeller(app, "anaperez", "Ana Pérez");
   beto = await createSeller(app, "betoruiz", "Beto Ruiz");
@@ -540,6 +543,47 @@ describe("DELETE /api/products/:id", () => {
     expect(untouched?.favorites).toEqual([keptId]);
     expect(untouched?.history).toEqual([]);
     expect(untouched?.cart).toEqual([]);
+  });
+
+  it("borra las reseñas del producto y conserva las de otros (spec 013, RF-5)", async () => {
+    const doomed = await createProduct(ana.id);
+    const kept = await createProduct(ana.id);
+    await seedReview(doomed._id.toString(), beto.id);
+    await seedReview(doomed._id.toString(), ana.id, { rating: 1 });
+    await seedReview(kept._id.toString(), beto.id);
+
+    const response = await request(app)
+      .delete(`/api/products/${doomed._id.toString()}`)
+      .set("Cookie", ana.cookie);
+
+    expect(response.status).toBe(204);
+    expect(await Review.countDocuments({ product: doomed._id })).toBe(0);
+    expect(await Review.countDocuments({ product: kept._id })).toBe(1);
+  });
+
+  it("no borra reseñas si el no dueño intenta eliminar (403)", async () => {
+    const product = await createProduct(ana.id);
+    await seedReview(product._id.toString(), ana.id);
+
+    const response = await request(app)
+      .delete(`/api/products/${product._id.toString()}`)
+      .set("Cookie", beto.cookie);
+
+    expect(response.status).toBe(403);
+    expect(await Review.countDocuments()).toBe(1);
+  });
+
+  it("mantiene el borrado aunque falle el borrado de reseñas", async () => {
+    const product = await createProduct(ana.id);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(Review, "deleteMany").mockRejectedValueOnce(new Error("caída"));
+
+    const response = await request(app)
+      .delete(`/api/products/${product._id.toString()}`)
+      .set("Cookie", ana.cookie);
+
+    expect(response.status).toBe(204);
+    expect(await Product.findById(product._id)).toBeNull();
   });
 
   it("mantiene el borrado aunque falle la limpieza de referencias", async () => {

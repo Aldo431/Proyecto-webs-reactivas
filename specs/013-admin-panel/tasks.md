@@ -16,15 +16,15 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 2 — Backend: productos (depende de 2)
 
-- [ ] **3. `removeProductAndReferences` y borrado de reseñas**
+- [x] **3. `removeProductAndReferences` y borrado de reseñas**
     RF: RF-5
     Hecho cuando: `deleteProduct` usa la función compartida, que también borra las reseñas; un test nuevo en `productsWriteRoutes.test.ts` comprueba que el dueño borra y las reseñas desaparecen; los tests de 008 siguen pasando.
 
-- [ ] **4. `GET /api/admin/products`**
+- [x] **4. `GET /api/admin/products`**
     RF: RF-2 (RNF-8)
     Hecho cuando: lista con filtros (`q` por nombre o vendedor, `categoria`, `destacados`), paginación con ajuste, `reviewCount`/`averageRating` con una sola agregación, sin leer base64; tests pasan.
 
-- [ ] **5. `PATCH /api/admin/products/:id/featured` y `DELETE /api/admin/products/:id`**
+- [x] **5. `PATCH /api/admin/products/:id/featured` y `DELETE /api/admin/products/:id`**
     RF: RF-3, RF-4
     Hecho cuando: destacar responde 200/400/404 y se refleja en `GET /api/products?featured=true`; borrar un producto ajeno responde 204 y limpia referencias y reseñas; tests pasan.
 

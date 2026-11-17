@@ -63,7 +63,7 @@ export function makeDataUrl(
 
 interface ProductSeed {
   name?: string;
-  category?: "Tazas" | "Poleras" | "Stickers";
+  category?: "Tazas" | "Poleras" | "Stickers" | "Pins";
   price?: number;
   image?: string;
   featured?: boolean;
