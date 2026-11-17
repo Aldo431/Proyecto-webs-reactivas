@@ -4,8 +4,13 @@ import {
   type AdminPage,
   type AdminProduct,
   type AdminProductQuery,
+  type AdminReview,
+  type AdminReviewQuery,
+  type AdminUser,
+  type AdminUserQuery,
+  type UserRole,
 } from "@tiendadcc/utils";
-import { NotFoundError } from "../errors.ts";
+import { ForbiddenError, NotFoundError } from "../errors.ts";
 import {
   Product,
   toPublicProduct,
@@ -13,7 +18,7 @@ import {
   type ProductWithSeller,
 } from "../models/Product.ts";
 import { Review } from "../models/Review.ts";
-import { User } from "../models/User.ts";
+import { User, type UserFields } from "../models/User.ts";
 import {
   NEWEST_FIRST,
   diacriticInsensitivePattern,
@@ -23,6 +28,9 @@ import {
 } from "./productService.ts";
 
 const PRODUCT_NOT_FOUND = "Producto no encontrado.";
+const USER_NOT_FOUND = "Usuario no encontrado.";
+const REVIEW_NOT_FOUND = "Reseña no encontrada.";
+const OWN_ROLE_MESSAGE = "No puedes cambiar tu propio rol.";
 
 // Promedio con 1 decimal, o null sin reseñas (spec 013, RF-2).
 function roundRating(average: number): number {
@@ -172,4 +180,284 @@ export async function adminDeleteProduct(id: string): Promise<void> {
     throw new NotFoundError(PRODUCT_NOT_FOUND);
   }
   await removeProductAndReferences(id);
+}
+
+// --- Usuarios (RF-6, RF-7) ---------------------------------------------------
+
+// Proyección explícita: nunca se leen `passwordHash`, `resetToken`,
+// `sessionVersion`, favoritos, historial ni carrito (RF-6). `name` es el
+// campo legado previo a 007.
+const USER_PROJECTION = {
+  username: 1,
+  displayName: 1,
+  name: 1,
+  email: 1,
+  role: 1,
+  emailVerified: 1,
+  createdAt: 1,
+} as const;
+
+interface UserRow {
+  _id: Types.ObjectId;
+  username?: string;
+  displayName?: string;
+  name?: string;
+  email: string;
+  role?: UserRole;
+  emailVerified?: boolean;
+  createdAt: Date;
+}
+
+async function countByOwner(
+  rows: Promise<Array<{ _id: Types.ObjectId; count: number }>>,
+): Promise<Map<string, number>> {
+  return new Map((await rows).map((row) => [row._id.toString(), row.count]));
+}
+
+// Publicaciones y reseñas por usuario con UNA agregación cada una sobre los
+// ids de la página (RNF-8).
+async function toAdminUsers(rows: UserRow[]): Promise<AdminUser[]> {
+  const ids = rows.map((row) => row._id);
+  const [products, reviews] =
+    ids.length === 0
+      ? [new Map<string, number>(), new Map<string, number>()]
+      : await Promise.all([
+          countByOwner(
+            Product.aggregate([
+              { $match: { seller: { $in: ids } } },
+              { $group: { _id: "$seller", count: { $sum: 1 } } },
+            ]),
+          ),
+          countByOwner(
+            Review.aggregate([
+              { $match: { author: { $in: ids } } },
+              { $group: { _id: "$author", count: { $sum: 1 } } },
+            ]),
+          ),
+        ]);
+  return rows.map((row) => {
+    const username = row.username ?? row.name ?? "";
+    return {
+      id: row._id.toString(),
+      username,
+      displayName: row.displayName ?? row.name ?? username,
+      email: row.email,
+      // Cuentas anteriores a 012 no tienen `role` (012 RF-1).
+      role: row.role ?? "user",
+      emailVerified: row.emailVerified ?? false,
+      productCount: products.get(row._id.toString()) ?? 0,
+      reviewCount: reviews.get(row._id.toString()) ?? 0,
+      createdAt: row.createdAt.toISOString(),
+    };
+  });
+}
+
+function findUserRows(
+  filter: FilterQuery<UserFields>,
+  page?: { skip: number; limit: number },
+): Promise<UserRow[]> {
+  let query = User.find(filter, USER_PROJECTION).sort({ ...NEWEST_FIRST });
+  if (page !== undefined) {
+    query = query.skip(page.skip).limit(page.limit);
+  }
+  return query.lean<UserRow[]>();
+}
+
+function buildAdminUserFilter(query: AdminUserQuery): FilterQuery<UserFields> {
+  const filter: FilterQuery<UserFields> = {};
+  if (query.rol === "admin") {
+    filter.role = "admin";
+  } else if (query.rol === "user") {
+    // `$ne` incluye las cuentas legadas sin `role`.
+    filter.role = { $ne: "admin" };
+  }
+  if (query.q !== undefined) {
+    const pattern = { $regex: diacriticInsensitivePattern(query.q), $options: "i" };
+    filter.$or = [{ displayName: pattern }, { username: pattern }, { email: pattern }];
+  }
+  return filter;
+}
+
+export async function listAdminUsers(
+  query: AdminUserQuery,
+): Promise<AdminPage<AdminUser>> {
+  const filter = buildAdminUserFilter(query);
+  const total = await User.countDocuments(filter);
+  const { pagina, totalPaginas, skip } = pageWindow(total, query.pagina);
+  const rows = await findUserRows(filter, { skip, limit: ADMIN_PAGE_SIZE });
+  return {
+    items: await toAdminUsers(rows),
+    total,
+    pagina,
+    porPagina: ADMIN_PAGE_SIZE,
+    totalPaginas,
+  };
+}
+
+export async function assertUserExists(id: string): Promise<void> {
+  if (!isObjectIdString(id) || (await User.exists({ _id: id })) === null) {
+    throw new NotFoundError(USER_NOT_FOUND);
+  }
+}
+
+// Cambia el rol de otra cuenta (RF-7). 404 -> 403: nadie cambia su propio
+// rol, así siempre queda al menos un administrador (D4). El cambio aplica en
+// la siguiente solicitud del afectado porque el rol se lee de MongoDB.
+export async function setUserRole(
+  actingUserId: string,
+  targetId: string,
+  role: UserRole,
+): Promise<AdminUser> {
+  if (!isObjectIdString(targetId)) {
+    throw new NotFoundError(USER_NOT_FOUND);
+  }
+  if (targetId.toLowerCase() === actingUserId.toLowerCase()) {
+    throw new ForbiddenError(OWN_ROLE_MESSAGE);
+  }
+  const updated = await User.findByIdAndUpdate(
+    targetId,
+    { $set: { role } },
+    { new: true, projection: USER_PROJECTION },
+  ).lean<UserRow | null>();
+  if (!updated) {
+    throw new NotFoundError(USER_NOT_FOUND);
+  }
+  const [item] = await toAdminUsers([updated]);
+  if (!item) {
+    throw new NotFoundError(USER_NOT_FOUND);
+  }
+  return item;
+}
+
+// --- Reseñas (RF-8, RF-9) ----------------------------------------------------
+
+const LOW_RATING_MAX = 2;
+const HIGH_RATING_MIN = 4;
+
+type ReviewSort = Record<string, 1 | -1>;
+
+const REVIEW_SORTS: Record<AdminReviewQuery["orden"], ReviewSort> = {
+  recientes: { createdAt: -1, _id: -1 },
+  menor: { rating: 1, createdAt: -1, _id: -1 },
+};
+
+interface ReviewAggregateRow {
+  _id: Types.ObjectId;
+  product: { _id: Types.ObjectId; name: string };
+  author: { _id: Types.ObjectId; username?: string; displayName?: string; name?: string };
+  rating: number;
+  comment: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toAdminReview(row: ReviewAggregateRow): AdminReview {
+  const username = row.author.username ?? row.author.name ?? "";
+  return {
+    id: row._id.toString(),
+    productId: row.product._id.toString(),
+    author: {
+      id: row.author._id.toString(),
+      username,
+      displayName: row.author.displayName ?? row.author.name ?? username,
+    },
+    rating: row.rating,
+    comment: row.comment,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    product: { id: row.product._id.toString(), name: row.product.name },
+  };
+}
+
+// Reseñas con su producto y su autor en UNA agregación. Los `$unwind` sin
+// `preserveNullAndEmptyArrays` descartan las reseñas huérfanas (producto o
+// autor inexistente), igual que el resto del panel.
+export async function findAdminReviews(
+  match: Record<string, unknown>,
+  sort: ReviewSort,
+  window: { skip: number; limit: number },
+): Promise<{ rows: AdminReview[]; total: number }> {
+  const [result] = await Review.aggregate<{
+    items: ReviewAggregateRow[];
+    total: Array<{ count: number }>;
+  }>([
+    { $match: match },
+    {
+      $lookup: {
+        from: Product.collection.name,
+        localField: "product",
+        foreignField: "_id",
+        pipeline: [{ $project: { name: 1 } }],
+        as: "product",
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $lookup: {
+        from: User.collection.name,
+        localField: "author",
+        foreignField: "_id",
+        pipeline: [{ $project: { username: 1, displayName: 1, name: 1 } }],
+        as: "author",
+      },
+    },
+    { $unwind: "$author" },
+    { $sort: sort },
+    {
+      $facet: {
+        items: [{ $skip: window.skip }, { $limit: window.limit }],
+        total: [{ $count: "count" }],
+      },
+    },
+  ]);
+  return {
+    rows: (result?.items ?? []).map(toAdminReview),
+    total: result?.total[0]?.count ?? 0,
+  };
+}
+
+function reviewMatch(query: AdminReviewQuery): Record<string, unknown> {
+  if (query.calificacion === "bajas") {
+    return { rating: { $lte: LOW_RATING_MAX } };
+  }
+  if (query.calificacion === "altas") {
+    return { rating: { $gte: HIGH_RATING_MIN } };
+  }
+  return {};
+}
+
+export async function listAdminReviews(
+  query: AdminReviewQuery,
+): Promise<AdminPage<AdminReview>> {
+  const match = reviewMatch(query);
+  const sort = REVIEW_SORTS[query.orden];
+  let result = await findAdminReviews(match, sort, {
+    skip: (query.pagina - 1) * ADMIN_PAGE_SIZE,
+    limit: ADMIN_PAGE_SIZE,
+  });
+  const { pagina, totalPaginas, skip } = pageWindow(result.total, query.pagina);
+  if (result.total > 0 && pagina !== query.pagina) {
+    // Página excedida: se repite una vez con la última.
+    result = await findAdminReviews(match, sort, {
+      skip,
+      limit: ADMIN_PAGE_SIZE,
+    });
+  }
+  return {
+    items: result.rows,
+    total: result.total,
+    pagina,
+    porPagina: ADMIN_PAGE_SIZE,
+    totalPaginas,
+  };
+}
+
+export async function adminDeleteReview(id: string): Promise<void> {
+  if (!isObjectIdString(id)) {
+    throw new NotFoundError(REVIEW_NOT_FOUND);
+  }
+  const result = await Review.deleteOne({ _id: id });
+  if (result.deletedCount === 0) {
+    throw new NotFoundError(REVIEW_NOT_FOUND);
+  }
 }

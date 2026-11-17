@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { MongoMemoryServer } from "mongodb-memory-server";
+import { Types } from "mongoose";
 import request from "supertest";
 import {
   afterAll,
@@ -586,6 +587,522 @@ describe("DELETE /api/admin/products/:id", () => {
     await remove(product._id.toString());
 
     const again = await remove(product._id.toString());
+
+    expect(again.status).toBe(404);
+  });
+});
+
+// --- Spec 013: usuarios ------------------------------------------------------
+
+describe("GET /api/admin/users", () => {
+  let admin: TestSeller;
+
+  beforeEach(async () => {
+    admin = await createAdmin();
+  });
+
+  function list(query = "") {
+    return request(app)
+      .get(`/api/admin/users${query}`)
+      .set("Cookie", admin.cookie);
+  }
+
+  async function insertUser(
+    username: string,
+    createdAt: Date,
+    extra: Record<string, unknown> = {},
+  ) {
+    const { insertedId } = await User.collection.insertOne({
+      username,
+      displayName: username,
+      email: `${username}@dcc.uchile.cl`,
+      passwordHash: "hash",
+      createdAt,
+      updatedAt: createdAt,
+      ...extra,
+    });
+    return insertedId.toString();
+  }
+
+  it("lista del registro más reciente al más antiguo con el formato de la spec", async () => {
+    await insertUser("vieja", new Date("2020-01-01T00:00:00Z"));
+    await insertUser("nueva", new Date("2030-01-01T00:00:00Z"), {
+      emailVerified: true,
+    });
+
+    const response = await list();
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      total: 3,
+      pagina: 1,
+      porPagina: 20,
+      totalPaginas: 1,
+    });
+    expect(
+      response.body.items.map((u: { username: string }) => u.username),
+    ).toEqual(["nueva", "admina", "vieja"]);
+    expect(response.body.items[0]).toEqual({
+      id: expect.any(String),
+      username: "nueva",
+      displayName: "nueva",
+      email: "nueva@dcc.uchile.cl",
+      role: "user",
+      emailVerified: true,
+      productCount: 0,
+      reviewCount: 0,
+      createdAt: "2030-01-01T00:00:00.000Z",
+    });
+  });
+
+  it("nunca expone campos sensibles", async () => {
+    await User.updateOne(
+      { _id: admin.id },
+      {
+        resetToken: "a".repeat(64),
+        favorites: ["p1"],
+        cart: [{ productId: "p1", quantity: 1 }],
+      },
+    );
+
+    const response = await list();
+
+    const [item] = response.body.items;
+    expect(Object.keys(item).sort()).toEqual(
+      [
+        "createdAt",
+        "displayName",
+        "email",
+        "emailVerified",
+        "id",
+        "productCount",
+        "reviewCount",
+        "role",
+        "username",
+      ].sort(),
+    );
+    const text = JSON.stringify(response.body);
+    for (const forbidden of [
+      "passwordHash",
+      "resetToken",
+      "sessionVersion",
+      "favorites",
+      "history",
+      "cart",
+    ]) {
+      expect(text).not.toContain(forbidden);
+    }
+  });
+
+  it("cuenta publicaciones y reseñas con una agregación por conteo", async () => {
+    const ana = await createSeller(app, "anaperez", "Ana Pérez");
+    const beto = await createSeller(app, "betoruiz", "Beto Ruiz");
+    const first = await createProduct(ana.id);
+    const second = await createProduct(ana.id);
+    await seedReview(first._id.toString(), beto.id);
+    await seedReview(second._id.toString(), beto.id);
+    await seedReview(first._id.toString(), ana.id);
+    const productAggregate = vi.spyOn(Product, "aggregate");
+    const reviewAggregate = vi.spyOn(Review, "aggregate");
+
+    const response = await list();
+
+    const byName = Object.fromEntries(
+      response.body.items.map(
+        (u: { username: string; productCount: number; reviewCount: number }) => [
+          u.username,
+          u,
+        ],
+      ),
+    );
+    expect(byName.anaperez).toMatchObject({ productCount: 2, reviewCount: 1 });
+    expect(byName.betoruiz).toMatchObject({ productCount: 0, reviewCount: 2 });
+    expect(byName.admina).toMatchObject({ productCount: 0, reviewCount: 0 });
+    expect(productAggregate).toHaveBeenCalledTimes(1);
+    expect(reviewAggregate).toHaveBeenCalledTimes(1);
+  });
+
+  it("busca por nombre, usuario o correo sin distinguir mayúsculas ni tildes", async () => {
+    await createSeller(app, "anaperez", "Ana Pérez");
+    await createSeller(app, "betoruiz", "Beto Ruiz");
+
+    const byName = await list("?q=PEREZ");
+    expect(byName.body.items.map((u: { username: string }) => u.username)).toEqual([
+      "anaperez",
+    ]);
+
+    const byUsername = await list("?q=betor");
+    expect(
+      byUsername.body.items.map((u: { username: string }) => u.username),
+    ).toEqual(["betoruiz"]);
+
+    const byEmail = await list("?q=ANAPEREZ@dcc");
+    expect(byEmail.body.total).toBe(1);
+
+    const literal = await list("?q=.*");
+    expect(literal.body.total).toBe(0);
+  });
+
+  it("filtra por rol y rol=user incluye cuentas legadas sin role", async () => {
+    await createSeller(app, "anaperez");
+    await insertUser("legada", new Date("2020-01-01T00:00:00Z"));
+    const stored = await User.collection.findOne({ username: "legada" });
+    expect(stored).not.toHaveProperty("role");
+
+    const admins = await list("?rol=admin");
+    expect(admins.body.items.map((u: { username: string }) => u.username)).toEqual([
+      "admina",
+    ]);
+
+    const users = await list("?rol=user");
+    expect(
+      users.body.items.map((u: { username: string }) => u.username).sort(),
+    ).toEqual(["anaperez", "legada"]);
+    expect(
+      users.body.items.find((u: { username: string }) => u.username === "legada")
+        .role,
+    ).toBe("user");
+  });
+
+  it("pagina de a 20 y ajusta una página excedida a la última", async () => {
+    for (let index = 0; index < 21; index += 1) {
+      await insertUser(
+        `u${String(index).padStart(2, "0")}`,
+        new Date(Date.UTC(2026, 9, 1, 0, index)),
+      );
+    }
+
+    const first = await list();
+    expect(first.body.items).toHaveLength(20);
+    expect(first.body).toMatchObject({ total: 22, pagina: 1, totalPaginas: 2 });
+
+    const beyond = await list("?pagina=99");
+    expect(beyond.body.pagina).toBe(2);
+    expect(beyond.body.items).toHaveLength(2);
+  });
+
+  it.each([
+    ["rol inválido", "?rol=root"],
+    ["pagina=0", "?pagina=0"],
+  ])("responde 400 con %s", async (_label, query) => {
+    const response = await list(query);
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/admin/users/:id/role", () => {
+  let admin: TestSeller;
+  let ana: TestSeller;
+
+  beforeEach(async () => {
+    admin = await createAdmin();
+    ana = await createSeller(app, "anaperez", "Ana Pérez");
+  });
+
+  function setRole(id: string, body: unknown, cookie = admin.cookie) {
+    return request(app)
+      .patch(`/api/admin/users/${id}/role`)
+      .set("Cookie", cookie)
+      .send(body as object);
+  }
+
+  it("da el rol de administrador y responde 200 con el formato del listado", async () => {
+    const response = await setRole(ana.id, { role: "admin" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: ana.id,
+      username: "anaperez",
+      role: "admin",
+      productCount: 0,
+      reviewCount: 0,
+    });
+    expect((await User.findById(ana.id))?.role).toBe("admin");
+  });
+
+  it("aplica en la siguiente solicitud del afectado, al dar y al quitar el rol", async () => {
+    const before = await request(app)
+      .get("/api/admin/session")
+      .set("Cookie", ana.cookie);
+    expect(before.status).toBe(403);
+
+    await setRole(ana.id, { role: "admin" });
+    const promoted = await request(app)
+      .get("/api/admin/session")
+      .set("Cookie", ana.cookie);
+    expect(promoted.status).toBe(200);
+
+    const demoted = await setRole(ana.id, { role: "user" });
+    expect(demoted.body.role).toBe("user");
+    const after = await request(app)
+      .get("/api/admin/session")
+      .set("Cookie", ana.cookie);
+    expect(after.status).toBe(403);
+  });
+
+  it("responde 200 al asignar el rol que ya tenía", async () => {
+    const response = await setRole(ana.id, { role: "user" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.role).toBe("user");
+  });
+
+  it("responde 403 si el administrador cambia su propio rol y no lo cambia", async () => {
+    const response = await setRole(admin.id, { role: "user" });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("No puedes cambiar tu propio rol.");
+    expect((await User.findById(admin.id))?.role).toBe("admin");
+  });
+
+  it.each([
+    ["sin role", {}],
+    ["role desconocido", { role: "root" }],
+    ["role numérico", { role: 1 }],
+  ])("responde 400 %s con 'Rol inválido.'", async (_label, body) => {
+    const response = await setRole(ana.id, body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.fieldErrors.role).toBe("Rol inválido.");
+    expect((await User.findById(ana.id))?.role).toBe("user");
+  });
+
+  it.each([
+    ["inexistente", MISSING_ID],
+    ["inválido", "anaperez"],
+  ])("responde 404 para un id %s, aun con cuerpo inválido", async (_label, id) => {
+    const response = await setRole(id, {});
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Usuario no encontrado.");
+  });
+});
+
+// --- Spec 013: reseñas -------------------------------------------------------
+
+describe("GET /api/admin/reviews", () => {
+  let admin: TestSeller;
+  let ana: TestSeller;
+  let beto: TestSeller;
+  let carla: TestSeller;
+
+  beforeEach(async () => {
+    admin = await createAdmin();
+    ana = await createSeller(app, "anaperez", "Ana Pérez");
+    beto = await createSeller(app, "betoruiz", "Beto Ruiz");
+    carla = await createSeller(app, "carla", "Carla");
+  });
+
+  function list(query = "") {
+    return request(app)
+      .get(`/api/admin/reviews${query}`)
+      .set("Cookie", admin.cookie);
+  }
+
+  async function seedRatings() {
+    const taza = await createProduct(ana.id, { name: "Taza" });
+    const polera = await createProduct(ana.id, { name: "Polera" });
+    const tazaId = taza._id.toString();
+    const poleraId = polera._id.toString();
+    await seedReview(tazaId, beto.id, {
+      rating: 5,
+      comment: "Excelente",
+      createdAt: new Date("2026-11-01T10:00:00Z"),
+    });
+    await seedReview(tazaId, carla.id, {
+      rating: 1,
+      comment: "Mala",
+      createdAt: new Date("2026-11-02T10:00:00Z"),
+    });
+    await seedReview(poleraId, beto.id, {
+      rating: 2,
+      comment: "Regular",
+      createdAt: new Date("2026-11-03T10:00:00Z"),
+    });
+    await seedReview(poleraId, carla.id, {
+      rating: 4,
+      comment: "Buena",
+      createdAt: new Date("2026-11-04T10:00:00Z"),
+    });
+    return { tazaId, poleraId };
+  }
+
+  it("lista todas, más recientes primero, con el producto y el autor", async () => {
+    const { poleraId } = await seedRatings();
+
+    const response = await list();
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      total: 4,
+      pagina: 1,
+      porPagina: 20,
+      totalPaginas: 1,
+    });
+    expect(
+      response.body.items.map((r: { comment: string }) => r.comment),
+    ).toEqual(["Buena", "Regular", "Mala", "Excelente"]);
+    expect(response.body.items[0]).toEqual({
+      id: expect.any(String),
+      productId: poleraId,
+      product: { id: poleraId, name: "Polera" },
+      author: { id: carla.id, username: "carla", displayName: "Carla" },
+      rating: 4,
+      comment: "Buena",
+      createdAt: "2026-11-04T10:00:00.000Z",
+      updatedAt: expect.any(String),
+    });
+  });
+
+  it("filtra bajas (1-2) y altas (4-5)", async () => {
+    await seedRatings();
+
+    const low = await list("?calificacion=bajas");
+    expect(low.body.items.map((r: { rating: number }) => r.rating)).toEqual([
+      2, 1,
+    ]);
+
+    const high = await list("?calificacion=altas");
+    expect(high.body.items.map((r: { rating: number }) => r.rating)).toEqual([
+      4, 5,
+    ]);
+  });
+
+  it("ordena por menor calificación y luego por más reciente", async () => {
+    const { tazaId } = await seedRatings();
+    const diego = await createSeller(app, "diego", "Diego");
+    await seedReview(tazaId, diego.id, {
+      rating: 1,
+      comment: "Mala y más nueva",
+      createdAt: new Date("2026-11-10T10:00:00Z"),
+    });
+
+    const response = await list("?orden=menor");
+
+    expect(
+      response.body.items.map((r: { comment: string }) => r.comment),
+    ).toEqual(["Mala y más nueva", "Mala", "Regular", "Buena", "Excelente"]);
+  });
+
+  it("excluye las reseñas huérfanas, de producto o de autor inexistente", async () => {
+    const { tazaId } = await seedRatings();
+    await seedReview(MISSING_ID, beto.id, { comment: "Producto borrado" });
+    await Review.collection.insertOne({
+      product: new Types.ObjectId(tazaId),
+      author: new Types.ObjectId(MISSING_ID),
+      rating: 3,
+      comment: "Autor inexistente",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const response = await list();
+
+    expect(response.body.total).toBe(4);
+    const comments = response.body.items.map((r: { comment: string }) => r.comment);
+    expect(comments).not.toContain("Producto borrado");
+    expect(comments).not.toContain("Autor inexistente");
+  });
+
+  it("pagina de a 20 y ajusta una página excedida a la última", async () => {
+    const product = await createProduct(ana.id);
+    const productId = product._id.toString();
+    for (let index = 0; index < 21; index += 1) {
+      const author = await User.create({
+        username: `r${index}`,
+        displayName: `R${index}`,
+        email: `r${index}@dcc.uchile.cl`,
+        passwordHash: "hash",
+      });
+      await seedReview(productId, author._id.toString(), {
+        comment: `C${index}`,
+        createdAt: new Date(Date.UTC(2026, 9, 1, 0, index)),
+      });
+    }
+
+    const second = await list("?pagina=2");
+    expect(second.body.items.map((r: { comment: string }) => r.comment)).toEqual([
+      "C0",
+    ]);
+
+    const beyond = await list("?pagina=99");
+    expect(beyond.body).toMatchObject({ pagina: 2, total: 21, totalPaginas: 2 });
+    expect(beyond.body.items).toHaveLength(1);
+  });
+
+  it("sin resultados responde pagina 1 y totalPaginas 0", async () => {
+    const response = await list("?calificacion=bajas");
+
+    expect(response.body).toEqual({
+      items: [],
+      total: 0,
+      pagina: 1,
+      porPagina: 20,
+      totalPaginas: 0,
+    });
+  });
+
+  it.each([
+    ["calificacion", "?calificacion=medias"],
+    ["orden", "?orden=antiguas"],
+    ["pagina", "?pagina=0"],
+  ])("responde 400 con %s inválido", async (_label, query) => {
+    const response = await list(query);
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe("DELETE /api/admin/reviews/:id", () => {
+  let admin: TestSeller;
+  let ana: TestSeller;
+  let beto: TestSeller;
+
+  beforeEach(async () => {
+    admin = await createAdmin();
+    ana = await createSeller(app, "anaperez", "Ana Pérez");
+    beto = await createSeller(app, "betoruiz", "Beto Ruiz");
+  });
+
+  function remove(id: string) {
+    return request(app)
+      .delete(`/api/admin/reviews/${id}`)
+      .set("Cookie", admin.cookie);
+  }
+
+  it("responde 204 al borrar la reseña de otro usuario y recalcula el promedio público", async () => {
+    const product = await createProduct(ana.id);
+    const productId = product._id.toString();
+    await seedReview(productId, ana.id, { rating: 5 });
+    const low = await seedReview(productId, beto.id, { rating: 1 });
+    const before = await request(app).get(`/api/products/${productId}/reviews`);
+    expect(before.body).toMatchObject({ total: 2, promedioRating: 3 });
+
+    const response = await remove(low._id.toString());
+
+    expect(response.status).toBe(204);
+    expect(await Review.findById(low._id)).toBeNull();
+    const after = await request(app).get(`/api/products/${productId}/reviews`);
+    expect(after.body).toMatchObject({ total: 1, promedioRating: 5 });
+  });
+
+  it.each([
+    ["inexistente", MISSING_ID],
+    ["inválido", "reseña"],
+  ])("responde 404 para un id %s", async (_label, id) => {
+    const response = await remove(id);
+
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Reseña no encontrada.");
+  });
+
+  it("responde 404 si la reseña ya fue eliminada", async () => {
+    const product = await createProduct(ana.id);
+    const review = await seedReview(product._id.toString(), beto.id);
+    await remove(review._id.toString());
+
+    const again = await remove(review._id.toString());
 
     expect(again.status).toBe(404);
   });

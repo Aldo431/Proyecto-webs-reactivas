@@ -30,11 +30,11 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 3 — Backend: usuarios y reseñas (depende de 2)
 
-- [ ] **6. `GET /api/admin/users` y `PATCH /api/admin/users/:id/role`**
+- [x] **6. `GET /api/admin/users` y `PATCH /api/admin/users/:id/role`**
     RF: RF-6, RF-7
     Hecho cuando: el listado busca por nombre, usuario o correo, `rol=user` incluye legados, no expone campos sensibles y trae conteos; cambiar rol responde 200, 403 para el propio, 400 para rol inválido y 404 para id inexistente; tests pasan.
 
-- [ ] **7. `GET /api/admin/reviews` y `DELETE /api/admin/reviews/:id`**
+- [x] **7. `GET /api/admin/reviews` y `DELETE /api/admin/reviews/:id`**
     RF: RF-8, RF-9
     Hecho cuando: filtra `bajas`/`altas`, ordena `recientes`/`menor`, excluye huérfanas, incluye `product { id, name }`; borrar una reseña ajena responde 204 y el promedio público cambia; tests pasan.
 
