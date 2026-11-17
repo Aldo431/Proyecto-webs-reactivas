@@ -16,27 +16,27 @@ Tareas pequeñas (≈20–30 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 2 — Backend (depende de 2)
 
-- [ ] **3. Campo `role` en `User` y `toPublicJSON`**
+- [x] **3. Campo `role` en `User` y `toPublicJSON`**
     RF: RF-1, RF-3
     Hecho cuando: el modelo tiene `role` con enum y default `"user"`; `toPublicJSON` devuelve `role` (legado sin campo → `"user"`); un test inserta un documento sin `role` y lo verifica.
 
-- [ ] **4. Ajustar mocks y tests existentes del backend**
+- [x] **4. Ajustar mocks y tests existentes del backend**
     RF: RF-3
     Hecho cuando: los tests de auth, users, products y reviews que comparan usuarios públicos esperan `role`, y `npm run check -w backend` vuelve a verde.
 
-- [ ] **5. `requireAdmin`, `/api/admin` y `GET /api/admin/session`**
+- [x] **5. `requireAdmin`, `/api/admin` y `GET /api/admin/session`**
     RF: RF-4
     Hecho cuando: existen `requireAdmin`, `adminRoutes.ts`, `adminController.ts` y el montaje en `app.ts`; `adminRoutes.test.ts` cubre 401, 403 (con el mensaje exacto), 200 y el cambio de rol aplicado sin nuevo login.
 
-- [ ] **6. El rol no se asigna desde la API pública**
+- [x] **6. El rol no se asigna desde la API pública**
     RF: RF-2
     Hecho cuando: hay tests de que `POST /api/auth/register` y `PUT /api/users/me` con `"role": "admin"` dejan la cuenta en `"user"`, y pasan.
 
-- [ ] **7. `adminRoleService.ts` (`parseMakeAdminInput`, `grantAdminRole`)**
+- [x] **7. `adminRoleService.ts` (`parseMakeAdminInput`, `grantAdminRole`)**
     RF: RF-5
     Hecho cuando: `adminRoleService.test.ts` cubre granted, already-admin, not-found, correo con mayúsculas/espacios, falta de argumento, correo inválido y falta de `MONGODB_URI`, y pasa.
 
-- [ ] **8. Script `make-admin`**
+- [x] **8. Script `make-admin`**
     RF: RF-5
     Hecho cuando: existe `scripts/makeAdmin.ts` y el script `make-admin` en `apps/backend/package.json`; al correr `npm run make-admin -w backend -- <mi correo>` contra la base local imprime "Listo: <usuario> ahora es administrador."; una segunda vez imprime "ya era administrador"; con un correo inexistente termina con código 1. README actualizado con el comando.
 

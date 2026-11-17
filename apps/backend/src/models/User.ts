@@ -4,7 +4,12 @@ import {
   type HydratedDocument,
   type Model,
 } from "mongoose";
-import type { PublicUser, UserProfile } from "@tiendadcc/utils";
+import {
+  USER_ROLES,
+  type PublicUser,
+  type UserProfile,
+  type UserRole,
+} from "@tiendadcc/utils";
 
 export interface HistoryVisit {
   productId: string;
@@ -21,6 +26,7 @@ export interface UserFields {
   displayName: string;
   email: string;
   passwordHash: string;
+  role: UserRole;
   emailVerified: boolean;
   sessionVersion: number;
   resetToken: string | null;
@@ -78,6 +84,11 @@ const userSchema = new Schema<UserFields, UserModel, UserMethods>(
       type: String,
       required: true,
     },
+    role: {
+      type: String,
+      enum: { values: [...USER_ROLES], message: "Rol inválido." },
+      default: "user",
+    },
     emailVerified: {
       type: Boolean,
       default: false,
@@ -134,6 +145,8 @@ userSchema.methods.toPublicJSON = function (): PublicUser {
     username,
     displayName: this.displayName ?? this.name ?? username,
     email: this.email,
+    // Cuentas anteriores a 012 no tienen `role`: se tratan como "user".
+    role: this.role ?? "user",
   };
 };
 

@@ -113,6 +113,25 @@ describe("GET /api/users/me", () => {
 });
 
 describe("PUT /api/users/me", () => {
+  it("ignora role en el cuerpo y no cambia el rol (spec 012 RF-2)", async () => {
+    const cookie = await loginCookie();
+
+    const response = await request(app)
+      .put("/api/users/me")
+      .set("Cookie", cookie)
+      .send({
+        username: "anaperez",
+        displayName: "Ana Pérez",
+        email: credentials.email,
+        currentPassword: credentials.password,
+        role: "admin",
+      });
+
+    expect(response.status).toBe(200);
+    const stored = await User.findOne({ email: credentials.email });
+    expect(stored?.role).toBe("user");
+  });
+
   it("actualiza identidad y responde 200 con el perfil normalizado", async () => {
     const cookie = await loginCookie();
 
