@@ -72,7 +72,7 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
     RF: RF-10
     Hecho cuando: `AdminOverviewPage` muestra indicadores, barras, actividad, últimas publicaciones y reseñas por revisar como en el mockup, con "Actualizar", carga y error con "Reintentar"; sin desborde en 360 px; su test de página pasa.
 
-- [ ] **15. Sección Productos**
+- [x] **15. Sección Productos**
     RF: RF-11, RF-14
     Hecho cuando: filtros en la URL, tabla con desplazamiento propio, switch de destacado con aviso y reversión ante error, eliminar con confirmación y aviso, paginación y vacío; su test de página pasa.
 
