@@ -3,6 +3,7 @@ import {
   deleteAdminProductHandler,
   deleteAdminReviewHandler,
   getAdminSession,
+  getOverviewHandler,
   listAdminProductsHandler,
   listAdminReviewsHandler,
   listAdminUsersHandler,
@@ -17,6 +18,7 @@ export const adminRoutes = Router();
 adminRoutes.use(requireAuth, requireAdmin);
 
 adminRoutes.get("/session", getAdminSession);
+adminRoutes.get("/overview", getOverviewHandler);
 adminRoutes.get("/products", listAdminProductsHandler);
 adminRoutes.patch("/products/:id/featured", setProductFeaturedHandler);
 adminRoutes.delete("/products/:id", deleteAdminProductHandler);

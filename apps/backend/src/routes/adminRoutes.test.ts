@@ -12,6 +12,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { adminOverviewSchema } from "@tiendadcc/utils";
 import { createApp } from "../app.ts";
 import { Product } from "../models/Product.ts";
 import { Review } from "../models/Review.ts";
@@ -154,29 +155,40 @@ async function createAdmin(username = "admina"): Promise<TestSeller> {
   return admin;
 }
 
-describe("acceso a las rutas de productos del panel", () => {
-  const routes: Array<[string, string, string]> = [
-    ["GET", "/api/admin/products", "listado"],
-    ["PATCH", `/api/admin/products/${MISSING_ID}/featured`, "destacar"],
-    ["DELETE", `/api/admin/products/${MISSING_ID}`, "eliminar"],
-  ];
+// Las ocho rutas nuevas de 013 exigen sesión (401) y rol de administrador (403).
+const ADMIN_ROUTES: Array<[string, string]> = [
+  ["GET", "/api/admin/overview"],
+  ["GET", "/api/admin/products"],
+  ["PATCH", `/api/admin/products/${MISSING_ID}/featured`],
+  ["DELETE", `/api/admin/products/${MISSING_ID}`],
+  ["GET", "/api/admin/users"],
+  ["PATCH", `/api/admin/users/${MISSING_ID}/role`],
+  ["GET", "/api/admin/reviews"],
+  ["DELETE", `/api/admin/reviews/${MISSING_ID}`],
+];
 
-  it.each(routes)("%s %s (%s) responde 401 sin sesión", async (method, url) => {
-    const response = await request(app)[
-      method.toLowerCase() as "get" | "patch" | "delete"
-    ](url);
+function callRoute(method: string, url: string) {
+  return request(app)[method.toLowerCase() as "get" | "patch" | "delete"](url);
+}
 
-    expect(response.status).toBe(401);
+describe("acceso a las rutas del panel", () => {
+  it("cubre las ocho rutas de 013", () => {
+    expect(ADMIN_ROUTES).toHaveLength(8);
   });
 
-  it.each(routes)(
-    "%s %s (%s) responde 403 a un usuario normal",
+  it.each(ADMIN_ROUTES)("%s %s responde 401 sin sesión", async (method, url) => {
+    const response = await callRoute(method, url);
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe("Debes iniciar sesión.");
+  });
+
+  it.each(ADMIN_ROUTES)(
+    "%s %s responde 403 a un usuario normal",
     async (method, url) => {
       const user = await createSeller(app, "normal");
 
-      const response = await request(app)[
-        method.toLowerCase() as "get" | "patch" | "delete"
-      ](url).set("Cookie", user.cookie);
+      const response = await callRoute(method, url).set("Cookie", user.cookie);
 
       expect(response.status).toBe(403);
       expect(response.body.message).toBe(
@@ -184,6 +196,63 @@ describe("acceso a las rutas de productos del panel", () => {
       );
     },
   );
+
+  it.each(ADMIN_ROUTES)(
+    "%s %s no deja pasar a una cuenta legada sin role",
+    async (method, url) => {
+      const user = await createSeller(app, "legada");
+      await User.collection.updateOne(
+        { _id: new Types.ObjectId(user.id) },
+        { $unset: { role: "" } },
+      );
+
+      const response = await callRoute(method, url).set("Cookie", user.cookie);
+
+      expect(response.status).toBe(403);
+    },
+  );
+});
+
+describe("GET /api/admin/overview", () => {
+  it("responde 200 con ceros y listas vacías con la base vacía de contenido", async () => {
+    const admin = await createAdmin();
+
+    const response = await request(app)
+      .get("/api/admin/overview")
+      .set("Cookie", admin.cookie);
+
+    expect(response.status).toBe(200);
+    expect(adminOverviewSchema.safeParse(response.body).success).toBe(true);
+    expect(response.body).toMatchObject({
+      users: { total: 1, newLast7Days: 1, admins: 1 },
+      products: { total: 0, featured: 0 },
+      reviews: { total: 0, averageRating: null },
+      activity: [{ type: "user_registered", user: { username: "admina" } }],
+      latestProducts: [],
+      lowReviews: [],
+    });
+    expect(response.body.products.byCategory).toHaveLength(4);
+  });
+
+  it("refleja productos y reseñas creados", async () => {
+    const admin = await createAdmin();
+    const ana = await createSeller(app, "anaperez");
+    const product = await createProduct(ana.id, { name: "Taza" });
+    await seedReview(product._id.toString(), admin.id, { rating: 1 });
+
+    const response = await request(app)
+      .get("/api/admin/overview")
+      .set("Cookie", admin.cookie);
+
+    expect(response.body.products.total).toBe(1);
+    expect(response.body.reviews).toMatchObject({
+      total: 1,
+      averageRating: 1,
+      lowLast7Days: 1,
+    });
+    expect(response.body.latestProducts[0].name).toBe("Taza");
+    expect(response.body.lowReviews[0].product.name).toBe("Taza");
+  });
 });
 
 describe("GET /api/admin/products", () => {

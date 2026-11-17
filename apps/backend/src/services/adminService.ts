@@ -1,6 +1,9 @@
 import { Types, type FilterQuery } from "mongoose";
 import {
   ADMIN_PAGE_SIZE,
+  PRODUCT_CATEGORIES,
+  type AdminActivity,
+  type AdminOverview,
   type AdminPage,
   type AdminProduct,
   type AdminProductQuery,
@@ -460,4 +463,172 @@ export async function adminDeleteReview(id: string): Promise<void> {
   if (result.deletedCount === 0) {
     throw new NotFoundError(REVIEW_NOT_FOUND);
   }
+}
+
+// --- Resumen (RF-1) ----------------------------------------------------------
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const OVERVIEW_DAYS = 7;
+const ACTIVITY_LIMIT = 8;
+const LATEST_PRODUCTS_LIMIT = 4;
+const LOW_REVIEWS_LIMIT = 3;
+
+interface ReviewTotals {
+  total: number;
+  average: number;
+  newLast7Days: number;
+  lowLast7Days: number;
+}
+
+// Totales de reseñas en una agregación; el `$lookup` + `$match` excluye las
+// reseñas de productos que ya no existen (casos límite de 013).
+async function reviewTotals(since: Date): Promise<ReviewTotals | undefined> {
+  const [totals] = await Review.aggregate<ReviewTotals>([
+    {
+      $lookup: {
+        from: Product.collection.name,
+        localField: "product",
+        foreignField: "_id",
+        pipeline: [{ $project: { _id: 1 } }],
+        as: "productDoc",
+      },
+    },
+    { $match: { "productDoc.0": { $exists: true } } },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        average: { $avg: "$rating" },
+        newLast7Days: {
+          $sum: { $cond: [{ $gte: ["$createdAt", since] }, 1, 0] },
+        },
+        lowLast7Days: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gte: ["$createdAt", since] },
+                  { $lte: ["$rating", LOW_RATING_MAX] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+      },
+    },
+  ]);
+  return totals;
+}
+
+async function productsByCategory(): Promise<
+  AdminOverview["products"]["byCategory"]
+> {
+  const rows = await Product.aggregate<{ _id: string; count: number }>([
+    { $group: { _id: "$category", count: { $sum: 1 } } },
+  ]);
+  const counts = new Map(rows.map((row) => [row._id, row.count]));
+  // Siempre las cuatro categorías, en el orden de PRODUCT_CATEGORIES.
+  return PRODUCT_CATEGORIES.map((category) => ({
+    category,
+    count: counts.get(category) ?? 0,
+  }));
+}
+
+async function recentActivity(
+  products: ProductWithSeller[],
+): Promise<AdminActivity[]> {
+  const [users, reviews] = await Promise.all([
+    User.find({}, { username: 1, name: 1, createdAt: 1 })
+      .sort({ ...NEWEST_FIRST })
+      .limit(ACTIVITY_LIMIT)
+      .lean<
+        Array<{ username?: string; name?: string; createdAt: Date }>
+      >(),
+    findAdminReviews({}, REVIEW_SORTS.recientes, {
+      skip: 0,
+      limit: ACTIVITY_LIMIT,
+    }),
+  ]);
+  const events: AdminActivity[] = [
+    ...users.map(
+      (user): AdminActivity => ({
+        type: "user_registered",
+        at: user.createdAt.toISOString(),
+        user: { username: user.username ?? user.name ?? "" },
+      }),
+    ),
+    ...products.map(
+      (product): AdminActivity => ({
+        type: "product_published",
+        at: product.createdAt.toISOString(),
+        user: { username: product.seller.username },
+        product: { id: product._id.toString(), name: product.name },
+      }),
+    ),
+    ...reviews.rows.map(
+      (review): AdminActivity => ({
+        type: "review_created",
+        at: review.createdAt,
+        user: { username: review.author.username },
+        product: review.product,
+        rating: review.rating,
+      }),
+    ),
+  ];
+  // ISO 8601 en UTC se ordena como texto. `sort` es estable: ante igual
+  // instante se conserva el orden usuarios, productos, reseñas.
+  return events
+    .sort((first, second) => (first.at < second.at ? 1 : first.at > second.at ? -1 : 0))
+    .slice(0, ACTIVITY_LIMIT);
+}
+
+// Datos del Resumen en una sola llamada (RF-1, D1). `now` es inyectable para
+// que los tests con fechas controladas sean deterministas.
+export async function getOverview(now: Date = new Date()): Promise<AdminOverview> {
+  const since = new Date(now.getTime() - OVERVIEW_DAYS * DAY_MS);
+  const [
+    userTotal,
+    userNew,
+    adminCount,
+    productTotal,
+    featuredCount,
+    byCategory,
+    totals,
+    latest,
+    lowReviews,
+  ] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ createdAt: { $gte: since } }),
+    User.countDocuments({ role: "admin" }),
+    Product.countDocuments(),
+    Product.countDocuments({ featured: true }),
+    productsByCategory(),
+    reviewTotals(since),
+    // Los 8 más recientes alimentan la actividad; los 4 primeros, la tabla.
+    findProducts({}, { ...NEWEST_FIRST }, { skip: 0, limit: ACTIVITY_LIMIT }),
+    findAdminReviews(
+      { rating: { $lte: LOW_RATING_MAX }, createdAt: { $gte: since } },
+      REVIEW_SORTS.recientes,
+      { skip: 0, limit: LOW_REVIEWS_LIMIT },
+    ),
+  ]);
+  return {
+    users: { total: userTotal, newLast7Days: userNew, admins: adminCount },
+    products: {
+      total: productTotal,
+      featured: featuredCount,
+      byCategory,
+    },
+    reviews: {
+      total: totals?.total ?? 0,
+      newLast7Days: totals?.newLast7Days ?? 0,
+      averageRating: totals ? roundRating(totals.average) : null,
+      lowLast7Days: totals?.lowLast7Days ?? 0,
+    },
+    activity: await recentActivity(latest),
+    latestProducts: latest.slice(0, LATEST_PRODUCTS_LIMIT).map(toPublicProduct),
+    lowReviews: lowReviews.rows,
+  };
 }

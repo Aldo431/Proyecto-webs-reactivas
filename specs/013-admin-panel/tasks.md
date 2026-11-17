@@ -40,11 +40,11 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 4 — Backend: resumen (depende de 3–7)
 
-- [ ] **8. `GET /api/admin/overview`**
+- [x] **8. `GET /api/admin/overview`**
     RF: RF-1
     Hecho cuando: con `now` inyectable devuelve conteos, categorías con ceros en orden, promedio con 1 decimal o `null`, actividad mezclada (máx. 8) y las tres listas; responde bien con la base vacía; tests pasan.
 
-- [ ] **9. Prueba de acceso para todas las rutas nuevas**
+- [x] **9. Prueba de acceso para todas las rutas nuevas**
     RF: RF-1…RF-9
     Hecho cuando: una prueba parametrizada comprueba 401 sin sesión y 403 con usuario normal para las 8 rutas, y `npm run check -w backend` está en verde.
 

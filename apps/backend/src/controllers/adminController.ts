@@ -11,6 +11,7 @@ import {
   adminDeleteProduct,
   adminDeleteReview,
   assertUserExists,
+  getOverview,
   listAdminProducts,
   listAdminReviews,
   listAdminUsers,
@@ -96,4 +97,11 @@ export const deleteAdminReviewHandler: RequestHandler = async (
 ) => {
   await adminDeleteReview(idParam(request));
   response.status(204).end();
+};
+
+export const getOverviewHandler: RequestHandler = async (
+  _request,
+  response,
+) => {
+  response.status(200).json(await getOverview());
 };
