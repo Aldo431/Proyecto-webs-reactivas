@@ -42,15 +42,15 @@ Tareas pequeñas (≈20–30 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 3 — Frontend: acceso (depende de 2)
 
-- [ ] **9. Ajustar mocks del cliente**
+- [x] **9. Ajustar mocks del cliente**
     RF: RF-3
     Hecho cuando: `test/authMocks.ts` y demás `PublicUser` de prueba incluyen `role: "user"` y `npm run check -w tiendadcc-client` pasa sin otros cambios.
 
-- [ ] **10. `logic/adminAccess.ts` y `logic/adminSections.ts`**
+- [x] **10. `logic/adminAccess.ts` y `logic/adminSections.ts`**
     RF: RF-6, RF-7, RF-8
     Hecho cuando: `resolveAdminAccess`, `isAdmin`, la lista de secciones e `isActiveSection` están implementados y sus tests (los cuatro estados de acceso; Resumen activo solo en `/admin` exacto) pasan.
 
-- [ ] **11. `OnlyAdminRoute`**
+- [x] **11. `OnlyAdminRoute`**
     RF: RF-6
     Hecho cuando: `guards.test.tsx` cubre loading (nada), anónimo (login con `state.from`), usuario (redirige a `/`) y admin (renderiza), y pasa.
 

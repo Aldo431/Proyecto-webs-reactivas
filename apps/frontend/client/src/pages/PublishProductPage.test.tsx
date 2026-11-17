@@ -17,6 +17,7 @@ const okUser = {
   username: "anaperez",
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
+  role: "user",
 };
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==";

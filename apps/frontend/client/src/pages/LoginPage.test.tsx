@@ -18,6 +18,7 @@ const okUser = {
   username: "anaperez",
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
+  role: "user",
 };
 
 function renderPage(initialEntry: string | { pathname: string; state?: unknown } = "/iniciar-sesion") {

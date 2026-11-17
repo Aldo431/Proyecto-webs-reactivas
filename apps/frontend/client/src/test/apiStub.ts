@@ -51,4 +51,5 @@ export const testUser = {
   username: "tiendadcc",
   displayName: "TiendaDCC",
   email: "tienda@dcc.uchile.cl",
+  role: "user",
 };
