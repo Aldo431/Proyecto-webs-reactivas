@@ -6,7 +6,10 @@ import {
   formatRange,
   formatRating,
   formatRelativeTime,
+  isLowRating,
+  overviewStats,
 } from "./adminFormat.ts";
+import { makeAdminOverview } from "./adminFixtures.ts";
 
 const NOW = new Date("2026-11-17T12:00:00Z");
 
@@ -134,5 +137,91 @@ describe("formatRange", () => {
     [1, 20, 0, "Mostrando 0 de 0"],
   ])("page %i of %i/%i", (pagina, porPagina, total, expected) => {
     expect(formatRange(pagina, porPagina, total)).toBe(expected);
+  });
+});
+
+describe("isLowRating", () => {
+  it.each([
+    [1, true],
+    [2, true],
+    [3, false],
+    [5, false],
+  ])("%i -> %s", (rating, expected) => {
+    expect(isLowRating(rating)).toBe(expected);
+  });
+});
+
+describe("overviewStats", () => {
+  it("builds the four indicators with their notes", () => {
+    const stats = overviewStats(
+      makeAdminOverview({
+        users: { total: 27, newLast7Days: 5, admins: 2 },
+        products: {
+          total: 12,
+          featured: 3,
+          byCategory: makeAdminOverview().products.byCategory,
+        },
+        reviews: {
+          total: 18,
+          newLast7Days: 4,
+          averageRating: 4.2,
+          lowLast7Days: 2,
+        },
+      }),
+    );
+
+    expect(stats).toEqual([
+      {
+        label: "Usuarios registrados",
+        value: "27",
+        note: "+5 esta semana",
+        highlightNote: true,
+      },
+      {
+        label: "Productos publicados",
+        value: "12",
+        note: "3 destacados",
+        highlightNote: false,
+      },
+      {
+        label: "Reseñas",
+        value: "18",
+        note: "+4 esta semana",
+        highlightNote: true,
+      },
+      {
+        label: "Calificación promedio",
+        value: "4,2",
+        note: "de 5 estrellas",
+        highlightNote: false,
+      },
+    ]);
+  });
+
+  it("does not highlight +0 and shows the empty rating", () => {
+    const stats = overviewStats(makeAdminOverview());
+
+    expect(stats[0]).toMatchObject({ note: "+0 esta semana", highlightNote: false });
+    expect(stats[2]).toMatchObject({ note: "+0 esta semana", highlightNote: false });
+    expect(stats[3]).toEqual({
+      label: "Calificación promedio",
+      value: "—",
+      note: "sin reseñas aún",
+      highlightNote: false,
+    });
+  });
+
+  it("uses the singular for a single featured product", () => {
+    const stats = overviewStats(
+      makeAdminOverview({
+        products: {
+          total: 1,
+          featured: 1,
+          byCategory: makeAdminOverview().products.byCategory,
+        },
+      }),
+    );
+
+    expect(stats[1]?.note).toBe("1 destacado");
   });
 });

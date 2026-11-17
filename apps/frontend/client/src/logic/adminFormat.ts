@@ -119,3 +119,55 @@ export function formatRange(
   const last = Math.min(pagina * porPagina, total);
   return `Mostrando ${first}–${last} de ${total}`;
 }
+
+// Una reseña de 1 o 2 estrellas se considera baja (spec 013, RF-1, RF-13).
+const LOW_RATING_MAX = 2;
+
+export function isLowRating(rating: number): boolean {
+  return rating <= LOW_RATING_MAX;
+}
+
+export interface StatCardData {
+  label: string;
+  value: string;
+  note: string;
+  /** Las notas "+N" se resaltan en verde solo si N > 0 (RF-10). */
+  highlightNote: boolean;
+}
+
+function weekNote(count: number): string {
+  return `+${count} esta semana`;
+}
+
+// Los cuatro indicadores del Resumen (RF-10).
+export function overviewStats(overview: AdminOverview): StatCardData[] {
+  const { users, products, reviews } = overview;
+  const featured = products.featured;
+  return [
+    {
+      label: "Usuarios registrados",
+      value: String(users.total),
+      note: weekNote(users.newLast7Days),
+      highlightNote: users.newLast7Days > 0,
+    },
+    {
+      label: "Productos publicados",
+      value: String(products.total),
+      note: featured === 1 ? "1 destacado" : `${featured} destacados`,
+      highlightNote: false,
+    },
+    {
+      label: "Reseñas",
+      value: String(reviews.total),
+      note: weekNote(reviews.newLast7Days),
+      highlightNote: reviews.newLast7Days > 0,
+    },
+    {
+      label: "Calificación promedio",
+      value: formatRating(reviews.averageRating),
+      note:
+        reviews.averageRating === null ? "sin reseñas aún" : "de 5 estrellas",
+      highlightNote: false,
+    },
+  ];
+}

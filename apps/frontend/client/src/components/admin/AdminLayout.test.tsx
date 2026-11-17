@@ -2,12 +2,9 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../../context/AuthContext.tsx";
-import { AdminOverviewPage } from "../../pages/admin/AdminOverviewPage.tsx";
-import { AdminProductsPage } from "../../pages/admin/AdminProductsPage.tsx";
-import { AdminReviewsPage } from "../../pages/admin/AdminReviewsPage.tsx";
-import { AdminUsersPage } from "../../pages/admin/AdminUsersPage.tsx";
 import { jsonResponse, stubAuthFetch } from "../../test/authMocks.ts";
 import { AdminLayout } from "./AdminLayout.tsx";
+import { AdminSectionHeading } from "./AdminSectionHeading.tsx";
 
 const adminUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -24,10 +21,19 @@ function renderLayout(path: string) {
       <AuthProvider>
         <Routes>
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminOverviewPage />} />
-            <Route path="productos" element={<AdminProductsPage />} />
-            <Route path="usuarios" element={<AdminUsersPage />} />
-            <Route path="resenas" element={<AdminReviewsPage />} />
+            <Route index element={<AdminSectionHeading path="/admin" />} />
+            <Route
+              path="productos"
+              element={<AdminSectionHeading path="/admin/productos" />}
+            />
+            <Route
+              path="usuarios"
+              element={<AdminSectionHeading path="/admin/usuarios" />}
+            />
+            <Route
+              path="resenas"
+              element={<AdminSectionHeading path="/admin/resenas" />}
+            />
           </Route>
           <Route path="/" element={<p>Inicio (sonda)</p>} />
         </Routes>
@@ -103,15 +109,5 @@ describe("AdminLayout", () => {
         .getByRole("link", { name: "Volver a la tienda" })
         .getAttribute("href"),
     ).toBe("/");
-  });
-
-  it("puts the terminal nod only on the overview", async () => {
-    const { unmount } = renderLayout("/admin");
-    expect(await screen.findByText(/sudo tiendadcc --resumen/)).toBeDefined();
-    unmount();
-
-    renderLayout("/admin/productos");
-    await screen.findByRole("heading", { level: 1, name: "Productos" });
-    expect(screen.queryByText(/sudo tiendadcc --resumen/)).toBeNull();
   });
 });

@@ -68,7 +68,7 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
     RF: RF-10…RF-13 (RNF-5, RNF-7)
     Hecho cuando: existen `StatCard`, `CategoryBars`, `ActivityList`, `AdminNotice`, `SegmentedFilter`, `FeaturedSwitch` y la paginación (reutilizada o `AdminPagination`), con los tokens de la spec 00.
 
-- [ ] **14. Sección Resumen**
+- [x] **14. Sección Resumen**
     RF: RF-10
     Hecho cuando: `AdminOverviewPage` muestra indicadores, barras, actividad, últimas publicaciones y reseñas por revisar como en el mockup, con "Actualizar", carga y error con "Reintentar"; sin desborde en 360 px; su test de página pasa.
 
