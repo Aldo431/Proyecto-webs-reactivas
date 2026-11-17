@@ -64,7 +64,7 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 6 — Frontend: secciones (depende de 10–12)
 
-- [ ] **13. Componentes compartidos del panel**
+- [x] **13. Componentes compartidos del panel**
     RF: RF-10…RF-13 (RNF-5, RNF-7)
     Hecho cuando: existen `StatCard`, `CategoryBars`, `ActivityList`, `AdminNotice`, `SegmentedFilter`, `FeaturedSwitch` y la paginación (reutilizada o `AdminPagination`), con los tokens de la spec 00.
 
