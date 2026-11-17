@@ -250,12 +250,35 @@ export const updateProductInputSchema = createProductInputSchema
 // precios y paginación de la spec 009). Los valores vacíos equivalen a
 // ausentes; cada campo inválido rechaza toda la consulta con mensaje en
 // español.
-function emptyToUndefined(value: unknown): unknown {
+export function emptyToUndefined(value: unknown): unknown {
   if (typeof value === "string" && value.trim() === "") {
     return undefined;
   }
   return value;
 }
+
+// Campos de consulta compartidos con el panel de administración (spec 013).
+export const searchQueryField = z.preprocess(
+  emptyToUndefined,
+  z
+    .string({ error: "La búsqueda es inválida." })
+    .trim()
+    .min(1, "Escribe al menos un carácter para buscar.")
+    .max(
+      SEARCH_MAX_LENGTH,
+      `La búsqueda no puede superar los ${SEARCH_MAX_LENGTH} caracteres.`,
+    )
+    .optional(),
+);
+
+export const pageQueryField = z.preprocess(
+  emptyToUndefined,
+  z.coerce
+    .number({ error: "La página debe ser un número entero mayor o igual a 1." })
+    .int("La página debe ser un número entero mayor o igual a 1.")
+    .min(1, "La página debe ser un número entero mayor o igual a 1.")
+    .default(1),
+);
 
 export const productListQuerySchema = z.object({
   categoria: productCategorySchema.optional(),
@@ -279,31 +302,13 @@ export const productListQuerySchema = z.object({
       message: `Puedes consultar como máximo ${MAX_IDS_PER_QUERY} productos a la vez.`,
     })
     .optional(),
-  q: z.preprocess(
-    emptyToUndefined,
-    z
-      .string({ error: "La búsqueda es inválida." })
-      .trim()
-      .min(1, "Escribe al menos un carácter para buscar.")
-      .max(
-        SEARCH_MAX_LENGTH,
-        `La búsqueda no puede superar los ${SEARCH_MAX_LENGTH} caracteres.`,
-      )
-      .optional(),
-  ),
+  q: searchQueryField,
   orden: z
     .enum(SORT_ORDERS, {
       error: "El orden debe ser recientes, precio-menor, precio-mayor o nombre.",
     })
     .default("recientes"),
-  pagina: z.preprocess(
-    emptyToUndefined,
-    z.coerce
-      .number({ error: "La página debe ser un número entero mayor o igual a 1." })
-      .int("La página debe ser un número entero mayor o igual a 1.")
-      .min(1, "La página debe ser un número entero mayor o igual a 1.")
-      .default(1),
-  ),
+  pagina: pageQueryField,
   min: z.preprocess(
     emptyToUndefined,
     z.coerce

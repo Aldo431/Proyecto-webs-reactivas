@@ -4,13 +4,13 @@ Tareas pequeñas (≈20–40 min c/u) en orden de dependencia. Cada una indica l
 
 ## Fase 0 — Base
 
-- [ ] **1. Inventario 013**
+- [x] **1. Inventario 013**
     RF: RF-1…RF-14
     Hecho cuando: conozco `productService.ts` (`findProducts`, `READ_PROJECTION`, `deleteProduct`, búsqueda sin tildes), `reviewService.ts` y `Review.ts` (`toPublicReview`), `User.ts` (`role`), `adminRoutes.ts`/`adminController.ts` de 012, `errorHandler.ts` (ZodError → 400), `reviewApi.ts` (patrón de API del cliente), `ConfirmDeleteDialog`, `CatalogPagination`, `StarRatingDisplay`, `productImage.ts`, las páginas de `pages/admin/` y los mockups.
 
 ## Fase 1 — Esquemas (depende de 1)
 
-- [ ] **2. `utils/src/adminSchemas.ts` y sus tests**
+- [x] **2. `utils/src/adminSchemas.ts` y sus tests**
     RF: RF-1…RF-9 (RNF-4)
     Hecho cuando: existen `ADMIN_PAGE_SIZE`, los tres esquemas de consulta, los dos de cuerpo, los de respuesta (`adminProductSchema`, `adminUserSchema`, `adminReviewSchema`, `adminActivitySchema`, `adminOverviewSchema`, `adminPageSchema`), se exportan desde `index.ts` y `adminSchemas.test.ts` pasa.
 
