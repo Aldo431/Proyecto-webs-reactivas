@@ -89,6 +89,7 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 | `npm run dev` | Levanta Vite en `http://localhost:5173` con hot reload |
 | `npm run dev -w backend` | Levanta la API en `http://localhost:3001` (requiere `apps/backend/.env` y MongoDB) |
 | `npm run seed -w backend` | Carga en MongoDB los productos de `apps/backend/src/seed/products.json` con el vendedor de prueba (requiere `apps/backend/.env`, ver [Seed de productos](#seed-de-productos-spec-008)) |
+| `npm run make-admin -w backend -- <correo>` | Convierte una cuenta existente en administradora (requiere `apps/backend/.env`, ver [Crear un administrador](#crear-un-administrador-spec-012)) |
 | `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
 | `npm run build` | Compila la app a `apps/frontend/client/dist` |
 
@@ -114,6 +115,20 @@ npm run seed -w backend
 - Reemplaza los ids antiguos (`taza-dcc`, `polera-dcc`, `sticker-dcc`) por los `_id` nuevos en los favoritos, el historial y el carrito de las cuentas existentes; las demás referencias no se tocan.
 - Crea los productos del último al primero, de modo que el listado público (del más reciente al más antiguo) conserve el orden del JSON. En una base ya sembrada con una versión anterior el orden no cambia al re-ejecutar; para reordenar hay que borrar esos productos y volver a correr el seed.
 - Escribe en la base indicada por `MONGODB_URI`: revisa que apunte a desarrollo antes de ejecutarlo.
+
+### Crear un administrador (spec 012)
+
+Las cuentas nuevas siempre se registran con rol `user`; el rol no se puede fijar desde la API pública. Para probar el panel de administración, promueve una cuenta ya registrada:
+
+```bash
+# Con MONGODB_URI definida en apps/backend/.env
+npm run make-admin -w backend -- tu-correo@dcc.uchile.cl
+```
+
+- Imprime `Listo: <usuario> ahora es administrador.`, o `<usuario> ya era administrador.` si ya lo era (puede ejecutarse varias veces).
+- Si no existe una cuenta con ese correo, imprime `No existe una cuenta con el correo <correo>.` y termina con código 1.
+- Sin argumento, con un correo inválido o sin `MONGODB_URI`, imprime un mensaje en español y termina con código 1 sin conectarse a la base.
+- El correo se compara en minúsculas y sin espacios, igual que lo guarda el modelo.
 
 Abre `http://localhost:5173` en el navegador. Inicio, catálogo, detalle, autenticación, perfil y publicaciones usan la API: necesitan el backend, MongoDB y haber ejecutado el seed para ver productos.
 

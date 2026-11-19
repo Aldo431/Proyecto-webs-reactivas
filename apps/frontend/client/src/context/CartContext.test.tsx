@@ -11,6 +11,7 @@ const okUser = {
   username: "anaperez",
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
+  role: "user",
 };
 
 const serverProfile = {

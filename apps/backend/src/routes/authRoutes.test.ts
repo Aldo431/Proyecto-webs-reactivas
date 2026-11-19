@@ -43,6 +43,17 @@ function getSessionCookie(response: Response): string {
 }
 
 describe("POST /api/auth/register", () => {
+  it("ignora role en el cuerpo y crea la cuenta como user (spec 012 RF-2)", async () => {
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send({ ...validUser, role: "admin" });
+
+    expect(response.status).toBe(201);
+    expect(response.body.role).toBe("user");
+    const stored = await User.findOne({ email: "ana@dcc.uchile.cl" });
+    expect(stored?.role).toBe("user");
+  });
+
   it("registra y responde 201 con datos públicos y cookie httpOnly", async () => {
     const response = await request(app)
       .post("/api/auth/register")
@@ -54,6 +65,7 @@ describe("POST /api/auth/register", () => {
       username: "anaperez",
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
+      role: "user",
     });
     expect(response.body).not.toHaveProperty("passwordHash");
     expect(response.body).not.toHaveProperty("__v");
@@ -143,6 +155,7 @@ describe("POST /api/auth/login", () => {
       username: "anaperez",
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
+      role: "user",
     });
     expect(response.headers["set-cookie"]).toBeDefined();
   });
@@ -196,6 +209,7 @@ describe("GET /api/auth/me", () => {
       username: "anaperez",
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
+      role: "user",
     });
   });
 

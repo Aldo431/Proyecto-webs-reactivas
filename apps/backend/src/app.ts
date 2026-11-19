@@ -7,6 +7,7 @@ import express, {
 } from "express";
 import { getEnv } from "./config/env.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
+import { adminRoutes } from "./routes/adminRoutes.ts";
 import { authRoutes } from "./routes/authRoutes.ts";
 import { ordersRoutes } from "./routes/ordersRoutes.ts";
 import { productsRoutes } from "./routes/productsRoutes.ts";
@@ -46,6 +47,7 @@ export function createApp() {
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/admin", adminRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/products", productsRoutes);
   app.use("/api/reviews", reviewsRoutes);

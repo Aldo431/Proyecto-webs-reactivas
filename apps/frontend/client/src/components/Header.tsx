@@ -1,8 +1,9 @@
-import { Heart, Menu, ShoppingCart, X } from "lucide-react";
+import { Heart, Menu, Shield, ShoppingCart, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
+import { isAdmin } from "../logic/adminAccess.ts";
 import { getCartBadgeText } from "../logic/cartCalculations.ts";
 import { Button } from "./ui/button.tsx";
 import { Badge } from "./ui/badge.tsx";
@@ -25,6 +26,7 @@ export function Header() {
     pathname === "/publicar" ||
     /^\/publicaciones\/[^/]+\/editar$/.test(pathname);
   const isAuthenticated = authState.status === "authenticated";
+  const showAdminLink = isAdmin(authState.user);
   const displayName =
     authState.status === "authenticated" ? authState.user.displayName : null;
 
@@ -89,6 +91,14 @@ export function Header() {
                   aria-current={isPublicationsRoute ? "page" : undefined}
                 >
                   Mis publicaciones
+                </Link>
+              </Button>
+            )}
+            {showAdminLink && (
+              <Button asChild variant="ghost" size="sm" className="max-sm:px-2">
+                <Link to="/admin">
+                  <Shield aria-hidden="true" />
+                  Administración
                 </Link>
               </Button>
             )}
@@ -200,6 +210,19 @@ export function Header() {
                 onClick={() => setMenuOpen(false)}
               >
                 Mis publicaciones
+              </Link>
+            </Button>
+          )}
+          {showAdminLink && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="justify-start"
+            >
+              <Link to="/admin" onClick={() => setMenuOpen(false)}>
+                <Shield aria-hidden="true" />
+                Administración
               </Link>
             </Button>
           )}
