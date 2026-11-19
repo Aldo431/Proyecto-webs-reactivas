@@ -19,7 +19,7 @@ Lo que NO incluye aún: pasarela de pago, stock validado, auth/sync en nube, cup
 - Como comprador, quiero aumentar, disminuir, eliminar o vaciar productos en el panel, para ajustar mi pedido.
 - Como comprador, quiero ver subtotal por producto y total en pesos chilenos, para saber cuánto gastaría.
 - Como comprador, quiero que el carrito se conserve al recargar, para no perder mi selección.
-- Como comprador, quiero un botón "Finalizar compra" que vacíe el carrito y cierre el panel, para terminar mi compra por ahora.
+- Como comprador, quiero un botón "Finalizar compra" que me lleve al pago, para terminar mi compra.
 
 ## Requisitos funcionales
 
@@ -95,12 +95,13 @@ Criterios de aceptación:
 - Cuando se visualice el detalle, el precio formateado deberá mostrarse junto a descripción y categoría.
 - Cuando se visualicen tarjetas de catálogo e inicio, cada tarjeta deberá mostrar el precio formateado.
 
-**RF-9 — Vaciar y finalizar (mock).**
-Mientras haya artículos en el carrito, el sistema deberá ofrecer vaciar todo y un cierre mock de compra sin procesar pago.
+**RF-9 — Vaciar y finalizar compra.** *(El comportamiento de "Finalizar compra" fue actualizado por las specs 011 y 012.)*
+Mientras haya artículos en el carrito, el sistema deberá ofrecer vaciar todo y un cierre de compra.
 Criterios de aceptación:
 - Cuando haya artículos, el pie del panel deberá mostrar los botones "Vaciar carrito" y "Finalizar compra".
 - Cuando el usuario active "Vaciar carrito", todos los artículos deberán removerse de inmediato sin confirmación, persistirse el vacío y mostrarse el estado vacío (RF-6, RF-7).
-- Cuando el usuario active "Finalizar compra", todos los artículos deberán removerse (como "Vaciar carrito"), el panel deberá cerrarse, sin llamadas de red y sin navegar.
+- Cuando el usuario active "Finalizar compra", el sistema deberá navegar a `#/pago` sin vaciar el carrito ni cerrar sesión (specs 011 y 012); el vaciado del carrito y la creación del pedido ocurren al confirmar en la pantalla de pago; el panel se cierra al cambiar la URL (RF-2).
+- Cuando el usuario active "Finalizar compra", no deberán requerirse llamadas de red en ese gesto; la creación del pedido, si se produce, ocurre en `#/pago` al pulsar "Pagar" (specs 011 y 012).
 
 ## Requisitos no funcionales
 - **RNF-1 Idioma.** Todo texto orientado al usuario final en español (constitución §6). Identificadores, tipos y funciones en inglés.
@@ -126,7 +127,7 @@ Criterios de aceptación:
 - Sin conexión: funcionamiento idéntico por ser estático (RNF-2).
 
 ## Fuera de alcance
-- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; "Finalizar compra" vacía y cierra sin cobrar (RF-9).
+- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; la compra se completa en `#/pago` (spec 011) con pedido persistido (spec 012); "Finalizar compra" solo navega (RF-9).
 - Stock/inventario dinámico validado contra base de datos; sin tope en esta fase.
 - Autenticación o sincronización en la nube / entre dispositivos y entre pestañas.
 - Cupones, despacho, impuestos adicionales.
@@ -143,7 +144,7 @@ Esta tarea se considera terminada cuando:
 4. El panel permite incrementar, decrementar (en 1 elimina) y eliminar con papelera (RF-4).
 5. Subtotal y total se calculan al instante y se muestran en formato chileno sin errores de flotante (RF-5).
 6. Vacío muestra "Tu carrito está vacío." con "Explorar catálogo" que cierra y va a `#/catalogo`, sin totales ni acciones (RF-6).
-7. "Vaciar carrito" limpia directo y "Finalizar compra" vacía el carrito y cierra, sin red (RF-9).
+7. "Vaciar carrito" limpia directo y "Finalizar compra" navega a `#/pago` sin vaciar el carrito ni cerrar sesión (RF-9, specs 011/012).
 8. El carrito persiste en `localStorage` clave `cart`, revalida contra catálogo, tolera corrupto/deshabilitado y recarga sin perder selección válida (RF-7).
 9. El panel cumple diseño "IDE institucional", responsive 360px–desktop, foco atrapado/retornado, `Escape`, etiquetas en español y movimiento reducido (RNF-3, RNF-4, RNF-5).
 10. La lógica pura tiene tests Vitest (RNF-7).
@@ -157,5 +158,6 @@ Esta tarea se considera terminada cuando:
 - [RESUELTO] Persistencia: solo frontend en `localStorage` clave `cart`; al cargar se revalida (descarta ids inexistentes, actualiza nombre/precio/imagen del catálogo, corruptos → `[]`); sin sync entre pestañas; fallback en memoria si deshabilitado/cuota.
 - [RESUELTO] Badge: suma de unidades; oculto en 0; "99+" sobre 99.
 - [RESUELTO] Pie del drawer: "Vaciar carrito" limpia directo sin confirmar; "Finalizar compra" vacía el carrito y cierra el panel (sin pago real).
+- [SUPERCEDIDO por specs 011/012] "Finalizar compra" ya no vacía ni cierra: navega a `#/pago`; el vaciado del carrito y la creación del pedido ocurren al confirmar en el pago (ver `specs/012-profile-orders/spec.md`).
 - [RESUELTO] Drawer: responsive (`calc(100vw - 32px)` en móvil, máx 420 px desktop), animación `base` 250 ms con `reduced-motion` sin animación, body lock, cierra con ✕/backdrop/`Escape` y al navegar, retorna foco al activador.
 - [RESUELTO] Rutas visibles con `HashRouter`: `#/catalogo`, `#/producto/:id`; abrir/cerrar drawer no cambia la URL salvo "Explorar catálogo".

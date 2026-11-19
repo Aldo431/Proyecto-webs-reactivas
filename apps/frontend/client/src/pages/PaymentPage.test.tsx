@@ -23,6 +23,25 @@ const cartWithItems = [
   },
 ];
 
+const okOrder = {
+  id: "6712a4f3c9b1e24a8f0d1235",
+  folio: "PED-2026-0001",
+  status: "completado",
+  items: [
+    {
+      productId: "taza-dcc",
+      name: "Taza DCC",
+      image: "/images/taza-dcc.png",
+      unitPrice: 6000,
+      quantity: 2,
+      subtotal: 12000,
+    },
+  ],
+  total: 12000,
+  createdAt: "2026-11-17T22:41:03.512Z",
+  updatedAt: "2026-11-17T22:41:03.512Z",
+};
+
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/pago"]}>
@@ -42,6 +61,7 @@ function renderPage() {
 function stubAuthenticatedSession() {
   const routes = stubAuthFetch();
   routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+  routes["/api/orders"] = () => jsonResponse(201, okOrder);
 }
 
 beforeEach(() => {
@@ -76,7 +96,55 @@ describe("PaymentPage", () => {
     expect(screen.getByRole("button", { name: "Pagar $12.000" })).toBeDefined();
   });
 
-  it("completes the mock payment and empties the cart on success", async () => {
+  it("shows the order error and keeps the cart and the values when the server fails", async () => {
+    const routes = stubAuthFetch();
+    routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+    routes["/api/orders"] = () => jsonResponse(500, {});
+    window.localStorage.setItem("cart", JSON.stringify(cartWithItems));
+
+    renderPage();
+
+    fireEvent.change(await screen.findByLabelText("Correo electrónico"), {
+      target: { value: "ana@dcc.uchile.cl" },
+    });
+    fireEvent.change(screen.getByLabelText("Número de tarjeta"), {
+      target: { value: "4111111111111111" },
+    });
+    fireEvent.change(screen.getByLabelText("Vencimiento (MM/AA)"), {
+      target: { value: "1229" },
+    });
+    fireEvent.change(screen.getByLabelText("CVC"), {
+      target: { value: "123" },
+    });
+    fireEvent.change(screen.getByLabelText("Nombre del titular"), {
+      target: { value: "Ana Pérez" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Pagar $12.000" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(
+      "No pudimos registrar tu pedido.",
+    );
+    // El carrito y los valores del formulario se conservan (012 RF-6).
+    const stored = window.localStorage.getItem("cart");
+    expect(stored).not.toBeNull();
+    expect(JSON.parse(stored!)[0]?.quantity).toBe(2);
+    expect(
+      (screen.getByLabelText("Número de tarjeta") as HTMLInputElement).value,
+    ).toBe("4111 1111 1111 1111");
+    expect(screen.getByRole("button", { name: "Pagar $12.000" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Pagar $12.000" }).hasAttribute(
+        "disabled",
+      ),
+    ).toBe(false);
+    // Sin pantalla de éxito y sin vaciado.
+    expect(
+      screen.queryByRole("heading", { name: "¡Compra realizada con éxito!" }),
+    ).toBeNull();
+  });
+
+  it("completes the payment, shows the folio and empties the cart on success", async () => {
     stubAuthenticatedSession();
     window.localStorage.setItem("cart", JSON.stringify(cartWithItems));
 
@@ -104,6 +172,7 @@ describe("PaymentPage", () => {
         name: "¡Compra realizada con éxito!",
       }),
     ).toBeDefined();
+    expect(screen.getByText("PED-2026-0001")).toBeDefined();
     expect(window.localStorage.getItem("cart")).toBe("[]");
     expect(screen.queryByLabelText("Número de tarjeta")).toBeNull();
   });

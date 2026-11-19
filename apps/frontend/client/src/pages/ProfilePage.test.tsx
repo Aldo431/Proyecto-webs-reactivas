@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
@@ -46,6 +46,7 @@ function stubProfileFetch(
   putHandler: (body: unknown) => Response,
   deleteHandler: () => Response = () => json(200, []),
   productsDown = false,
+  ordersHandler: () => Response = () => json(200, []),
 ) {
   fetchCalls = [];
   vi.stubGlobal(
@@ -77,6 +78,9 @@ function stubProfileFetch(
       }
       if (url.startsWith("/api/users/me/favorites") && method === "DELETE") {
         return deleteHandler();
+      }
+      if (url === "/api/orders" && method === "GET") {
+        return ordersHandler();
       }
       throw new Error(`Sin respuesta simulada para ${method} ${url}`);
     }),
@@ -532,5 +536,127 @@ describe("Ruta /perfil", () => {
     expect(
       await screen.findByRole("heading", { name: "Iniciar sesión" }),
     ).toBeDefined();
+  });
+});
+
+function okOrder(id: string, folio: string, quantity: number) {
+  return {
+    id,
+    folio,
+    status: "completado",
+    items: [
+      {
+        productId: "taza-dcc",
+        name: "Taza DCC",
+        image: "/images/taza-dcc.png",
+        unitPrice: 6000,
+        quantity,
+        subtotal: 6000 * quantity,
+      },
+    ],
+    total: 6000 * quantity,
+    createdAt: "2026-11-17T22:41:03.512Z",
+    updatedAt: "2026-11-17T22:41:03.512Z",
+  };
+}
+
+describe("Sección Mis pedidos", () => {
+  it("lista los pedidos con folio, estado Completado, ítems y total", async () => {
+    const orders = [
+      okOrder("o-2", "PED-2026-0002", 2),
+      okOrder("o-1", "PED-2026-0001", 1),
+    ];
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites: [], history: [] }),
+      () => json(200, baseProfile),
+      () => json(200, []),
+      false,
+      () => json(200, orders),
+    );
+
+    renderProfile();
+
+    expect(
+      await screen.findByRole("heading", { name: "Mis pedidos" }),
+    ).toBeDefined();
+    expect(await screen.findByText("PED-2026-0002")).toBeDefined();
+    expect(screen.getByText("PED-2026-0001")).toBeDefined();
+    expect(screen.getAllByText("Completado")).toHaveLength(2);
+    expect(screen.getAllByText("Taza DCC")).toHaveLength(2);
+    expect(screen.getAllByText("$12.000")).toHaveLength(2);
+    expect(screen.getAllByText("$6.000")).toHaveLength(2);
+  });
+
+  it("muestra el estado vacío con enlace a explorar el catálogo", async () => {
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites: [], history: [] }),
+      () => json(200, baseProfile),
+      () => json(200, []),
+      false,
+      () => json(200, []),
+    );
+
+    renderProfile();
+
+    const region = await screen.findByRole("region", { name: "Mis pedidos" });
+    const pedidos = within(region);
+    expect(await pedidos.findByText("Aún no tienes pedidos.")).toBeDefined();
+    expect(
+      pedidos.getByRole("link", { name: "Explorar catálogo" }),
+    ).toBeDefined();
+  });
+
+  it("muestra el error anunciable con Reintentar y se recupera al reintentar", async () => {
+    let calls = 0;
+    const ordersHandler = () => {
+      calls += 1;
+      return calls === 1
+        ? json(500, {})
+        : json(200, [okOrder("o-2", "PED-2026-0002", 2)]);
+    };
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites: [], history: [] }),
+      () => json(200, baseProfile),
+      () => json(200, []),
+      false,
+      ordersHandler,
+    );
+
+    renderProfile();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(
+      "No se pudieron cargar tus pedidos.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+
+    expect(await screen.findByText("PED-2026-0002")).toBeDefined();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("revela 5 pedidos más por Ver más hasta agotar la lista", async () => {
+    const many = Array.from({ length: 7 }, (_, index) =>
+      okOrder(`o-${index}`, `PED-2026-000${index + 1}`, (index % 3) + 1),
+    );
+    stubProfileFetch(
+      () => json(200, { ...baseProfile, favorites: [], history: [] }),
+      () => json(200, baseProfile),
+      () => json(200, []),
+      false,
+      () => json(200, many),
+    );
+
+    renderProfile();
+
+    expect(await screen.findByText("PED-2026-0001")).toBeDefined();
+    expect(screen.queryByText("PED-2026-0006")).toBeNull();
+    expect(screen.queryByText("PED-2026-0007")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver más" }));
+
+    expect(screen.getByText("PED-2026-0006")).toBeDefined();
+    expect(screen.getByText("PED-2026-0007")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Ver más" })).toBeNull();
   });
 });

@@ -3,11 +3,13 @@
 ## Contexto y objetivo
 Actualmente la tienda permite armar un carrito en un panel lateral (`specs/004-shopping-cart`): con artículos presentes, el pie del panel muestra "Vaciar carrito" y "Finalizar compra". Según 004 RF-9, "Finalizar compra" vacía el carrito y cierra el panel **sin navegar ni cobrar**.
 
-Esta spec define el **flujo de pago mock**: al activar "Finalizar compra", el sistema navega a una ruta dedicada `#/pago` que muestra, **arriba**, un resumen de solo lectura de lo que se está comprando (los mismos datos del drawer) y, **abajo**, un formulario de pago con correo, número de tarjeta, vencimiento, CVC y nombre del titular. Al pulsar "Pagar" (mock, siempre exitoso), se vacía el carrito y se muestra una pantalla de éxito en la misma ruta. La ruta `#/pago` exige sesión: un comprador anónimo es enviado a iniciar sesión y, tras entrar, vuelve a `#/pago`.
+Esta spec define el **flujo de pago mock**: al activar "Finalizar compra", el sistema navega a una ruta dedicada `#/pago` que muestra, **arriba**, un resumen de solo lectura de lo que se está comprando (los mismos datos del drawer) y, **abajo**, un formulario de pago con correo, número de tarjeta, vencimiento, CVC y nombre del titular. Al pulsar "Pagar" (modo mock de validación, sin cobro), se crea el pedido en el servidor —ver Aclaración más abajo—, se vacía el carrito y se muestra una pantalla de éxito en la misma ruta. La ruta `#/pago` exige sesión: un comprador anónimo es enviado a iniciar sesión y, tras entrar, vuelve a `#/pago`.
 
 Esta spec **reemplaza** el comportamiento de "Finalizar compra" definido en 004 RF-9 (ya no vacía el carrito ni cierra el panel sin navegar; el vaciado ocurre al confirmar el pago). La 004 no se edita aún; su actualización se hará al implementar esta spec.
 
-Lo que NO incluye aún: pasarela de pago real, cargos bancarios, backend o API de pagos, persistencia de órdenes.
+Lo que NO incluye aún: pasarela de pago real y cargos bancarios. La persistencia de pedidos vive en `specs/012-profile-orders/spec.md`.
+
+**Aclaración (spec 012):** la spec 012 ("Mis pedidos") reemplaza parcialmente esta spec: el pago ya no es 100 % sin red. Al confirmar, el sistema crea el pedido en el servidor (`POST /api/orders`) **antes** de vaciar el carrito o mostrar el éxito; si el pedido no puede crearse, el pago falla cerrado (error anunciable, carrito y formulario intactos). El folio del pedido creado se muestra en la pantalla de éxito y los pedidos viven en MongoDB con una sección en `#/perfil`. Ver `specs/012-profile-orders/spec.md`.
 
 ## Usuarios
 - **Comprador / Estudiante autenticado**: persona con sesión iniciada que quiere cerrar su compra desde el carrito.
@@ -82,23 +84,24 @@ Criterios de aceptación:
 - Cuando un campo sea inválido, su input deberá marcar `aria-invalid="true"` y el error deberá asociarse mediante `aria-describedby`.
 - Cuando todos los campos sean válidos, el pago se procesa según RF-7.
 
-**RF-7 — Pago mock siempre exitoso.**
-Cuando el formulario sea válido y el usuario active "Pagar", el sistema deberá completar el pago sin demora, sin llamadas de red y sin posibilidad de rechazo.
+**RF-7 — Pago con pedido persistido (reemplaza "Pago mock siempre exitoso").** *(El texto original se conserva en el historial al final del documento; ver nota de spec 012.)*
+Cuando el formulario sea válido y el usuario active "Pagar", el sistema deberá crear el pedido en el servidor antes de vaciar el carrito o mostrar el éxito.
 Criterios de aceptación:
-- Cuando el usuario active "Pagar" con el formulario válido, no deberán ocurrir peticiones de red ni escrituras en base de datos.
-- Cuando el pago se procese, el carrito deberá vaciarse por completo (misma lógica que "Vaciar carrito", spec 004 RF-9).
-- Cuando el pago se procese, el estado del formulario (número de tarjeta, CVC) deberá descartarse y nunca persistirse.
-- Cuando el pago se procese, no deberá mostrarse estado de carga ni error de pago posible.
+- Cuando el usuario active "Pagar" con el formulario válido, el sistema deberá hacer `POST /api/orders` con los ítems del carrito (`productId` y `quantity`); ningún dato de tarjeta deberá enviarse.
+- Cuando el servidor responda éxito, el carrito deberá vaciarse por completo (misma lógica que "Vaciar carrito", spec 004 RF-9), los datos del formulario (número de tarjeta, CVC) deberán descartarse y deberá mostrarse la pantalla de éxito (RF-8).
+- Cuando el servidor falle (red, 4xx o 5xx), el pago no deberá completarse: deberá mostrarse un error anunciable (`role="alert"`), el carrito y los valores del formulario deberán conservarse y el botón deberá volver a habilitarse.
+- Cuando se active "Pagar", el botón deberá deshabilitarse con `aria-busy="true"` durante la creación del pedido, de modo que una doble activación no genere dos pedidos.
+- El pago no contacta pasarela bancaria ni realiza cobros: el estado del pedido siempre es `completado` (ver spec 012, RF-5).
 
 **RF-8 — Pantalla de éxito.**
-Cuando el pago se procese, el sistema deberá reemplazar el formulario por una pantalla de éxito en la misma ruta `#/pago`.
+Cuando el pedido se cree con éxito, el sistema deberá reemplazar el formulario por una pantalla de éxito en la misma ruta `#/pago`.
 Criterios de aceptación:
 - Cuando el pago se procese, deberá mostrarse el mensaje "¡Compra realizada con éxito!".
 - Cuando el pago se procese, deberá mostrarse el monto total pagado en formato chileno (`Intl.NumberFormat('es-CL')`).
-- Cuando el pago se procese, no deberá mostrarse el formulario ni el resumen de artículos editable.
-- Cuando se muestre la pantalla de éxito, deberá mostrarse un botón "Volver a la tienda" que navegue a `/`.
+- Cuando el pago se procese, deberá mostrarse el folio del pedido creado (p. ej. "Tu pedido PED-2026-0001 quedó registrado.").
+- Cuando el pago se procese, deberá mostrarse un enlace "Ver mis pedidos" que navegue a `#/perfil` y un botón "Volver a la tienda" que navegue a `/`.
+- Cuando se muestre la pantalla de éxito, no deberá mostrarse el formulario ni el resumen de artículos editable.
 - Cuando se muestre la pantalla de éxito, el carrito deberá estar vacío (RF-7) y no deberá dispararse la redirección de RF-4.
-- Cuando se muestre la pantalla de éxito, no deberá mostrarse número de orden ni folio (no existe backend de órdenes).
 
 **RF-9 — Seguridad de los datos de tarjeta.**
 Mientras el usuario interactúe con el formulario, los datos de tarjeta deberán permanecer únicamente en memoria del cliente.
@@ -118,7 +121,7 @@ Criterios de aceptación:
 
 ## Requisitos no funcionales
 - **RNF-1 Idioma.** Todo texto orientado al usuario final en español (constitución §6). Identificadores, tipos y funciones en inglés.
-- **RNF-2 Sin backend ni red para el pago.** El pago opera solo en cliente: sin peticiones de red ni escrituras en base de datos (constitución §1, §5). La sesión usa el flujo de autenticación existente.
+- **RNF-2 Sin pasarela bancaria ni cobro real.** El pago no contacta pasarela de pago (Webpay, Transbank, Stripe) ni realiza cobros; la creación del pedido usa la API existente (Express + MongoDB + Zod compartido; spec 012, RF-2). Los datos de tarjeta siguen viviendo solo en memoria del cliente (RF-9 de esta spec); la sesión usa el flujo de autenticación existente.
 - **RNF-3 Sistema de diseño "IDE institucional".** Respeta `specs/00-design-system/spec.md`: superficie `card`, bordes y texto semánticos, primitivas `Button`, `Input`, `Label` y `Card` de `src/components/ui/`, precios en `font-mono`, tema oscuro único sin selector.
 - **RNF-4 Responsive.** Columna única (resumen arriba, formulario abajo) en 360 px–escritorio, con ancho máximo de lectura en escritorio; sin desplazamiento horizontal en 360 px. La fila vencimiento + CVC se mantiene como dos columnas también en 360 px.
 - **RNF-5 Separación lógica/UI.** Validación Zod, formato de tarjeta, detección de marca y cálculo/formato de totales en funciones puras y hooks (`src/logic/`) desacoplados de la presentación (constitución §3). Se reutiliza `formatPriceCLP` y el estado del carrito existente.
@@ -135,13 +138,13 @@ Criterios de aceptación:
 - Número pegado con espacios o guiones: se normaliza a dígitos y valida (cubierto por RF-5).
 - Número de tarjeta con la longitud completa (16, o 15 si Amex): check verde visible; al borrar o quedar incompleta, desaparece (cubierto por RF-5).
 - Tarjeta de otra longitud o con letras: sin check verde y error al enviar (cubierto por RF-5, RF-6).
-- Doble activación de "Pagar": una sola limpieza del carrito; el formulario ya no existe tras el éxito, por lo que no hay doble procesamiento (cubierto por RF-7, RF-8).
+- Doble activación de "Pagar": el botón se deshabilita con `aria-busy` durante la creación del pedido; el formulario ya no existe tras el éxito, por lo que no hay doble procesamiento (cubierto por RF-7 y por spec 012 RF-2).
 - Datos de tarjeta nunca tocan `localStorage` ni la red (cubierto por RF-9).
-- Sin conexión: el flujo completo funciona igual, por ser 100% cliente (RF-7).
+- Sin conexión o servidor caído: el pago no se completa; se muestra un error anunciable con el carrito y el formulario intactos, y el reintento es posible (cubierto por RF-7 de esta spec y RF-6 de spec 012).
 
 ## Fuera de alcance
-- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; el pago es siempre exitoso (RF-7).
-- Backend, API, MongoDB/Mongoose o persistencia de órdenes; sin folio ni número de orden (RF-8).
+- Pasarela de pago real (Webpay, Transbank, Stripe) o procesamiento bancario; no hay cobro real, aunque el pedido se persiste (spec 012).
+- Boleta, factura y numeración tributaria; la persistencia, el folio y la sección de pedidos del perfil son spec 012.
 - Guardar tarjetas, "pagar con tarjeta guardada", facturación y boleta.
 - Stock/inventario, cupones, despacho, impuestos y dirección de envío.
 - Edición de cantidades o eliminación de artículos desde `#/pago` (solo lectura, RF-3).
@@ -158,8 +161,8 @@ Esta tarea se considera terminada cuando:
 5. El formulario precarga el correo de la sesión (editable), se dispone en vertical con vencimiento y CVC en una misma fila, formatea la tarjeta en grupos de 4 con detección Visa/Mastercard/Amex, muestra check verde al completar el largo esperado y ordena la tabulación de forma lógica (RF-5).
 6. La validación Zod básica muestra errores en español, con `aria-invalid`/`aria-describedby`, sin Luhn (RF-6).
 7. El botón "Pagar" muestra el monto a pagar (p. ej. "Pagar $18.000"), sincronizado con el total del resumen (RF-3, RF-5).
-8. "Pagar" siempre tiene éxito, sin red ni demora, vacía el carrito y descarta los datos de tarjeta (RF-7, RF-9).
-9. Tras pagar se muestra "¡Compra realizada con éxito!" con el monto total y botón "Volver a la tienda" → `/` (RF-8).
+8. "Pagar" crea el pedido (`POST /api/orders`) antes de vaciar el carrito; sin pasarela ni cobro; vacía el carrito y descarta los datos de tarjeta; ante un fallo del servidor el pago no se completa (RF-7, RF-9).
+9. Tras pagar se muestra "¡Compra realizada con éxito!" con el monto total pagado, el folio del pedido y los enlaces "Ver mis pedidos" (→ `#/perfil`) y "Volver a la tienda" → `/` (RF-8).
 10. Etiquetas y errores accesibles en español, operable por teclado, foco visible (RF-10).
 11. La lógica pura tiene tests Vitest (RNF-6) y la separación lógica/UI se respeta (RNF-5).
 12. `npm run check` pasa sin errores.
@@ -173,10 +176,12 @@ Esta tarea se considera terminada cuando:
 - [RESUELTO] Extras del formulario: formato con espacios en grupos de 4 y detección de marca Visa (`4`), Mastercard (`51`–`55`, `2221`–`2720`) y American Express (`34`/`37`, 15 dígitos); sin mostrar/ocultar CVC.
 - [RESUELTO] Resultado del pago: siempre exitoso, inmediato, sin llamadas de red.
 - [RESUELTO] Tras pagar: pantalla de éxito dentro de `#/pago` con monto pagado, carrito vaciado, botón "Volver a la tienda" → `/`, sin folio.
+- [SUPERCEDIDO por spec 012] Las dos entradas anteriores quedan derogadas: el pago crea el pedido en el servidor (`POST /api/orders`) antes de vaciar el carrito, falla cerrado ante un fallo del servidor, y el éxito muestra el folio con un enlace a `#/perfil` (ver RF-7/RF-8 y specs/012-profile-orders/spec.md).
 - [RESUELTO] Disposición del formulario: vertical, un valor por fila; vencimiento y CVC comparten una misma fila (dos columnas, también en 360 px); botón "Pagar" abajo del formulario e indica el monto a pagar (p. ej. "Pagar $18.000"), sincronizado con el total del resumen; check en verde junto al número de tarjeta al completar la longitud esperada.
 - [ASUMIDO] Carrito vacío en `#/pago` (incluida recarga): redirección a `#/catalogo`, consistente con "Explorar catálogo" del estado vacío del drawer.
 - [ASUMIDO] Vencimiento válido cuando mes/año ≥ mes/año actual; formato `MM/AA`; el mes actual se considera vigente.
 - [ASUMIDO] American Express con 15 dígitos; Visa/Mastercard y cualquier otra marca con 16 dígitos.
 - [ASUMIDO] La pantalla de éxito vive en la misma ruta `#/pago` (sin ruta `/exito`); la redirección por carrito vacío no aplica mientras el éxito esté visible.
+- [SUPERCEDIDO por spec 012] Persistencia y éxito: pedidos persistidos en MongoDB con folio; la pantalla de éxito muestra el folio y un enlace a `#/perfil` (detalle: `specs/012-profile-orders/spec.md`).
 - [PENDIENTE — hablarlo con el equipo] Inconsistencia de instalación/`node_modules` detectada el 2026-11-09: el lock anida `jsdom` en `apps/frontend/client/node_modules/jsdom` pero homologa `vitest` a la raíz (`node_modules/vitest`), por lo que un `npm ci` o un `npm install` limpio con npm nuevo deja a `vitest` sin poder resolver `jsdom` y los tests del frontend corren 0 archivos ("Cannot find package 'jsdom'"). En esta máquina se resolvió de forma local y temporal con `npm install --no-save jsdom@^26.1.0` (no versiona nada; la solución de raíz sería declarar `jsdom` en el `package.json` raíz o corregir el lock — decisión pendiente del equipo, con actualización de spec previa por las reglas del proyecto). El backend además requería `npm install` inicial: `nodemailer` y `express-rate-limit` estaban declarados en la raíz pero no instalados.
-- [NOTA] Esta spec reemplaza 004 RF-9 ("Finalizar compra" ya no vacía el carrito ni cierra el panel sin navegar). La `specs/004-shopping-cart/spec.md` no se edita en este paso; deberá actualizarse al implementar.
+- [NOTA] Esta spec reemplaza 004 RF-9 ("Finalizar compra" navega a `#/pago`; el vaciado ocurre al confirmar el pago). La `specs/004-shopping-cart/spec.md` ya fue actualizada en consecuencia. La spec 012 ("Mis pedidos") reemplaza parcialmente RF-7/RF-8/RNF-2 de esta spec: el pago crea el pedido en el servidor antes de vaciar el carrito y la pantalla de éxito muestra el folio (ver `specs/012-profile-orders/spec.md`).

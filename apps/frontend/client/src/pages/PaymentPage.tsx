@@ -13,6 +13,7 @@ import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../context/AuthContext.tsx";
 import { useCart } from "../context/CartContext.tsx";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
+import { createOrder } from "../logic/orderApi.ts";
 import {
   detectCardBrand,
   formatCardNumber,
@@ -46,12 +47,12 @@ const EMPTY_VALUES: PaymentFormValues = {
   holderName: "",
 };
 
-// Página de pago mock (011). El resumen va arriba en solo lectura y el
-// formulario abajo en vertical con vencimiento y CVC en una misma fila; el
-// botón "Pagar" indica el monto a pagar. El pago no toca la red: al validar,
-// se captura el total, se vacía el carrito y se muestra el éxito en la misma
-// ruta. Los datos de tarjeta viven solo en estado local y se descartan al
-// pagar. Vacío y sin éxito previo → redirección a #/catalogo.
+// Página de pago (011): resumen arriba solo lectura y formulario abajo en
+// vertical. El pago crea el pedido en el servidor ANTES de vaciar el carrito
+// (012 RF-2): si `POST /api/orders` falla, el error se muestra y el carrito y
+// los valores del formulario se conservan (012 RF-6). Los datos de tarjeta
+// viven solo en estado local y nunca tocan la red ni la base (012 RF-10).
+// Vacío y sin éxito previo → redirección a #/catalogo.
 export function PaymentPage() {
   const { state: authState } = useAuth();
   const { items, totalAmount, clearCart } = useCart();
@@ -62,7 +63,12 @@ export function PaymentPage() {
     email: userEmail,
   }));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [paidTotal, setPaidTotal] = useState<number | null>(null);
+  const [paidOrder, setPaidOrder] = useState<{
+    total: number;
+    folio: string;
+  } | null>(null);
+  const [paying, setPaying] = useState<boolean>(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   const cardBrand = detectCardBrand(values.cardNumber);
   const cardComplete = isCompleteCardNumber(values.cardNumber);
@@ -113,8 +119,11 @@ export function PaymentPage() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (paying) {
+      return;
+    }
     const form = event.currentTarget;
     const parsed = paymentFormSchema.safeParse(values);
     if (!parsed.success) {
@@ -123,26 +132,42 @@ export function PaymentPage() {
       focusFirstError(form, errors);
       return;
     }
-    // Pago mock: éxito siempre, sin red ni demora (011 RF-7). Se captura el
-    // total antes de vaciar el carrito para mostrar el monto pagado.
-    setPaidTotal(totalAmount);
+    // Pago con pedido real (012 RF-2): el pedido se crea primero con los
+    // items del carrito; el total y el folio mostrados salen del servidor.
+    // Solo si el backend confirma (y con el botón deshabilitado y
+    // `aria-busy` durante la espera) se vacía el carrito y se muestra el
+    // éxito. Ante cualquier fallo: error anunciable, carrito y valores
+    // intactos (012 RF-6).
+    setPaying(true);
+    setPayError(null);
+    const result = await createOrder(items);
+    if (!result.ok) {
+      setPayError(result.message);
+      setPaying(false);
+      return;
+    }
+    setPaidOrder({ total: result.order.total, folio: result.order.folio });
     clearCart();
     setValues({ ...EMPTY_VALUES, email: userEmail });
     setFieldErrors({});
+    setPaying(false);
   }
 
   // Carrito vacío sin éxito previo → catálogo (011 RF-4). Con éxito visible
   // la redirección no aplica (011 RF-8).
-  if (paidTotal === null && items.length === 0) {
+  if (paidOrder === null && items.length === 0) {
     return <Navigate to="/catalogo" replace />;
   }
 
-  if (paidTotal !== null) {
+  if (paidOrder !== null) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="mx-auto max-w-md px-4 py-14">
-          <PaymentSuccess totalPaid={paidTotal} />
+          <PaymentSuccess
+            totalPaid={paidOrder.total}
+            folio={paidOrder.folio}
+          />
         </main>
       </div>
     );
@@ -235,7 +260,18 @@ export function PaymentPage() {
             onChange={handleChange}
             error={fieldErrors.holderName}
           />
-          <Button type="submit" size="lg" className="w-full">
+          {payError !== null && (
+            <p role="alert" className="text-sm text-destructive">
+              {payError}
+            </p>
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={paying}
+            aria-busy={paying}
+          >
             Pagar {formatPriceCLP(totalAmount)}
           </Button>
         </form>

@@ -5,12 +5,14 @@ import { Button } from "./ui/button.tsx";
 
 interface PaymentSuccessProps {
   totalPaid: number;
+  folio: string;
 }
 
-// Pantalla de éxito del pago mock (011 RF-8): reemplaza al formulario en la
-// misma ruta; muestra el mensaje, el monto pagado y el retorno a la tienda.
-// Sin folio ni número de orden (no hay backend de órdenes).
-export function PaymentSuccess({ totalPaid }: PaymentSuccessProps) {
+// Pantalla de éxito del pago (011 RF-8, 012 RF-7): reemplaza al formulario en
+// la misma ruta; muestra el mensaje, el monto pagado y el folio del pedido
+// creado. Sin datos de tarjeta ni folio de boleta (no hay backend de
+// pasarela).
+export function PaymentSuccess({ totalPaid, folio }: PaymentSuccessProps) {
   return (
     <section
       aria-labelledby="payment-success-title"
@@ -35,9 +37,19 @@ export function PaymentSuccess({ totalPaid }: PaymentSuccessProps) {
         </span>{" "}
         ha sido procesada.
       </p>
-      <Button asChild size="lg" className="mt-2 w-full">
-        <Link to="/">Volver a la tienda</Link>
-      </Button>
+      <p className="font-sans text-sm text-muted-foreground">
+        Tu pedido{" "}
+        <span className="font-mono text-foreground">{folio}</span>{" "}
+        quedó registrado.
+      </p>
+      <div className="flex w-full flex-col gap-2">
+        <Button asChild size="lg" className="mt-2 w-full" variant="outline">
+          <Link to="/perfil">Ver mis pedidos</Link>
+        </Button>
+        <Button asChild size="lg" className="w-full">
+          <Link to="/">Volver a la tienda</Link>
+        </Button>
+      </div>
     </section>
   );
 }
