@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { updateProfileSchema, type UserProfile } from "@tiendadcc/utils";
+import { updateProfileSchema, type Order, type UserProfile } from "@tiendadcc/utils";
 import { FavoriteProductCard } from "../components/FavoriteProductCard.tsx";
 import { Header } from "../components/Header.tsx";
+import { OrderCard } from "../components/OrderCard.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -27,6 +28,7 @@ import {
   HISTORY_PAGE_SIZE,
   paginate,
 } from "../logic/profilePagination.ts";
+import { fetchOrders } from "../logic/orderApi.ts";
 import {
   fetchProfile,
   removeFavorite,
@@ -35,6 +37,10 @@ import {
 
 const SAVED_PRODUCTS_ERROR =
   "No se pudieron cargar los productos guardados. Inténtalo de nuevo más tarde.";
+
+// Pedidos visibles por defecto y por cada activación de "Ver más" (spec 012,
+// RF-1).
+const ORDERS_PAGE_SIZE = 5;
 
 const EDIT_FIELD_ORDER = [
   "username",
@@ -92,6 +98,10 @@ export function ProfilePage() {
   const [visibleHistoryCount, setVisibleHistoryCount] = useState<number>(
     HISTORY_PAGE_SIZE,
   );
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState<boolean>(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [ordersShown, setOrdersShown] = useState<number>(ORDERS_PAGE_SIZE);
   const [favoritePending, setFavoritePending] = useState<string | null>(null);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
@@ -118,8 +128,29 @@ export function ProfilePage() {
     setLoading(false);
   }
 
+  async function loadOrders(): Promise<void> {
+    setOrdersLoading(true);
+    setOrdersError(null);
+    const result = await fetchOrders();
+    if (result.ok) {
+      setOrders(result.orders);
+    } else {
+      setOrders([]);
+      setOrdersError(result.message);
+    }
+    setOrdersLoading(false);
+  }
+
   useEffect(() => {
     void loadProfile();
+    // Carga única al montar la vista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Los pedidos se cargan con su propio fetch y estado (spec 012, RF-1): la
+  // sección anuncia carga, error con "Reintentar" y estado vacío propios.
+  useEffect(() => {
+    void loadOrders();
     // Carga única al montar la vista.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -520,6 +551,80 @@ export function ProfilePage() {
                 <Button type="button" variant="outline" onClick={openCart}>
                   Ver carrito
                 </Button>
+              </CardContent>
+            </Card>
+
+            <Card
+              id="perfil-pedidos"
+              role="region"
+              aria-labelledby="perfil-pedidos-titulo"
+            >
+              <CardHeader>
+                <CardTitle
+                  id="perfil-pedidos-titulo"
+                  className="font-mono"
+                  role="heading"
+                  aria-level={2}
+                >
+                  Mis pedidos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {ordersLoading ? (
+                  <p className="font-sans text-sm text-muted-foreground">
+                    Cargando tus pedidos…
+                  </p>
+                ) : ordersError !== null ? (
+                  <>
+                    <p role="alert" className="font-sans text-sm text-destructive">
+                      {ordersError}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="self-start"
+                      onClick={() => void loadOrders()}
+                    >
+                      Reintentar
+                    </Button>
+                  </>
+                ) : orders.length === 0 ? (
+                  <>
+                    <p className="font-sans text-sm text-muted-foreground">
+                      Aún no tienes pedidos.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="self-start"
+                      asChild
+                    >
+                      <Link to="/catalogo">Explorar catálogo</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <ul className="flex flex-col gap-3">
+                      {orders.slice(0, ordersShown).map((order) => (
+                        <li key={order.id}>
+                          <OrderCard order={order} />
+                        </li>
+                      ))}
+                    </ul>
+                    {orders.length > ordersShown && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="self-start"
+                        onClick={() =>
+                          setOrdersShown((current) => current + ORDERS_PAGE_SIZE)
+                        }
+                      >
+                        Ver más
+                      </Button>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 

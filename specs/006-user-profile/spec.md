@@ -9,7 +9,7 @@ Esta spec define el **perfil del usuario autenticado** sobre esa base: consulta 
 La implementación se divide en **3 partes**, con la validación mediante tests al final:
 
 - **Parte 1 — Backend:** modelo extendido, `GET /api/users/me`, `PUT /api/users/me`, endpoints de favoritos e historial, y esquemas Zod compartidos (RF-1–RF-6).
-- **Parte 2 — Frontend:** ruta `/perfil` protegida, `ProfilePage` en modo lectura y edición, secciones de favoritos e historial, registro de visitas desde el detalle y accesos de Favoritos/Perfil en el encabezado (RF-7–RF-10, RF-14).
+- **Parte 2 — Frontend:** ruta `/perfil` protegida, `ProfilePage` en modo lectura y edición, secciones de favoritos e historial, **sección "Mis pedidos" (anexado por spec 012)**, registro de visitas desde el detalle y accesos de Favoritos/Perfil en el encabezado (RF-7–RF-10, RF-14).
 - **Parte 3 — Sincronización con la cuenta:** carrito persistido en el `User`, fusión del carrito invitado al iniciar sesión con aviso, y persistencia continua mientras hay sesión (RF-11–RF-13). Los favoritos no requieren fusión: solo existen con cuenta (duda resuelta al final).
 - **Validación final:** tests de backend y frontend más `npm run check` (RNF-9 y criterio de finalización).
 
@@ -113,6 +113,7 @@ Criterios de aceptación:
 - Cuando el perfil cargue, deberá mostrarse un resumen "Mi carrito" con el número de productos y el total en pesos chilenos, con un control que abra el panel del carrito sin navegar.
 - Cuando los datos estén cargando, deberá mostrarse un estado de carga accesible; cuando la carga falle, deberá mostrarse un error en español con una acción "Reintentar" que no pierda la sesión.
 - Cuando un `productId` guardado ya no exista en el catálogo, deberá ocultarse sin romper la vista.
+- **(Anexado por spec 012)** Cuando el perfil cargue, deberá mostrarse una sección "Mis pedidos" con los pedidos del usuario, del más reciente al más antiguo, con folio, fecha y hora, estado y total en pesos chilenos, además de las líneas de ítems con su subtotal por línea; sus estados de carga/error (con "Reintentar") y vacío (con "Explorar catálogo") cumplen `specs/012-profile-orders/spec.md`.
 
 **RF-9 — Modo edición con confirmación por contraseña.**
 Cuando el usuario edite su perfil, el sistema deberá pre-rellenar el formulario, exigir su contraseña actual y dar feedback del resultado.
@@ -239,7 +240,7 @@ Esta tarea se considera terminada cuando:
 4. Los favoritos se agregan y eliminan de forma idempotente y viajan en el perfil (RF-4).
 5. El historial registra visitas sin duplicados, reciente primero, con tope `MAX_PROD_HISTORY` (67) y paginación de 10 por página en el perfil (RF-5, RF-6, RF-8).
 6. La ruta `/perfil` es solo para autenticados, con estado neutro durante la restauración y redirección a `/iniciar-sesion` para anónimos (RF-7).
-7. El modo lectura muestra datos, estado de cuenta, favoritos, historial paginado y resumen "Mi carrito" con estados de carga, error con "Reintentar" y vacíos en español (RF-8).
+7. El modo lectura muestra datos, estado de cuenta, favoritos, historial paginado, resumen "Mi carrito" y la sección "Mis pedidos" —anexado por spec 012— con estados de carga, error con "Reintentar" y vacíos en español (RF-8).
 8. El modo edición parte de los valores actuales, exige contraseña actual, valida en español, evita doble envío, gestiona el foco y refleja el éxito en la vista y en la sesión (RF-9).
 9. Las visitas se registran desde el detalle solo para autenticados con producto existente, los favoritos se sincronizan con feedback en español y el anónimo que intenta guardar un favorito es redirigido a `/iniciar-sesion` (RF-10).
 10. El carrito se persiste en la cuenta con `PUT /api/users/me/cart` validado y viaja en el perfil (RF-11, RF-2).
@@ -265,3 +266,4 @@ Esta tarea se considera terminada cuando:
 - [RESUELTO] Lectura del carrito incluida en `GET /api/users/me`; escritura con `PUT /api/users/me/cart` de reemplazo completo validado; el `PUT /api/users/me` ignora `cart` (además de `favorites` e `history`).
 - [RESUELTO] Fusión por **delta sobre huella sincronizada**: la suma ciega local+cuenta duplicaba en cada recarga y re-login; ahora solo se fusiona en la transición anónimo→autenticado sumando lo agregado como invitado, la restauración de sesión nunca fusiona, y la huella (`cart-synced:<userId>` en `localStorage`) sobrevive al logout.
 - [RESUELTO] Accesos del encabezado: **Favoritos** (corazón → sección de favoritos en `/perfil` con desplazamiento y foco; anónimo → `/iniciar-sesion`) y **Perfil** (persona → `/perfil`; anónimo → `/iniciar-sesion`); se eliminan los marcadores "Próximamente" de ambos. La sección se pasa por estado de navegación para no romper `HashRouter`.
+- [ANEXADO por spec 012] Sección **"Mis pedidos"** en `/perfil`, alimentada por `GET /api/orders`; el pedido se crea al confirmar el pago en `#/pago` (spec 011, revisada por spec 012; ver `specs/012-profile-orders/spec.md`).

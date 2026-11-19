@@ -8,6 +8,7 @@ import express, {
 import { getEnv } from "./config/env.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { authRoutes } from "./routes/authRoutes.ts";
+import { ordersRoutes } from "./routes/ordersRoutes.ts";
 import { productsRoutes } from "./routes/productsRoutes.ts";
 import { reviewsRoutes } from "./routes/reviewsRoutes.ts";
 import { usersRoutes } from "./routes/usersRoutes.ts";
@@ -48,6 +49,7 @@ export function createApp() {
   app.use("/api/users", usersRoutes);
   app.use("/api/products", productsRoutes);
   app.use("/api/reviews", reviewsRoutes);
+  app.use("/api/orders", ordersRoutes);
 
   app.use((_request: Request, response: Response) => {
     response.status(404).json({ message: "Ruta no encontrada." });
