@@ -2,6 +2,7 @@ import { createApp } from "./app.ts";
 import { getEnv } from "./config/env.ts";
 import { connectToDatabase } from "./db/connect.ts";
 import { migrateProductVariants } from "./services/productVariantMigration.ts";
+import { repairUserIndexes } from "./services/userIndexMigration.ts";
 
 const env = getEnv();
 const app = createApp();
@@ -9,6 +10,7 @@ const app = createApp();
 try {
   await connectToDatabase(env.mongodbUri);
   console.log("Conexión a MongoDB establecida.");
+  await repairUserIndexes();
   const migratedProducts = await migrateProductVariants();
   if (migratedProducts > 0) {
     console.log(
