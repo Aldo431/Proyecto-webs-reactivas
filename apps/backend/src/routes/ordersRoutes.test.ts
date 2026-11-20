@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import {
   afterAll,
@@ -23,7 +23,7 @@ import {
   type TestSeller,
 } from "../test/productFixtures.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 let ana: TestSeller;
 let beto: TestSeller;

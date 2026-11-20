@@ -8,6 +8,8 @@ import {
 
 export interface OrderItemFields {
   product: Types.ObjectId;
+  variant?: Types.ObjectId;
+  variantName?: string;
   name: string;
   image: string;
   unitPrice: number;
@@ -40,6 +42,16 @@ const orderItemSchema = new Schema<OrderItemFields>(
       type: Schema.Types.ObjectId,
       ref: "Product",
       required: [true, "El producto es obligatorio."],
+    },
+    variant: {
+      type: Schema.Types.ObjectId,
+      required: false,
+    },
+    variantName: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: 80,
     },
     name: {
       type: String,
@@ -143,6 +155,10 @@ export function toPublicOrder(order: OrderLike): PublicOrder {
     status: order.status,
     items: order.items.map((item) => ({
       productId: item.product.toString(),
+      ...(item.variant === undefined
+        ? {}
+        : { variantId: item.variant.toString() }),
+      ...(item.variantName === undefined ? {} : { variantName: item.variantName }),
       name: item.name,
       image: item.image,
       unitPrice: item.unitPrice,

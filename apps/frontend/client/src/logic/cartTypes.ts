@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const cartItemSchema = z.object({
   productId: z.string().min(1),
+  variantId: z.string().min(1).optional(),
+  variantName: z.string().min(1).optional(),
+  stock: z.number().int().min(0).optional(),
   name: z.string().min(1),
   price: z.number().int().positive(),
   image: z.string().min(1),

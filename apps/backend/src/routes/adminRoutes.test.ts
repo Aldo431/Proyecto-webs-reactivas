@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { Types } from "mongoose";
 import request from "supertest";
 import {
@@ -27,7 +27,7 @@ import {
 } from "../test/productFixtures.ts";
 import { seedReview } from "../test/reviewFixtures.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 
 const PASSWORD = "secreto123";
@@ -303,6 +303,9 @@ describe("GET /api/admin/products", () => {
       price: 6000,
       image: "/images/taza-dcc.png",
       featured: false,
+      variants: [
+        { id: "base", name: "Base", stock: 1000, priceAdjustment: 0 },
+      ],
       seller: { id: beto.id, username: "betoruiz", displayName: "Beto Ruiz" },
       createdAt: expect.any(String),
       updatedAt: expect.any(String),

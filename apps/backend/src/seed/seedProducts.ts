@@ -3,6 +3,7 @@ import { productCategorySchema, productImageSchema } from "@tiendadcc/utils";
 import { Product } from "../models/Product.ts";
 import { User } from "../models/User.ts";
 import { hashPassword } from "../services/authService.ts";
+import { migrateProductVariants } from "../services/productVariantMigration.ts";
 
 // Vendedor de prueba dueño de los productos del seed (spec 008, RF-12).
 export const SEED_SELLER = {
@@ -196,6 +197,8 @@ export async function seedProducts(input: SeedInput): Promise<SeedSummary> {
     }
     idMap.set(seed.id, stored._id.toString());
   }
+
+  await migrateProductVariants();
 
   const usersRemapped = await remapUserReferences(idMap);
   return { sellerCreated: seller.created, created, updated, usersRemapped };

@@ -18,6 +18,7 @@ export interface HistoryVisit {
 
 export interface CartLineDocument {
   productId: string;
+  variantId?: string;
   quantity: number;
 }
 
@@ -129,6 +130,7 @@ const userSchema = new Schema<UserFields, UserModel, UserMethods>(
       type: [
         {
           productId: { type: String, required: true },
+          variantId: { type: String, required: false },
           quantity: { type: Number, required: true },
         },
       ],
@@ -167,6 +169,7 @@ userSchema.methods.toProfileJSON = function (): UserProfile {
     })),
     cart: (this.cart ?? []).map((line: CartLineDocument) => ({
       productId: line.productId,
+      ...(line.variantId === undefined ? {} : { variantId: line.variantId }),
       quantity: line.quantity,
     })),
   };

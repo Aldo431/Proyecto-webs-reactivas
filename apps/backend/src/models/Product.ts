@@ -1,7 +1,10 @@
 import { Schema, model, type Types } from "mongoose";
 import {
   MAX_PRODUCT_PRICE,
+  MAX_VARIANT_STOCK,
+  BASE_VARIANT,
   PRODUCT_CATEGORIES,
+  type ProductVariant as PublicProductVariant,
   type Product as PublicProduct,
   type ProductCategory,
 } from "@tiendadcc/utils";
@@ -14,9 +17,17 @@ export interface ProductFields {
   /** Data URL subido por un usuario, o ruta/URL (productos del seed). */
   image: string;
   featured: boolean;
+  variants: ProductVariantFields[];
   seller: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductVariantFields {
+  _id: Types.ObjectId;
+  name: string;
+  stock: number;
+  priceAdjustment: number;
 }
 
 // Los validadores repiten los límites de los esquemas Zod de `@tiendadcc/utils`
@@ -58,6 +69,45 @@ const productSchema = new Schema<ProductFields>(
     featured: {
       type: Boolean,
       default: false,
+    },
+    variants: {
+      type: [
+        {
+          name: {
+            type: String,
+            required: [true, "El nombre de la variante es obligatorio."],
+            trim: true,
+            minlength: [1, "El nombre de la variante es obligatorio."],
+            maxlength: [
+              80,
+              "El nombre de la variante no puede superar los 80 caracteres.",
+            ],
+          },
+          stock: {
+            type: Number,
+            required: [true, "El stock de la variante es obligatorio."],
+            min: [0, "El stock no puede ser negativo."],
+            max: [MAX_VARIANT_STOCK, "El stock no puede superar 1000 unidades."],
+            validate: {
+              validator: (value: number) =>
+                Number.isInteger(value) && value >= 0 && value <= MAX_VARIANT_STOCK,
+              message: "El stock debe ser un entero entre 0 y 1000.",
+            },
+          },
+          priceAdjustment: {
+            type: Number,
+            required: true,
+            default: 0,
+            min: [0, "El recargo no puede ser negativo."],
+            validate: {
+              validator: (value: number) =>
+                Number.isInteger(value) && value >= 0 && value <= MAX_PRODUCT_PRICE,
+              message: "El recargo debe ser un entero válido.",
+            },
+          },
+        },
+      ],
+      default: [],
     },
     seller: {
       type: Schema.Types.ObjectId,
@@ -109,6 +159,16 @@ export function publicImageUrl(
 // Contrato público (RF-1): el vendedor solo expone id, username y displayName.
 export function toPublicProduct(product: ProductWithSeller): PublicProduct {
   const id = product._id.toString();
+  const variants = product.variants?.length
+    ? product.variants.map(
+        (variant): PublicProductVariant => ({
+          id: variant._id.toString(),
+          name: variant.name,
+          stock: variant.stock,
+          priceAdjustment: variant.priceAdjustment ?? 0,
+        }),
+      )
+    : [BASE_VARIANT];
   return {
     id,
     name: product.name,
@@ -117,6 +177,7 @@ export function toPublicProduct(product: ProductWithSeller): PublicProduct {
     price: product.price,
     image: publicImageUrl(id, product.image, product.updatedAt),
     featured: product.featured,
+    variants,
     seller: {
       id: product.seller._id.toString(),
       username: product.seller.username,

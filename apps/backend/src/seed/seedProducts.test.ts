@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Product } from "../models/Product.ts";
 import { listProducts } from "../services/productService.ts";
@@ -23,7 +23,7 @@ function loadSeedCatalog(): SeedProduct[] {
   return parseSeedProducts(raw);
 }
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let catalog: SeedProduct[];
 
 beforeAll(async () => {

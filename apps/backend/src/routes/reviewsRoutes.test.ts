@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
@@ -14,7 +14,7 @@ import {
 import { seedReview } from "../test/reviewFixtures.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 let ana: TestSeller;
 let beto: TestSeller;

@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import {
   afterAll,
@@ -26,7 +26,7 @@ import {
 } from "../test/productFixtures.ts";
 import { seedReview } from "../test/reviewFixtures.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 let ana: TestSeller;
 let beto: TestSeller;
@@ -115,6 +115,14 @@ describe("POST /api/products", () => {
         new RegExp(`^/api/products/${response.body.id}/image\\?v=\\d+$`),
       ),
       featured: false,
+      variants: [
+        {
+          id: expect.any(String),
+          name: "Base",
+          stock: 1000,
+          priceAdjustment: 0,
+        },
+      ],
       seller: { id: ana.id, username: "anaperez", displayName: "Ana Pérez" },
       createdAt: expect.any(String),
       updatedAt: expect.any(String),

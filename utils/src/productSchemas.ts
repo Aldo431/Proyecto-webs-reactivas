@@ -17,6 +17,13 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ] as const;
 export const MAX_PRODUCT_PRICE = 10_000_000;
+export const MAX_VARIANT_STOCK = 1000;
+export const BASE_VARIANT = {
+  id: "base",
+  name: "Base",
+  stock: MAX_VARIANT_STOCK,
+  priceAdjustment: 0,
+} as const;
 export const MAX_IDS_PER_QUERY = 100;
 
 // Límites de la búsqueda paginada del catálogo (spec 009): texto, órdenes y
@@ -207,6 +214,53 @@ const priceField = z
     "El precio no puede superar los $10.000.000.",
   );
 
+export const productVariantSchema = z.object({
+  id: z.string().trim().min(1, "Identificador de variante inválido."),
+  name: z
+    .string({ error: "El nombre de la variante es obligatorio." })
+    .trim()
+    .min(1, "El nombre de la variante es obligatorio.")
+    .max(80, "El nombre de la variante no puede superar los 80 caracteres."),
+  stock: z
+    .number({ error: "El stock debe ser un entero entre 0 y 1000." })
+    .int("El stock debe ser un número entero.")
+    .min(0, "El stock no puede ser negativo.")
+    .max(MAX_VARIANT_STOCK, "El stock no puede superar 1000 unidades."),
+  priceAdjustment: z
+    .number({ error: "El recargo debe ser un entero entre 0 y 10000000." })
+    .int("El recargo debe ser un número entero.")
+    .min(0, "El recargo no puede ser negativo.")
+    .max(MAX_PRODUCT_PRICE, "El recargo no puede superar $10.000.000.")
+    .default(0),
+});
+
+const variantsField = z
+  .array(productVariantSchema)
+  .min(1, "Debes agregar al menos una variante.")
+  .superRefine((variants, context) => {
+    const names = new Set<string>();
+    const ids = new Set<string>();
+    variants.forEach((variant, index) => {
+      const normalizedName = variant.name.trim().toLocaleLowerCase();
+      if (names.has(normalizedName)) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "name"],
+          message: "No puedes repetir el nombre de una variante.",
+        });
+      }
+      names.add(normalizedName);
+      if (ids.has(variant.id)) {
+        context.addIssue({
+          code: "custom",
+          path: [index, "id"],
+          message: "No puedes repetir una variante.",
+        });
+      }
+      ids.add(variant.id);
+    });
+  });
+
 export const productSellerSchema = z.object({
   id: z.string().min(1),
   username: z.string().min(1),
@@ -222,6 +276,7 @@ export const productSchema = z.object({
   price: z.number().int().positive(),
   image: productImageSchema,
   featured: z.boolean(),
+  variants: z.array(productVariantSchema).default([BASE_VARIANT]),
   seller: productSellerSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -237,6 +292,7 @@ export const createProductInputSchema = z.object({
   category: productCategorySchema,
   price: priceField,
   image: uploadImageSchema,
+  variants: variantsField.optional(),
 });
 
 export const updateProductInputSchema = createProductInputSchema
@@ -348,6 +404,7 @@ export const productPageSchema = z.object({
 });
 
 export type ProductCategory = z.infer<typeof productCategorySchema>;
+export type ProductVariant = z.infer<typeof productVariantSchema>;
 export type ProductSeller = z.infer<typeof productSellerSchema>;
 export type Product = z.infer<typeof productSchema>;
 export type CreateProductInput = z.infer<typeof createProductInputSchema>;

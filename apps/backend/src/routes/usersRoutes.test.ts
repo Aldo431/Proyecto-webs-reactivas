@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request, { type Response } from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
@@ -7,7 +7,7 @@ import { User } from "../models/User.ts";
 import { hashPassword } from "../services/authService.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 
 const credentials = {

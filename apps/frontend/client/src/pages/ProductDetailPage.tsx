@@ -29,10 +29,21 @@ export function ProductDetailPage() {
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [toggling, setToggling] = useState<boolean>(false);
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
+  const [variantError, setVariantError] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [productId]);
+
+  useEffect(() => {
+    if (productState.status === "success" && productState.product.variants.length === 1) {
+      setSelectedVariantId(productState.product.variants[0]?.id ?? "");
+    } else {
+      setSelectedVariantId("");
+    }
+    setVariantError(null);
+  }, [productState]);
 
   const product =
     productState.status === "success" ? productState.product : undefined;
@@ -133,6 +144,12 @@ export function ProductDetailPage() {
     );
   }
 
+  const selectedVariant = product.variants.find(
+    (variant) => variant.id === selectedVariantId,
+  );
+  const displayedPrice =
+    product.price + (selectedVariant?.priceAdjustment ?? 0);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -151,9 +168,47 @@ export function ProductDetailPage() {
               {product.name}
             </h1>
             <p className="mt-2 font-mono text-xl font-bold text-card-foreground">
-              {formatPriceCLP(product.price)}
+              {formatPriceCLP(displayedPrice)}
             </p>
             <p className="mt-4 text-muted-foreground">{product.description}</p>
+            {product.variants.length > 0 && (
+              <div className="mt-6">
+                <label
+                  htmlFor="product-variant"
+                  className="mb-2 block text-sm font-medium text-foreground"
+                >
+                  Variante
+                </label>
+                <select
+                  id="product-variant"
+                  value={selectedVariantId}
+                  aria-describedby={variantError === null ? undefined : "variant-error"}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onChange={(event) => {
+                    setSelectedVariantId(event.target.value);
+                    setVariantError(null);
+                  }}
+                >
+                  {product.variants.length > 1 && (
+                    <option value="">Selecciona una variante</option>
+                  )}
+                  {product.variants.map((variant) => (
+                    <option
+                      key={variant.id}
+                      value={variant.id}
+                      disabled={variant.stock === 0}
+                    >
+                      {variant.name} {variant.stock === 0 ? "(Agotada)" : `(${variant.stock} disponibles)`}
+                    </option>
+                  ))}
+                </select>
+                {variantError !== null && (
+                  <p id="variant-error" role="alert" className="mt-2 text-sm text-destructive">
+                    {variantError}
+                  </p>
+                )}
+              </div>
+            )}
             <p className="mt-4 font-sans text-sm text-muted-foreground">
               Publicado por {product.seller.displayName}
             </p>
@@ -171,12 +226,28 @@ export function ProductDetailPage() {
                   <Button
                     variant="default"
                     type="button"
+                    disabled={
+                      product.variants.every((variant) => variant.stock === 0)
+                    }
                     onClick={() => {
+                      const variant = product.variants.find(
+                        (entry) => entry.id === selectedVariantId,
+                      );
+                      if (variant === undefined || variant.stock === 0) {
+                        setVariantError(
+                          "Selecciona una variante disponible.",
+                        );
+                        return;
+                      }
                       addItem({
                         id: product.id,
                         name: product.name,
-                        price: product.price,
+                        price:
+                          product.price + (variant.priceAdjustment ?? 0),
                         image: product.image,
+                        variantId: variant.id,
+                        variantName: variant.name,
+                        stock: variant.stock,
                       });
                       openCart();
                     }}
