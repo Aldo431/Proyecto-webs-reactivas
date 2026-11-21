@@ -60,8 +60,8 @@ interface CartContextValue {
   closeCart: () => void;
   toggleCart: () => void;
   addItem: (product: CartProduct) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
+  removeItem: (productId: string, variantId?: string) => void;
   clearCart: () => void;
   dismissMergeNotice: () => void;
 }
@@ -287,14 +287,16 @@ export function CartProvider({ children }: CartProviderProps) {
   }, []);
 
   const updateQuantity = useCallback(
-    (productId: string, quantity: number): void => {
-      setItems((previous) => updateItemQuantity(previous, productId, quantity));
+    (productId: string, quantity: number, variantId?: string): void => {
+      setItems((previous) =>
+        updateItemQuantity(previous, productId, quantity, variantId),
+      );
     },
     [],
   );
 
-  const removeItem = useCallback((productId: string): void => {
-    setItems((previous) => removeItemFromCart(previous, productId));
+  const removeItem = useCallback((productId: string, variantId?: string): void => {
+    setItems((previous) => removeItemFromCart(previous, productId, variantId));
   }, []);
 
   const clearCart = useCallback((): void => {

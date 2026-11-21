@@ -85,7 +85,7 @@ async function parseBody<T>(
   return { ok: true, data: parsed.data };
 }
 
-// Crea el pedido al pagar (spec 012, RF-2, RF-6). Solo viajan `productId` y
+// Crea el pedido al pagar (spec 012, RF-2, RF-6). Solo viajan identificadores y
 // `quantity` por línea (RF-10): ni precios, ni totales, ni ningún dato de
 // tarjeta. Devuelve el pedido con folio para la pantalla de éxito (RF-7).
 export async function createOrder(
@@ -99,6 +99,7 @@ export async function createOrder(
       body: JSON.stringify({
         items: items.map((line) => ({
           productId: line.productId,
+          ...(line.variantId === undefined ? {} : { variantId: line.variantId }),
           quantity: line.quantity,
         })),
       }),

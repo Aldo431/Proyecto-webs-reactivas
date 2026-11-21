@@ -1,4 +1,4 @@
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { NotFoundError } from "../errors.ts";
 import { Product } from "../models/Product.ts";
@@ -14,7 +14,7 @@ import { createProduct } from "../test/productFixtures.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 import { seedReview as createReviewRow } from "../test/reviewFixtures.ts";
 
-let server: MongoMemoryServer;
+let server: MongoMemoryReplSet;
 let authorId: string;
 let productId: string;
 

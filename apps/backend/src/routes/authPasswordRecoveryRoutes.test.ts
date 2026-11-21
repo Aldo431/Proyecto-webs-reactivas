@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { createApp } from "../app.ts";
 import { User } from "../models/User.ts";
@@ -8,7 +8,7 @@ import { resetForgotPasswordRateLimits } from "../middleware/rateLimit.ts";
 import { emailService } from "../services/emailService.ts";
 import { signToken } from "../services/authService.ts";
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: MongoMemoryReplSet;
 const app = createApp();
 
 // Mock the email service
@@ -19,7 +19,7 @@ vi.mock("../services/emailService.ts", () => ({
 }));
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryReplSet.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
 });

@@ -27,6 +27,7 @@ export const historyInputSchema = z.object({
 
 export const cartLineSchema = z.object({
   productId: productIdField,
+  variantId: productIdField.optional(),
   quantity: z
     .number()
     .int("La cantidad debe ser un número entero.")

@@ -1,4 +1,4 @@
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { MAX_PROD_HISTORY } from "@tiendadcc/utils";
 import { ConflictError, UnauthorizedError } from "../errors.ts";
@@ -13,7 +13,7 @@ import {
 } from "./profileService.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 async function createTestUser(
   overrides: {

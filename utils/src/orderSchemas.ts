@@ -16,6 +16,11 @@ const productIdField = z
   .trim()
   .min(1, PRODUCT_ID_MESSAGE);
 
+const variantIdField = z
+  .string({ error: "Identificador de variante inválido." })
+  .trim()
+  .min(1, "Identificador de variante inválido.");
+
 const quantityField = z
   .number({ error: QUANTITY_MESSAGE })
   .int(QUANTITY_MESSAGE)
@@ -24,6 +29,7 @@ const quantityField = z
 
 export const orderItemInputSchema = z.object({
   productId: productIdField,
+  variantId: variantIdField.optional(),
   quantity: quantityField,
 });
 
@@ -52,6 +58,8 @@ const positiveIntField = z
 // Línea pública del pedido: snapshot tomado al momento de la compra.
 export const orderLineSchema = z.object({
   productId: z.string().min(1),
+  variantId: z.string().min(1).optional(),
+  variantName: z.string().trim().min(1).optional(),
   name: z.string().trim().min(1),
   image: z.string().min(1),
   unitPrice: positiveIntField,

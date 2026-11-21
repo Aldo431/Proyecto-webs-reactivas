@@ -1,4 +1,4 @@
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { adminOverviewSchema } from "@tiendadcc/utils";
 import { Product } from "../models/Product.ts";
@@ -9,7 +9,7 @@ import { createProduct } from "../test/productFixtures.ts";
 import { seedReview } from "../test/reviewFixtures.ts";
 import { getOverview } from "./adminService.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 const NOW = new Date("2026-11-17T12:00:00Z");
 const MISSING_ID = "6713b0c2a1f4e9d2c8b70a99";

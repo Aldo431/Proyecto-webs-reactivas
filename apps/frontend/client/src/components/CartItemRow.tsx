@@ -24,6 +24,11 @@ export function CartItemRow({ item }: CartItemRowProps) {
         <p className="truncate font-sans text-sm font-medium text-card-foreground">
           {item.name}
         </p>
+        {item.variantName !== undefined && (
+          <p className="font-sans text-xs text-muted-foreground">
+            Variante: {item.variantName}
+          </p>
+        )}
         <p className="font-mono text-xs text-muted-foreground">
           {formatPriceCLP(item.price)} c/u
         </p>
@@ -33,7 +38,9 @@ export function CartItemRow({ item }: CartItemRowProps) {
             size="icon-xs"
             type="button"
             aria-label={`Disminuir cantidad de ${item.name}`}
-            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+            onClick={() =>
+              updateQuantity(item.productId, item.quantity - 1, item.variantId)
+            }
           >
             <Minus aria-hidden="true" />
           </Button>
@@ -48,7 +55,10 @@ export function CartItemRow({ item }: CartItemRowProps) {
             size="icon-xs"
             type="button"
             aria-label={`Aumentar cantidad de ${item.name}`}
-            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+            disabled={item.stock !== undefined && item.quantity >= item.stock}
+            onClick={() =>
+              updateQuantity(item.productId, item.quantity + 1, item.variantId)
+            }
           >
             <Plus aria-hidden="true" />
           </Button>
@@ -57,7 +67,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
             size="icon-xs"
             type="button"
             aria-label={`Eliminar ${item.name} del carrito`}
-            onClick={() => removeItem(item.productId)}
+            onClick={() => removeItem(item.productId, item.variantId)}
           >
             <Trash2 aria-hidden="true" />
           </Button>

@@ -18,6 +18,7 @@ function isValidQuantity(quantity: unknown): quantity is number {
 export function toCartLines(items: CartItem[]): CartLine[] {
   return items.map((item) => ({
     productId: item.productId,
+    ...(item.variantId === undefined ? {} : { variantId: item.variantId }),
     quantity: item.quantity,
   }));
 }
@@ -33,15 +34,18 @@ function sumLines(base: CartLine[], added: CartLine[]): CartLine[] {
     ) {
       continue;
     }
-    quantities.set(
-      line.productId,
-      (quantities.get(line.productId) ?? 0) + line.quantity,
-    );
+    const key = `${line.productId}:${line.variantId ?? ""}`;
+    quantities.set(key, (quantities.get(key) ?? 0) + line.quantity);
   }
-  return [...quantities].map(([productId, quantity]) => ({
-    productId,
-    quantity,
-  }));
+  return [...quantities].map(([key, quantity]) => {
+    const separator = key.indexOf(":");
+    const variantId = key.slice(separator + 1);
+    return {
+      productId: key.slice(0, separator),
+      ...(variantId === "" ? {} : { variantId }),
+      quantity,
+    };
+  });
 }
 
 // Resuelve líneas contra el catálogo igual que al cargar de localStorage
@@ -54,11 +58,26 @@ function resolveLines(lines: CartLine[], catalog: Product[]): CartItem[] {
     if (product === undefined) {
       continue;
     }
+    const variant =
+      line.variantId === undefined
+        ? undefined
+        : product.variants.find((entry) => entry.id === line.variantId);
     items.push({
       productId: line.productId,
+      ...(line.variantId === undefined ? {} : { variantId: line.variantId }),
       name: product.name,
-      price: product.price,
+      price: product.price + (variant?.priceAdjustment ?? 0),
       image: product.image,
+      ...(line.variantId === undefined
+        ? {}
+        : {
+            variantName: product.variants.find(
+              (variant) => variant.id === line.variantId,
+            )?.name,
+            stock: product.variants.find(
+              (variant) => variant.id === line.variantId,
+            )?.stock,
+          }),
       quantity: line.quantity,
     });
   }
@@ -87,17 +106,39 @@ export function refreshCartItems(
       }
       continue;
     }
+    const variant =
+      item.variantId === undefined
+        ? undefined
+        : product.variants.find((entry) => entry.id === item.variantId);
+    if (item.variantId !== undefined && variant === undefined) {
+      changed = true;
+      continue;
+    }
+    const quantity = Math.min(item.quantity, variant?.stock ?? item.quantity);
+    if (quantity <= 0) {
+      changed = true;
+      continue;
+    }
+    const currentPrice =
+      product.price + (variant?.priceAdjustment ?? 0);
     if (
       product.name !== item.name ||
-      product.price !== item.price ||
-      product.image !== item.image
+      currentPrice !== item.price ||
+      product.image !== item.image ||
+      quantity !== item.quantity ||
+      variant?.name !== item.variantName ||
+      variant?.stock !== item.stock
     ) {
       changed = true;
       next.push({
         ...item,
         name: product.name,
-        price: product.price,
+        price: currentPrice,
         image: product.image,
+        quantity,
+        ...(variant === undefined
+          ? {}
+          : { variantName: variant.name, stock: variant.stock }),
       });
     } else {
       next.push(item);
@@ -170,10 +211,15 @@ export function areCartItemsEqual(
     return false;
   }
   const quantities = new Map(
-    second.map((item) => [item.productId, item.quantity]),
+    second.map((item) => [
+      `${item.productId}:${item.variantId ?? ""}`,
+      item.quantity,
+    ]),
   );
   return first.every(
-    (item) => quantities.get(item.productId) === item.quantity,
+    (item) =>
+      quantities.get(`${item.productId}:${item.variantId ?? ""}`) ===
+      item.quantity,
   );
 }
 
@@ -186,9 +232,14 @@ export function areCartLinesEqual(
     return false;
   }
   const quantities = new Map(
-    second.map((line) => [line.productId, line.quantity]),
+    second.map((line) => [
+      `${line.productId}:${line.variantId ?? ""}`,
+      line.quantity,
+    ]),
   );
   return first.every(
-    (line) => quantities.get(line.productId) === line.quantity,
+    (line) =>
+      quantities.get(`${line.productId}:${line.variantId ?? ""}`) ===
+      line.quantity,
   );
 }

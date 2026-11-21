@@ -58,6 +58,7 @@ export function RegisterPage() {
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setValues((previous) => ({ ...previous, [name]: value }));
+    setFormError(null);
     setFieldErrors((previous) => {
       if (previous[name] === undefined) {
         return previous;

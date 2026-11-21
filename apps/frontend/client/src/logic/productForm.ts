@@ -8,6 +8,7 @@ import {
   updateProductInputSchema,
   type CreateProductInput,
   type Product,
+  type ProductVariant,
   type ProductCategory,
   type UpdateProductInput,
 } from "@tiendadcc/utils";
@@ -32,6 +33,7 @@ export interface ProductFormValues {
   price: string;
   // Data URL ya procesado (o la URL actual al editar), o null sin imagen.
   image: string | null;
+  variants?: ProductVariant[];
 }
 
 export const EMPTY_PRODUCT_FORM: ProductFormValues = {
@@ -40,6 +42,7 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   category: "",
   price: "",
   image: null,
+  variants: [],
 };
 
 export type FieldErrors = Partial<Record<ProductFormField, string>>;
@@ -59,6 +62,7 @@ export function valuesFromProduct(product: Product): ProductFormValues {
     category: product.category,
     price: String(product.price),
     image: product.image,
+    variants: product.variants,
   };
 }
 
@@ -104,14 +108,23 @@ export function buildCreateInput(
     category: values.category === "" ? undefined : values.category,
     price: price.ok ? price.value : undefined,
     image: values.image ?? undefined,
+    ...(values.variants !== undefined && values.variants.length > 0
+      ? { variants: values.variants }
+      : {}),
   });
   if (!parsed.success || !price.ok) {
+    const variantsError = parsed.success
+      ? undefined
+      : parsed.error.issues.some((issue) => issue.path[0] === "variants")
+        ? "Revisa las variantes y su stock."
+        : undefined;
     return {
       ok: false,
       fieldErrors: toFieldErrors(
         parsed.success ? {} : issuesToFieldErrors(parsed.error),
         price.ok ? null : price.message,
       ),
+      ...(variantsError === undefined ? {} : { formError: variantsError }),
     };
   }
   return { ok: true, input: parsed.data };
@@ -138,6 +151,9 @@ export function buildUpdateInput(
   if (values.image !== initial.image && values.image !== null) {
     candidate.image = values.image;
   }
+  if (JSON.stringify(values.variants ?? []) !== JSON.stringify(initial.variants ?? [])) {
+    candidate.variants = values.variants ?? [];
+  }
 
   const parsed = updateProductInputSchema.safeParse(candidate);
   const priceError = !price.ok && "price" in candidate ? price.message : null;
@@ -145,15 +161,22 @@ export function buildUpdateInput(
     parsed.success ? {} : issuesToFieldErrors(parsed.error),
     priceError,
   );
+  const variantsError =
+    !parsed.success &&
+    parsed.error.issues.some((issue) => issue.path[0] === "variants")
+      ? "Revisa las variantes y su stock."
+      : null;
   if (values.category === "") {
     fieldErrors.category = "Selecciona una categoría válida.";
   }
   if (!parsed.success || priceError !== null || values.category === "") {
     // Issues without a field (e.g. "No hay cambios para guardar.") become a
     // form-level message.
-    const formError = parsed.success
-      ? undefined
-      : parsed.error.issues.find((issue) => issue.path.length === 0)?.message;
+    const formError =
+      variantsError ??
+      (parsed.success
+        ? undefined
+        : parsed.error.issues.find((issue) => issue.path.length === 0)?.message);
     return { ok: false, fieldErrors, formError };
   }
   return { ok: true, input: parsed.data };

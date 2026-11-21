@@ -8,6 +8,7 @@ import {
 import {
   PRODUCT_CATEGORIES,
   type CreateProductInput,
+  type ProductVariant,
   type UpdateProductInput,
 } from "@tiendadcc/utils";
 import { resolveImageUrl } from "../logic/productImage.ts";
@@ -101,6 +102,7 @@ export function ProductForm(props: ProductFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const variants = values.variants ?? [];
   const submittingRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
   const formErrorRef = useRef<HTMLParagraphElement>(null);
@@ -325,6 +327,111 @@ export function ProductForm(props: ProductFormProps) {
         disabled={submitting}
         error={errors.price}
       />
+
+      <fieldset className="space-y-3 rounded-md border border-border p-3">
+        <legend className="px-1 text-sm font-medium text-foreground">
+          Variantes y stock
+        </legend>
+        {variants.map((variant, index) => (
+          <div key={variant.id} className="grid gap-2 sm:grid-cols-[1fr_7rem_7rem_auto]">
+            <input
+              aria-label={`Nombre de variante ${index + 1}`}
+              value={variant.name}
+              disabled={submitting}
+              placeholder="Ej. Negra / M"
+              className={selectClassName}
+              onChange={(event) =>
+                setValues((previous) => ({
+                  ...previous,
+                  variants: (previous.variants ?? []).map((entry) =>
+                    entry.id === variant.id
+                      ? { ...entry, name: event.target.value }
+                      : entry,
+                  ),
+                }))
+              }
+            />
+            <input
+              aria-label={`Stock de variante ${index + 1}`}
+              type="number"
+              min={0}
+              max={1000}
+              value={variant.stock}
+              disabled={submitting}
+              className={selectClassName}
+              onChange={(event) =>
+                setValues((previous) => ({
+                  ...previous,
+                  variants: (previous.variants ?? []).map((entry) =>
+                    entry.id === variant.id
+                      ? { ...entry, stock: Number(event.target.value) }
+                      : entry,
+                  ),
+                }))
+              }
+            />
+            <input
+              aria-label={`Recargo de variante ${index + 1}`}
+              type="number"
+              min={0}
+              max={10000000}
+              value={variant.priceAdjustment}
+              disabled={submitting}
+              placeholder="Recargo"
+              className={selectClassName}
+              onChange={(event) =>
+                setValues((previous) => ({
+                  ...previous,
+                  variants: (previous.variants ?? []).map((entry) =>
+                    entry.id === variant.id
+                      ? {
+                          ...entry,
+                          priceAdjustment: Number(event.target.value),
+                        }
+                      : entry,
+                  ),
+                }))
+              }
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={submitting || variants.length <= 1}
+              onClick={() =>
+                setValues((previous) => ({
+                  ...previous,
+                  variants: (previous.variants ?? []).filter(
+                    (entry) => entry.id !== variant.id,
+                  ),
+                }))
+              }
+            >
+              Quitar
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={submitting}
+          onClick={() =>
+            setValues((previous) => ({
+              ...previous,
+              variants: [
+                ...(previous.variants ?? []),
+                {
+                  id: crypto.randomUUID(),
+                  name: "",
+                  stock: 0,
+                  priceAdjustment: 0,
+                } satisfies ProductVariant,
+              ],
+            }))
+          }
+        >
+          Agregar variante
+        </Button>
+      </fieldset>
 
       <div className="space-y-2">
         <Label htmlFor={`${ids}-image`}>Imagen</Label>

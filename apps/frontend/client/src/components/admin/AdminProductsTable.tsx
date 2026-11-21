@@ -38,6 +38,7 @@ export function AdminProductsTable({
             <th scope="col" className={HEADER}>Producto</th>
             <th scope="col" className={HEADER}>Vendedor</th>
             <th scope="col" className={`${HEADER} text-right`}>Precio</th>
+            <th scope="col" className={HEADER}>Variantes</th>
             <th scope="col" className={HEADER}>Reseñas</th>
             <th scope="col" className={HEADER}>Publicado</th>
             <th scope="col" className={HEADER}>Destacado</th>
@@ -65,6 +66,13 @@ export function AdminProductsTable({
               </td>
               <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
                 {formatPriceCLP(product.price)}
+              </td>
+              <td className="px-3 py-2 whitespace-nowrap">
+                <span className="font-mono">{product.variants.length}</span>
+                <span className="text-muted-foreground"> · stock </span>
+                <span className="font-mono">
+                  {product.variants.reduce((total, variant) => total + variant.stock, 0)}
+                </span>
               </td>
               <td className="px-3 py-2 whitespace-nowrap">
                 <Reviews product={product} />

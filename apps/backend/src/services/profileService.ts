@@ -96,6 +96,7 @@ export async function replaceCart(
     {
       cart: lines.map((line) => ({
         productId: line.productId,
+        ...(line.variantId === undefined ? {} : { variantId: line.variantId }),
         quantity: line.quantity,
       })),
     },

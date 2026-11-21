@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
@@ -14,7 +14,7 @@ import {
 } from "../test/productFixtures.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let app: Express;
 let ana: TestSeller;
 let beto: TestSeller;
@@ -71,6 +71,9 @@ describe("GET /api/products", () => {
         price: 6000,
         image: "/images/taza-dcc.png",
         featured: true,
+        variants: [
+          { id: "base", name: "Base", stock: 1000, priceAdjustment: 0 },
+        ],
         seller: {
           id: ana.id,
           username: "anaperez",

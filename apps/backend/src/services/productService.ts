@@ -1,5 +1,6 @@
 import type { AnyObject, FilterQuery } from "mongoose";
 import {
+  BASE_VARIANT,
   CATALOG_PAGE_SIZE,
   parseDataUrl,
   type CreateProductInput,
@@ -39,6 +40,7 @@ export const READ_PROJECTION: AnyObject = {
   category: 1,
   price: 1,
   featured: 1,
+  variants: 1,
   seller: 1,
   createdAt: 1,
   updatedAt: 1,
@@ -286,6 +288,17 @@ export async function createProduct(
     category: input.category,
     price: input.price,
     image: input.image,
+    variants: input.variants?.map(({ name, stock, priceAdjustment }) => ({
+      name,
+      stock,
+      priceAdjustment,
+    })) ?? [
+      {
+        name: BASE_VARIANT.name,
+        stock: BASE_VARIANT.stock,
+        priceAdjustment: BASE_VARIANT.priceAdjustment,
+      },
+    ],
     featured: false,
     seller: userId,
   });
@@ -302,6 +315,14 @@ export async function updateProduct(
   const changes = Object.fromEntries(
     Object.entries(input).filter(([, value]) => value !== undefined),
   );
+  if (input.variants !== undefined) {
+    changes.variants = input.variants.map((variant) => ({
+      id: variant.id,
+      name: variant.name,
+      stock: variant.stock,
+      priceAdjustment: variant.priceAdjustment,
+    }));
+  }
   const updated = await Product.findByIdAndUpdate(
     id,
     { $set: changes },

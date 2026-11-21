@@ -1,4 +1,4 @@
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Product } from "../models/Product.ts";
 import { User } from "../models/User.ts";
@@ -6,7 +6,7 @@ import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 import { createProduct, makeDataUrl } from "../test/productFixtures.ts";
 import { isObjectIdString, READ_PROJECTION } from "./productService.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let sellerId: string;
 
 beforeAll(async () => {

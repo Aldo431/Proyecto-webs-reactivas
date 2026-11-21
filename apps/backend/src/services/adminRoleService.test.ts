@@ -1,10 +1,10 @@
-import type { MongoMemoryServer } from "mongodb-memory-server";
+import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { User } from "../models/User.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 import { grantAdminRole, parseMakeAdminInput } from "./adminRoleService.ts";
 
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 beforeAll(async () => {
   mongo = await startTestDatabase();
