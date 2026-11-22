@@ -12,6 +12,7 @@ Página web de venta de productos del Departamento de Ciencias de la Computació
 | Validación | Zod (esquemas compartidos en `utils/`) |
 | Estado global | Zustand: `stores/authStore.ts` (sesión) y `stores/cartStore.ts` (carrito) |
 | Tests | Vitest + Testing Library + supertest; E2E con Playwright (`e2etests/`) |
+| Calidad | TypeScript estricto + ESLint (`typescript-eslint`, reglas de hooks de React) |
 
 La constitución del proyecto vive en `docs/constitution.md`; define las reglas de stack, orden de trabajo, separación de lógica/UI, política de tests, persistencia e idioma.
 
@@ -112,7 +113,8 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 | `npm run dev -w backend` | Levanta la API en `http://localhost:3001` (requiere `apps/backend/.env` y MongoDB) |
 | `npm run seed -w backend` | Carga en MongoDB los productos de `apps/backend/src/seed/products.json` con el vendedor de prueba (requiere `apps/backend/.env`, ver [Seed de productos](#seed-de-productos-spec-008)) |
 | `npm run make-admin -w backend -- <correo>` | Convierte una cuenta existente en administradora (requiere `apps/backend/.env`, ver [Crear un administrador](#crear-un-administrador-spec-012)) |
-| `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
+| `npm run lint` | Ejecuta ESLint en todo el repositorio (`npm run lint:fix` corrige lo automático) |
+| `npm run check` | Ejecuta ESLint, verifica tipos (`tsc --noEmit`) y corre los tests (Vitest) de `utils`, backend y frontend |
 | `npm run build` | Compila la app a `apps/frontend/client/dist` |
 | `npm run e2e:install` | Instala `e2etests/` y el navegador Chromium de Playwright (una vez) |
 | `npm run e2e` | Ejecuta los tests E2E (levanta backend en modo test con MongoDB en memoria y Vite) |
@@ -215,8 +217,10 @@ El carrito vive en `localStorage` (clave `cart`) y se sincroniza con la cuenta: 
 ## Tests
 
 ```bash
-npm run check   # tipos + tests
+npm run check   # ESLint + tipos + tests
 ```
+
+ESLint (`eslint.config.mjs`, spec 017) prohíbe `any` explícito y revisa las reglas de los hooks de React; las variables y parámetros sin uso los detecta `tsc` (`noUnusedLocals`/`noUnusedParameters` activos en frontend, backend y `utils`).
 
 ### Tests E2E (Playwright)
 

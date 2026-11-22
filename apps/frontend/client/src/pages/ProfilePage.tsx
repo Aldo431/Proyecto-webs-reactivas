@@ -144,7 +144,6 @@ export function ProfilePage() {
   useEffect(() => {
     void loadProfile();
     // Carga única al montar la vista.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Los pedidos se cargan con su propio fetch y estado (spec 012, RF-1): la
@@ -152,7 +151,6 @@ export function ProfilePage() {
   useEffect(() => {
     void loadOrders();
     // Carga única al montar la vista.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

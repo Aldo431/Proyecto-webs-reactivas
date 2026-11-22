@@ -54,7 +54,7 @@ function stubProfileFetch(
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const method = init?.method ?? "GET";
-      let body: unknown = null;
+      let body: unknown;
       try {
         body = init?.body ? JSON.parse(init.body as string) : null;
       } catch {

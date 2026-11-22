@@ -14,7 +14,7 @@ function snapshotKey(userId: string): string {
 }
 
 export function loadSyncedSnapshot(userId: string): CartLine[] {
-  let raw: string | null = null;
+  let raw: string | null;
   try {
     raw = window.localStorage.getItem(snapshotKey(userId));
   } catch {
@@ -67,7 +67,7 @@ function readStoredText(): string | null {
 // Reads the persisted cart validating only its shape: the stored items are
 // shown right away and refreshed against the API afterwards (spec 008, RF-15).
 export function loadCartFromStorage(): CartItem[] {
-  let raw: string | null = null;
+  let raw: string | null;
   try {
     raw = readStoredText();
   } catch {
