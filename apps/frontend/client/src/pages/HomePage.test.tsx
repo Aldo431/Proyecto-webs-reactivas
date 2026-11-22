@@ -2,11 +2,11 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setPrefersReducedMotion } from "../testMedia.ts";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";
 import { productRoutes } from "../test/productMocks.ts";
 import { HomePage } from "./HomePage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 // Shows the current location so tests can check that nothing navigated.
 function LocationProbe() {
@@ -23,12 +23,12 @@ function LocationProbe() {
 function renderHome() {
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <HomePage />
           <LocationProbe />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

@@ -2,11 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Review, ReviewList as ReviewListData } from "@tiendadcc/utils";
-import { AuthProvider } from "../context/AuthContext.tsx";
 import { makeReview } from "../logic/reviewFixtures.ts";
 import type { ReviewApi } from "../logic/useReviews.ts";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { ReviewList } from "./ReviewList.tsx";
+import { SessionSync } from "./SessionSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -50,9 +50,9 @@ function renderReviews(api: ReviewApi, authenticated = false) {
   }
   return render(
     <MemoryRouter>
-      <AuthProvider>
+      <SessionSync>
         <ReviewList productId="p1" api={api} />
-      </AuthProvider>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

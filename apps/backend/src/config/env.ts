@@ -117,6 +117,11 @@ export function loadEnv(): Env {
 
 let cachedEnv: Env | undefined;
 
+// Olvida la configuración leída para que un test pueda cambiar process.env.
+export function resetEnvCacheForTests(): void {
+  cachedEnv = undefined;
+}
+
 export function getEnv(): Env {
   if (!cachedEnv) {
     cachedEnv = loadEnv();

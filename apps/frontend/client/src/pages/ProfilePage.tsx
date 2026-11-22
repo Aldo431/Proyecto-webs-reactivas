@@ -15,8 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card.tsx";
-import { useAuth } from "../context/AuthContext.tsx";
-import { useCart } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 import { getProductById } from "../logic/productLookup.ts";

@@ -1,8 +1,8 @@
 import { Heart, Menu, Shield, ShoppingCart, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.tsx";
-import { useCart } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { useCart } from "../stores/cartStore.ts";
 import { isAdmin } from "../logic/adminAccess.ts";
 import { getCartBadgeText } from "../logic/cartCalculations.ts";
 import { Button } from "./ui/button.tsx";

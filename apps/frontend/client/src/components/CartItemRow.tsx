@@ -1,5 +1,5 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { useCart } from "../context/CartContext.tsx";
+import { useCart } from "../stores/cartStore.ts";
 import { calculateItemSubtotal, formatPriceCLP } from "../logic/cartCalculations.ts";
 import type { CartItem } from "../logic/cartTypes.ts";
 import { resolveImageUrl } from "../logic/productImage.ts";

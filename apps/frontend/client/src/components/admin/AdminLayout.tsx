@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext.tsx";
+import { useAuth } from "../../stores/authStore.ts";
 import { ADMIN_SECTIONS, isActiveSection } from "../../logic/adminSections.ts";
 import { cn } from "@/lib/utils";
 import { SkipLink } from "../SkipLink.tsx";

@@ -7,7 +7,7 @@ import {
   type ProductSubmitResult,
 } from "../components/ProductForm.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { useAuth } from "../context/AuthContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 import type { ProcessImageResult } from "../logic/imageProcessing.ts";
 import { updateProduct } from "../logic/productApi.ts";
 import { valuesFromProduct } from "../logic/productForm.ts";

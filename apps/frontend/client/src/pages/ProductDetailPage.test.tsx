@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";
 import { makeProduct } from "../logic/productFixtures.ts";
 import { exampleProducts, productRoutes } from "../test/productMocks.ts";
 import { ProductDetailPage } from "./ProductDetailPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -41,8 +41,8 @@ const tazaDcc = exampleProducts[0] ?? makeProduct({ id: "taza-dcc" });
 function renderDetail(productId: string) {
   return render(
     <MemoryRouter initialEntries={[`/producto/${productId}`]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/producto/:id" element={<ProductDetailPage />} />
             <Route
@@ -50,8 +50,8 @@ function renderDetail(productId: string) {
               element={<p>Inicia sesión (sonda)</p>}
             />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

@@ -1,7 +1,9 @@
 # Constitución — tiendaDCC
 
 1. **Simplicidad del stack.** Sólo se usan las tecnologías del stack del
-   proyecto: React 19, Vite, Hono, MongoDB/Mongoose, Tailwind v4 y Zod. Toda
+   proyecto: React 19, Vite, React Router, Zustand (estado global), Express,
+   MongoDB/Mongoose, Tailwind v4 (con componentes shadcn/Radix en
+   `components/ui/`), Zod, Vitest y Playwright (E2E en `e2etests/`). Toda
    dependencia nueva se agrega previa actualización de la spec.
 
 2. **Spec antes que código.** Ningún código se escribe sin que la funcionalidad

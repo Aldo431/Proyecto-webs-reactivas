@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../../context/AuthContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../../test/authMocks.ts";
 import { AdminLayout } from "./AdminLayout.tsx";
 import { AdminSectionHeading } from "./AdminSectionHeading.tsx";
+import { SessionSync } from "../SessionSync.tsx";
 
 const adminUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -18,7 +18,7 @@ function renderLayout(path: string) {
   stubAuthFetch({ "/api/auth/me": () => jsonResponse(200, adminUser) });
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
+      <SessionSync>
         <Routes>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminSectionHeading path="/admin" />} />
@@ -37,7 +37,7 @@ function renderLayout(path: string) {
           </Route>
           <Route path="/" element={<p>Inicio (sonda)</p>} />
         </Routes>
-      </AuthProvider>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

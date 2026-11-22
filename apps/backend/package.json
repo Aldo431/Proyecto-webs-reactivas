@@ -9,6 +9,7 @@
     "dev": "node --watch --env-file-if-exists=.env src/index.ts",
     "seed": "node --env-file-if-exists=.env src/scripts/seed.ts",
     "make-admin": "node --env-file-if-exists=.env src/scripts/makeAdmin.ts",
+    "start:e2e": "node src/scripts/e2eServer.ts",
     "test": "vitest run",
     "check": "tsc --noEmit && vitest run"
   },

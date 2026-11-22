@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../context/AuthContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { OnlyAdminRoute } from "./OnlyAdminRoute.tsx";
 import { OnlyAnonymousRoute } from "./OnlyAnonymousRoute.tsx";
 import { OnlyAuthenticatedRoute } from "./OnlyAuthenticatedRoute.tsx";
+import { SessionSync } from "./SessionSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -26,7 +26,7 @@ function LoginProbe() {
 function renderGuards(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
+      <SessionSync>
         <Routes>
           <Route
             path="/privada"
@@ -55,7 +55,7 @@ function renderGuards(path: string) {
           <Route path="/iniciar-sesion" element={<LoginProbe />} />
           <Route path="/" element={<p>Inicio (sonda)</p>} />
         </Routes>
-      </AuthProvider>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

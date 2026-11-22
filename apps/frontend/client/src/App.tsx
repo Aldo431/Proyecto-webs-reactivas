@@ -1,12 +1,12 @@
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { HashRouter, Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.tsx";
-import { CartProvider } from "./context/CartContext.tsx";
 import { AdminLayout } from "./components/admin/AdminLayout.tsx";
 import { CartDrawer } from "./components/CartDrawer.tsx";
+import { CartSync } from "./components/CartSync.tsx";
 import { OnlyAdminRoute } from "./components/OnlyAdminRoute.tsx";
 import { OnlyAnonymousRoute } from "./components/OnlyAnonymousRoute.tsx";
 import { OnlyAuthenticatedRoute } from "./components/OnlyAuthenticatedRoute.tsx";
+import { SessionSync } from "./components/SessionSync.tsx";
 import { AdminOverviewPage } from "./pages/admin/AdminOverviewPage.tsx";
 import { AdminProductsPage } from "./pages/admin/AdminProductsPage.tsx";
 import { AdminReviewsPage } from "./pages/admin/AdminReviewsPage.tsx";
@@ -115,17 +115,18 @@ export function AppRoutes() {
 // LazyMotion loads only the `domAnimation` features (animations, variants,
 // exit, in-view), leaving out layout and drag to keep the bundle within
 // budget (plan R6). `strict` fails fast if a full `motion.*` sneaks in.
+// Global state lives in Zustand stores (stores/authStore.ts and
+// stores/cartStore.ts, spec 015): no providers are needed. SessionSync
+// restores the session once and CartSync keeps the cart synced.
 export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation} strict>
         <HashRouter>
-          <AuthProvider>
-            <CartProvider>
-              <AppRoutes />
-              <CartDrawer />
-            </CartProvider>
-          </AuthProvider>
+          <SessionSync />
+          <CartSync />
+          <AppRoutes />
+          <CartDrawer />
         </HashRouter>
       </LazyMotion>
     </MotionConfig>

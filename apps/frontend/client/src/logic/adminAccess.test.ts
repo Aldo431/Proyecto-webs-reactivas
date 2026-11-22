@@ -1,6 +1,6 @@
 import type { PublicUser } from "@tiendadcc/utils";
 import { describe, expect, it } from "vitest";
-import type { AuthState } from "../context/AuthContext.tsx";
+import type { AuthState } from "../stores/authStore.ts";
 import { isAdmin, resolveAdminAccess } from "./adminAccess.ts";
 
 const user: PublicUser = {

@@ -1,8 +1,8 @@
 import { Heart, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.tsx";
-import { useCart } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import type { Product } from "@tiendadcc/utils";
 import { resolveImageUrl } from "../logic/productImage.ts";

@@ -1,5 +1,5 @@
 import type { PublicUser } from "@tiendadcc/utils";
-import type { AuthState } from "../context/AuthContext.tsx";
+import type { AuthState } from "../stores/authStore.ts";
 
 export type AdminAccess = "wait" | "login" | "forbidden" | "allow";
 

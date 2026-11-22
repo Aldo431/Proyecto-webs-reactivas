@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider, useAuth } from "./AuthContext.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { INITIAL_AUTH_STATE, useAuth, useAuthStore } from "./authStore.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -37,14 +38,14 @@ function stubFetchWithRoutes(
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return <SessionSync>{children}</SessionSync>;
 }
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("useAuth / AuthProvider", () => {
+describe("useAuth / authStore + SessionSync", () => {
   it("va de loading a authenticated al restaurar la sesión", async () => {
     stubFetchWithRoutes({
       "/api/auth/me": () => json(200, okUser),
@@ -159,6 +160,58 @@ describe("useAuth / AuthProvider", () => {
     expect(result.current.state).toEqual({
       status: "authenticated",
       user: okUser,
+    });
+  });
+});
+describe("authStore fuera de React", () => {
+  it("parte en loading y refresh lo resuelve sin montar componentes", async () => {
+    stubFetchWithRoutes({
+      "/api/auth/me": () => json(200, okUser),
+    });
+
+    expect(useAuthStore.getState().state).toEqual(INITIAL_AUTH_STATE);
+
+    await useAuthStore.getState().refresh();
+
+    expect(useAuthStore.getState().state).toEqual({
+      status: "authenticated",
+      user: okUser,
+    });
+  });
+
+  it("register autentica con el usuario creado", async () => {
+    stubFetchWithRoutes({
+      "/api/auth/register": () => json(201, okUser),
+    });
+
+    const result = await useAuthStore.getState().register({
+      username: "anaperez",
+      displayName: "Ana Pérez",
+      email: "ana@dcc.uchile.cl",
+      password: "secreto123",
+      passwordConfirm: "secreto123",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(useAuthStore.getState().state).toEqual({
+      status: "authenticated",
+      user: okUser,
+    });
+  });
+
+  it("logout deja la sesión anónima aunque estuviera autenticada", async () => {
+    useAuthStore.setState({
+      state: { status: "authenticated", user: { ...okUser, role: "user" } },
+    });
+    stubFetchWithRoutes({
+      "/api/auth/logout": () => new Response(null, { status: 204 }),
+    });
+
+    await useAuthStore.getState().logout();
+
+    expect(useAuthStore.getState().state).toEqual({
+      status: "anonymous",
+      user: null,
     });
   });
 });

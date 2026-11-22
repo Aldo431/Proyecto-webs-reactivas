@@ -1,0 +1,19 @@
+{
+  "name": "tiendadcc-e2etests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tests end-to-end de tiendaDCC con Playwright (spec 016).",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^24.5.2",
+    "typescript": "^5.8.3"
+  }
+}

@@ -6,11 +6,12 @@ Página web de venta de productos del Departamento de Ciencias de la Computació
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 19 + Vite + Tailwind v4 |
+| Frontend | React 19 + Vite + React Router + Zustand + Tailwind v4 (componentes shadcn/Radix) |
 | Backend | Express + Mongoose (MongoDB) |
 | Base de datos | MongoDB (modelos `User` y `Product`) |
 | Validación | Zod (esquemas compartidos en `utils/`) |
-| Tests | Vitest + Testing Library + supertest |
+| Estado global | Zustand: `stores/authStore.ts` (sesión) y `stores/cartStore.ts` (carrito) |
+| Tests | Vitest + Testing Library + supertest; E2E con Playwright (`e2etests/`) |
 
 La constitución del proyecto vive en `docs/constitution.md`; define las reglas de stack, orden de trabajo, separación de lógica/UI, política de tests, persistencia e idioma.
 
@@ -20,6 +21,7 @@ La constitución del proyecto vive en `docs/constitution.md`; define las reglas 
 apps/frontend/client/   Aplicación React (componentes, páginas, hooks, lógica)
 apps/backend/           Backend Express (rutas, controladores, servicios, modelos)
 utils/                  Esquemas Zod y tipos compartidos (@tiendadcc/utils)
+e2etests/               Tests end-to-end con Playwright (proyecto npm independiente)
 docs/                   Constitución del proyecto
 specs/<id>/             Spec, plan y tareas por funcionalidad
 ```
@@ -92,6 +94,8 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 | `npm run make-admin -w backend -- <correo>` | Convierte una cuenta existente en administradora (requiere `apps/backend/.env`, ver [Crear un administrador](#crear-un-administrador-spec-012)) |
 | `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
 | `npm run build` | Compila la app a `apps/frontend/client/dist` |
+| `npm run e2e:install` | Instala `e2etests/` y el navegador Chromium de Playwright (una vez) |
+| `npm run e2e` | Ejecuta los tests E2E (levanta backend en modo test con MongoDB en memoria y Vite) |
 
 ## Cómo correr el proyecto
 
@@ -190,5 +194,30 @@ El carrito vive en `localStorage` (clave `cart`) y se sincroniza con la cuenta: 
 ```bash
 npm run check   # tipos + tests
 ```
+
+### Tests E2E (Playwright)
+
+Viven en `e2etests/` (spec 016) y cubren login + rutas protegidas (incluidos F5 y
+atrás/adelante), el CRUD de publicaciones y el carrito. No requieren MongoDB
+instalado: Playwright levanta el backend con `NODE_ENV=test` y una base en
+memoria, más el frontend Vite. Detén `npm run dev` antes de ejecutarlos (usan los
+puertos 3001 y 5173).
+
+```bash
+npm run e2e:install   # una vez: dependencias de e2etests/ y Chromium
+npm run e2e           # ejecuta la suite
+```
+
+Instrucciones completas, modos (`--ui`, `--headed`, reporte) y problemas
+frecuentes en [`e2etests/README.md`](e2etests/README.md).
+
+### Estado global (Zustand)
+
+La sesión y el carrito viven en dos stores de Zustand (spec 015):
+`apps/frontend/client/src/stores/authStore.ts` y `stores/cartStore.ts`. Los
+componentes los leen con `useAuth()`/`useCart()` (selectores sobre los stores);
+`components/SessionSync.tsx` restaura la sesión al cargar y
+`components/CartSync.tsx` (con `logic/useCartSync.ts`) sincroniza el carrito con
+`localStorage` y con la cuenta.
 
 La estrategia de tests por spec está en `specs/<id>/plan.md`. La lógica pura y el backend (p. ej. esquemas Zod, fusión del carrito, servicios y rutas con `mongodb-memory-server`) exigen cobertura; la presentación pura no.

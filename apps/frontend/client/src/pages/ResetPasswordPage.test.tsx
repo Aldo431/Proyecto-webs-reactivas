@@ -1,27 +1,27 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { LoginPage } from "./LoginPage.tsx";
 import { ResetPasswordPage } from "./ResetPasswordPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const token = "a".repeat(64);
 
 function renderPage(path = `/resetear-clave/${token}`) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/resetear-clave/:token" element={<ResetPasswordPage />} />
             <Route path="/iniciar-sesion" element={<LoginPage />} />
             <Route path="/recuperar-clave" element={<h1>Recuperar contraseña</h1>} />
             <Route path="/" element={<h1>Inicio</h1>} />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

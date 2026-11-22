@@ -2,11 +2,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import type { AdminUser } from "@tiendadcc/utils";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../../context/AuthContext.tsx";
 import { makeAdminPage, makeAdminUser } from "../../logic/adminFixtures.ts";
 import { jsonResponse } from "../../test/authMocks.ts";
 import { stubApi, type RecordedCall } from "../../test/apiStub.ts";
 import { AdminUsersPage } from "./AdminUsersPage.tsx";
+import { SessionSync } from "../../components/SessionSync.tsx";
 
 const LIST = "/api/admin/users";
 
@@ -55,7 +55,7 @@ function LocationProbe() {
 function renderPage(initial = "/admin/usuarios") {
   return render(
     <MemoryRouter initialEntries={[initial]}>
-      <AuthProvider>
+      <SessionSync>
         <Routes>
           <Route
             path="/admin/usuarios"
@@ -67,7 +67,7 @@ function renderPage(initial = "/admin/usuarios") {
             }
           />
         </Routes>
-      </AuthProvider>
+      </SessionSync>
     </MemoryRouter>,
   );
 }
