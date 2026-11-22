@@ -15,7 +15,9 @@ import { createApp } from "../app.ts";
 import { Counter } from "../models/Counter.ts";
 import { Order } from "../models/Order.ts";
 import { Product } from "../models/Product.ts";
+import { Promotion } from "../models/Promotion.ts";
 import { User } from "../models/User.ts";
+import { seedDefaultPromotions } from "../services/promotionService.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 import {
   createProduct,
@@ -34,6 +36,7 @@ beforeAll(async () => {
   await Product.syncIndexes();
   await Order.syncIndexes();
   await Counter.syncIndexes();
+  await Promotion.syncIndexes();
   app = createApp();
 });
 
@@ -45,6 +48,7 @@ beforeEach(async () => {
   await Order.deleteMany({});
   await Counter.deleteMany({});
   await Product.deleteMany({});
+  await Promotion.deleteMany({});
   await User.deleteMany({});
   ana = await createSeller(app, "anaperez", "Ana Pérez");
   beto = await createSeller(app, "betoruiz", "Beto Ruiz");
@@ -115,6 +119,26 @@ describe("POST /api/orders", () => {
     });
     expect(JSON.stringify(response.body)).not.toContain("cardNumber");
     expect(JSON.stringify(response.body)).not.toContain("cvc");
+  });
+
+  it("aplica el descuento de alumno y lo guarda en cada línea", async () => {
+    const product = await createProduct(ana.id, { price: 10000 });
+    await seedDefaultPromotions();
+    await User.findByIdAndUpdate(ana.id, {
+      email: "ana@uchile.cl",
+      studentVerified: true,
+    });
+
+    const response = await purchase({
+      items: [{ productId: product._id.toString(), quantity: 1 }],
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.total).toBe(8000);
+    expect(response.body.items[0].discount).toMatchObject({
+      type: "studentDiscount",
+      amount: 2000,
+    });
   });
 
   it("asigna folios correlativos y conserva cuatro o más dígitos", async () => {

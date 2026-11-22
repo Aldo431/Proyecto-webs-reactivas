@@ -16,6 +16,7 @@ import { EditProductPage } from "./pages/EditProductPage.tsx";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
+import { MfaVerifyPage } from "./pages/MfaVerifyPage.tsx";
 import { MyProductsPage } from "./pages/MyProductsPage.tsx";
 import { PaymentPage } from "./pages/PaymentPage.tsx";
 import { ProductDetailPage } from "./pages/ProductDetailPage.tsx";
@@ -44,6 +45,14 @@ export function AppRoutes() {
         element={
           <OnlyAnonymousRoute>
             <LoginPage />
+          </OnlyAnonymousRoute>
+        }
+      />
+      <Route
+        path="/verificar-clave"
+        element={
+          <OnlyAnonymousRoute>
+            <MfaVerifyPage />
           </OnlyAnonymousRoute>
         }
       />

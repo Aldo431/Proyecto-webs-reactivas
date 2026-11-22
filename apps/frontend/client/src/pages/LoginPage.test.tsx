@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { ForgotPasswordPage } from "./ForgotPasswordPage.tsx";
@@ -19,7 +19,14 @@ const okUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
+
+function LocationProbe() {
+  const location = useLocation();
+  return <pre data-testid="location-state">{JSON.stringify(location.state)}</pre>;
+}
 
 function renderPage(initialEntry: string | { pathname: string; state?: unknown } = "/iniciar-sesion") {
   return render(
@@ -28,6 +35,7 @@ function renderPage(initialEntry: string | { pathname: string; state?: unknown }
         <CartSync>
           <Routes>
             <Route path="/iniciar-sesion" element={<LoginPage />} />
+            <Route path="/verificar-clave" element={<LocationProbe />} />
             <Route path="/recuperar-clave" element={<ForgotPasswordPage />} />
             <Route path="/" element={<div>Inicio</div>} />
             <Route path="/pago" element={<div>Pago (sonda)</div>} />
@@ -223,5 +231,33 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     expect(await screen.findByText("Inicio")).toBeDefined();
+  });
+
+  it("navega al segundo paso sin guardar la contraseña", async () => {
+    const routes = stubAuthFetch();
+    routes["/api/auth/login"] = () =>
+      jsonResponse(200, {
+        mfaRequired: true,
+        challengeId: "challenge-1",
+        message: "Ingresa el código enviado a tu correo.",
+        devCode: "123456",
+      });
+    renderPage({ pathname: "/iniciar-sesion", state: { from: "/pago" } });
+
+    fireEvent.change(await screen.findByLabelText("Correo electrónico"), {
+      target: { value: "ana@dcc.uchile.cl" },
+    });
+    fireEvent.change(screen.getByLabelText("Contraseña"), {
+      target: { value: "secreto123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+
+    const state = await screen.findByTestId("location-state");
+    expect(JSON.parse(state.textContent ?? "{}")).toEqual({
+      challengeId: "challenge-1",
+      from: "/pago",
+      devCode: "123456",
+    });
+    expect(state.textContent).not.toContain("secreto123");
   });
 });

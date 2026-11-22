@@ -107,6 +107,16 @@ export function LoginPage() {
     const result = await login(parsed.data);
     setSubmitting(false);
 
+    if (!result.ok && "mfaRequired" in result && result.mfaRequired) {
+      navigate("/verificar-clave", {
+        state: {
+          challengeId: result.challengeId,
+          from: returnTo,
+          ...(result.devCode === undefined ? {} : { devCode: result.devCode }),
+        },
+      });
+      return;
+    }
     if (result.ok) {
       navigate(returnTo);
       return;

@@ -68,6 +68,8 @@ export const publicUserSchema = z.object({
   displayName: z.string().min(1),
   email: z.email(),
   role: userRoleSchema,
+  studentVerified: z.boolean().default(false),
+  mfaEnabled: z.boolean().default(false),
 });
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;

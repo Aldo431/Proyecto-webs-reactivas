@@ -8,7 +8,9 @@ import {
   logout as logoutRequest,
   register as registerRequest,
   type AuthResult,
+  type LoginResult,
 } from "../logic/authApi.ts";
+import { verifyMfaLogin } from "../logic/mfaApi.ts";
 
 // Estado de sesión discriminado (RNF-11): los componentes no conocen la API.
 export type AuthState =
@@ -20,7 +22,8 @@ interface AuthStore {
   state: AuthState;
   refresh: () => Promise<void>;
   register: (input: RegisterInput) => Promise<AuthResult>;
-  login: (input: LoginInput) => Promise<AuthResult>;
+  login: (input: LoginInput) => Promise<LoginResult>;
+  verifyMfa: (challengeId: string, code: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
 }
 
@@ -28,7 +31,8 @@ export interface AuthContextValue {
   state: AuthState;
   user: PublicUser | null;
   register: (input: RegisterInput) => Promise<AuthResult>;
-  login: (input: LoginInput) => Promise<AuthResult>;
+  login: (input: LoginInput) => Promise<LoginResult>;
+  verifyMfa: (challengeId: string, code: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -65,6 +69,14 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     return result;
   },
 
+  verifyMfa: async (challengeId, code) => {
+    const result = await verifyMfaLogin(challengeId, code);
+    if (result.ok) {
+      set({ state: { status: "authenticated", user: result.user } });
+    }
+    return result;
+  },
+
   logout: async () => {
     await logoutRequest();
     set({ state: { status: "anonymous", user: null } });
@@ -78,17 +90,26 @@ export function resetAuthStore(): void {
 
 // API de consumo compatible con el antiguo AuthContext (spec 015, RF-4).
 export function useAuth(): AuthContextValue {
-  const { state, register, login, logout, refresh } = useAuthStore(
+  const { state, register, login, verifyMfa, logout, refresh } = useAuthStore(
     useShallow((store) => ({
       state: store.state,
       register: store.register,
       login: store.login,
+      verifyMfa: store.verifyMfa,
       logout: store.logout,
       refresh: store.refresh,
     })),
   );
   return useMemo(
-    () => ({ state, user: state.user, register, login, logout, refresh }),
-    [state, register, login, logout, refresh],
+    () => ({
+      state,
+      user: state.user,
+      register,
+      login,
+      verifyMfa,
+      logout,
+      refresh,
+    }),
+    [state, register, login, verifyMfa, logout, refresh],
   );
 }

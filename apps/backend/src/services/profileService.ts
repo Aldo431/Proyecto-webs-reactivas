@@ -38,9 +38,16 @@ export async function updateProfileData(
     throw new ConflictError("Ese nombre de usuario ya está en uso.");
   }
 
+  const emailChanged = user.email !== email;
   user.username = username;
   user.displayName = input.displayName.trim();
   user.email = email;
+  if (emailChanged) {
+    user.studentVerified = false;
+    user.studentCodeHash = null;
+    user.studentCodeExpiry = null;
+    user.studentCodeAttempts = 0;
+  }
   await user.save();
   return user;
 }

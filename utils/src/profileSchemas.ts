@@ -47,6 +47,7 @@ export const profileSchema = z.object({
   displayName: z.string().min(1),
   email: z.email(),
   emailVerified: z.boolean(),
+  studentVerified: z.boolean().default(false),
   favorites: z.array(z.string()),
   history: z.array(historyEntrySchema),
   cart: z.array(cartLineSchema),

@@ -13,6 +13,7 @@ import {
   signToken,
 } from "../services/authService.ts";
 import { clearSessionCookie, setSessionCookie } from "../services/session.ts";
+import { createMfaChallenge } from "../services/mfaService.ts";
 import {
   createResetToken,
   resetPassword as resetPasswordService,
@@ -38,6 +39,17 @@ export const login: RequestHandler = async (request, response) => {
     response
       .status(401)
       .json({ message: "Correo o contraseña incorrectos." });
+    return;
+  }
+
+  if (user.mfaEnabled === true) {
+    const challenge = await createMfaChallenge(user._id.toString(), "login");
+    response.status(200).json({
+      mfaRequired: true,
+      challengeId: challenge.challengeId,
+      message: challenge.message,
+      ...(challenge.devCode && { devCode: challenge.devCode }),
+    });
     return;
   }
 

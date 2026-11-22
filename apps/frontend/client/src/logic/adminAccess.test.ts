@@ -9,6 +9,8 @@ const user: PublicUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
 const admin: PublicUser = { ...user, role: "admin" };
 

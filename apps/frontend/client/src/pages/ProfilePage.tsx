@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { updateProfileSchema, type Order, type UserProfile } from "@tiendadcc/utils";
 import { FavoriteProductCard } from "../components/FavoriteProductCard.tsx";
 import { Header } from "../components/Header.tsx";
+import { MfaSettings } from "../components/MfaSettings.tsx";
 import { OrderCard } from "../components/OrderCard.tsx";
+import { StudentVerificationCard } from "../components/StudentVerificationCard.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -537,6 +539,29 @@ export function ProfilePage() {
                 )}
               </CardContent>
             </Card>
+
+            <Card
+              id="perfil-estudiante"
+              role="region"
+              aria-label="Cuenta de alumno"
+            >
+              <CardContent>
+                <StudentVerificationCard
+                  email={profile.email}
+                  studentVerified={profile.studentVerified}
+                  onVerified={() => {
+                    setProfile((previous) =>
+                      previous === null
+                        ? previous
+                        : { ...previous, studentVerified: true },
+                    );
+                    void refresh();
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            <MfaSettings />
 
             <Card>
               <CardHeader>

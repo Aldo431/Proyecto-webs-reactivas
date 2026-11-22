@@ -52,4 +52,6 @@ export const testUser = {
   displayName: "TiendaDCC",
   email: "tienda@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };

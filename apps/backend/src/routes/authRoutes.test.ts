@@ -1,9 +1,10 @@
 import type { Express } from "express";
 import type { MongoMemoryReplSet } from "mongodb-memory-server";
 import request, { type Response } from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.ts";
 import { User } from "../models/User.ts";
+import { emailService } from "../services/emailService.ts";
 import { startTestDatabase, stopTestDatabase } from "../test/mongoMemory.ts";
 
 let mongo: MongoMemoryReplSet;
@@ -27,7 +28,12 @@ afterAll(async () => {
   await stopTestDatabase(mongo);
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 beforeEach(async () => {
+  vi.spyOn(emailService, "sendMfaCodeEmail").mockResolvedValue(undefined);
   await User.deleteMany({});
 });
 
@@ -66,6 +72,8 @@ describe("POST /api/auth/register", () => {
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       role: "user",
+      studentVerified: false,
+      mfaEnabled: false,
     });
     expect(response.body).not.toHaveProperty("passwordHash");
     expect(response.body).not.toHaveProperty("__v");
@@ -156,8 +164,31 @@ describe("POST /api/auth/login", () => {
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       role: "user",
+      studentVerified: false,
+      mfaEnabled: false,
     });
     expect(response.headers["set-cookie"]).toBeDefined();
+  });
+
+  it("devuelve un desafío 2FA sin cookie para usuarios con 2FA activado", async () => {
+    await User.findOneAndUpdate(
+      { email: validUser.email },
+      { mfaEnabled: true },
+    );
+
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({ email: validUser.email, password: validUser.password });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      mfaRequired: true,
+      message: expect.any(String),
+      devCode: expect.stringMatching(/^\d{6}$/),
+    });
+    expect(response.body.challengeId).toBeTruthy();
+    expect(response.headers["set-cookie"]).toBeUndefined();
+    expect(response.body).not.toHaveProperty("id");
   });
 
   it("responde 401 genérico con contraseña incorrecta", async () => {
@@ -210,6 +241,8 @@ describe("GET /api/auth/me", () => {
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       role: "user",
+      studentVerified: false,
+      mfaEnabled: false,
     });
   });
 

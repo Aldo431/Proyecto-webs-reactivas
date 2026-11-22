@@ -29,6 +29,11 @@ export interface UserFields {
   passwordHash: string;
   role: UserRole;
   emailVerified: boolean;
+  studentVerified: boolean;
+  studentCodeHash: string | null;
+  studentCodeExpiry: Date | null;
+  studentCodeAttempts: number;
+  mfaEnabled: boolean;
   sessionVersion: number;
   resetToken: string | null;
   resetTokenExpiry: Date | null;
@@ -94,6 +99,29 @@ const userSchema = new Schema<UserFields, UserModel, UserMethods>(
       type: Boolean,
       default: false,
     },
+    studentVerified: {
+      type: Boolean,
+      default: false,
+    },
+    studentCodeHash: {
+      type: String,
+      required: false,
+      default: null,
+    },
+    studentCodeExpiry: {
+      type: Date,
+      required: false,
+      default: null,
+    },
+    studentCodeAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+    },
     sessionVersion: {
       type: Number,
       default: 0,
@@ -149,6 +177,8 @@ userSchema.methods.toPublicJSON = function (): PublicUser {
     email: this.email,
     // Cuentas anteriores a 012 no tienen `role`: se tratan como "user".
     role: this.role ?? "user",
+    studentVerified: this.studentVerified ?? false,
+    mfaEnabled: this.mfaEnabled ?? false,
   };
 };
 
@@ -162,6 +192,7 @@ userSchema.methods.toProfileJSON = function (): UserProfile {
     displayName: this.displayName ?? this.name ?? username,
     email: this.email,
     emailVerified: this.emailVerified ?? false,
+    studentVerified: this.studentVerified ?? false,
     favorites: this.favorites ?? [],
     history: (this.history ?? []).map((visit: HistoryVisit) => ({
       productId: visit.productId,
