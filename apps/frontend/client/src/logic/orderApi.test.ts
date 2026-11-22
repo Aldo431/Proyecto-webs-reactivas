@@ -13,6 +13,7 @@ const publicOrder = {
       unitPrice: 6000,
       quantity: 2,
       subtotal: 12000,
+      discount: null,
     },
   ],
   total: 12000,

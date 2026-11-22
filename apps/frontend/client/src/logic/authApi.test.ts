@@ -15,6 +15,8 @@ const okUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
 
 const registerInput = {
@@ -118,6 +120,34 @@ describe("login", () => {
     });
 
     expect(result).toEqual({ ok: true, user: okUser });
+  });
+
+  it("devuelve el desafío MFA cuando el servidor lo pide", async () => {
+    const fetchMock = vi.fn(async () =>
+      json(200, {
+        mfaRequired: true,
+        challengeId: "challenge-1",
+        message: "Ingresa el código enviado a tu correo.",
+        devCode: "123456",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await login({
+      email: "ana@dcc.uchile.cl",
+      password: "secreto123",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      mfaRequired: true,
+      challengeId: "challenge-1",
+      message: "Ingresa el código enviado a tu correo.",
+      devCode: "123456",
+    });
+    if (!result.ok && "challengeId" in result) {
+      expect(result.challengeId).toBe("challenge-1");
+    }
   });
 
   it("mapea 401 al mensaje genérico", async () => {

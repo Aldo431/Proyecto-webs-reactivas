@@ -4,6 +4,7 @@ import {
   expect,
   request as playwrightRequest,
   type APIRequestContext,
+  type APIResponse,
   type Page,
 } from "@playwright/test";
 
@@ -135,4 +136,194 @@ export function requireBaseURL(baseURL: string | undefined): string {
     throw new Error("Falta baseURL en playwright.config.ts.");
   }
   return baseURL;
+}
+
+export const STUDENT: TestUser = {
+  username: "alumnae2e",
+  displayName: "Alumna E2E",
+  email: "alumna@uchile.cl",
+  password: "clave-alumna-123",
+};
+
+export const ADMIN: TestUser = {
+  username: "adminpromoe2e",
+  displayName: "Administradora E2E",
+  email: "adminpromos@e2e.test",
+  password: "clave-admin-123",
+};
+
+export interface PublicPromotion {
+  id: string;
+  type: "studentDiscount" | "quantityPack3x2" | "quantityPack2x15";
+  label: string;
+  active: boolean;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("La API no devolvió un objeto JSON.");
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseDevCode(body: unknown): string {
+  const value = asRecord(body).devCode;
+  if (typeof value !== "string" || !/^\d{6}$/.test(value)) {
+    throw new Error("La API no devolvió un devCode válido.");
+  }
+  return value;
+}
+
+function parseChallengeId(body: unknown): string {
+  const value = asRecord(body).challengeId;
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error("La API no devolvió un challengeId válido.");
+  }
+  return value;
+}
+
+export async function seedPromotions(request: APIRequestContext): Promise<void> {
+  const response = await request.post("/api/testing/promotions");
+  expect(response.status(), "POST /api/testing/promotions").toBe(204);
+}
+
+export async function grantAdmin(
+  request: APIRequestContext,
+  user: TestUser,
+): Promise<void> {
+  const response = await request.post(
+    `/api/testing/admin?email=${encodeURIComponent(user.email)}`,
+  );
+  expect(response.status(), "POST /api/testing/admin").toBe(204);
+}
+
+export async function getPromotions(page: Page): Promise<PublicPromotion[]> {
+  const response: APIResponse = await page.request.get("/api/promotions");
+  expect(response.status(), "GET /api/promotions").toBe(200);
+  const body: unknown = await response.json();
+  expect(Array.isArray(body)).toBe(true);
+  return body as PublicPromotion[];
+}
+
+export async function requestStudentCode(
+  page: Page,
+  user: TestUser = STUDENT,
+): Promise<string> {
+  const response = await page.request.post("/api/students/verify", {
+    data: { email: user.email },
+  });
+  expect(response.status(), "POST /api/students/verify").toBe(202);
+  return parseDevCode(await response.json());
+}
+
+export async function confirmStudentCode(
+  page: Page,
+  code: string,
+): Promise<void> {
+  const response = await page.request.post("/api/students/confirm", {
+    data: { code },
+  });
+  expect(response.status(), "POST /api/students/confirm").toBe(200);
+}
+
+export async function verifyStudent(
+  page: Page,
+  user: TestUser = STUDENT,
+): Promise<string> {
+  const code = await requestStudentCode(page, user);
+  await confirmStudentCode(page, code);
+  return code;
+}
+
+export async function readDevCodeFromPage(page: Page): Promise<string> {
+  const text = await page.getByText(/Código de desarrollo:/).innerText();
+  const code = /\d{6}/.exec(text)?.[0];
+  if (code === undefined) {
+    throw new Error("La interfaz no mostró un devCode de 6 dígitos.");
+  }
+  return code;
+}
+
+export async function readDevCodeFromVerifyResponse(
+  page: Page,
+  trigger: () => Promise<void>,
+): Promise<string> {
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/students/verify") &&
+      response.request().method() === "POST",
+  );
+  await trigger();
+  const response = await responsePromise;
+  expect(response.status(), "POST /api/students/verify").toBe(202);
+  return parseDevCode(await response.json());
+}
+
+export async function logout(page: Page): Promise<void> {
+  const response = await page.request.post("/api/auth/logout");
+  expect(response.status(), "POST /api/auth/logout").toBe(204);
+}
+
+export async function expectSessionStatus(
+  page: Page,
+  authenticated: boolean,
+): Promise<void> {
+  const response = await page.request.get("/api/auth/me");
+  expect(response.status(), "GET /api/auth/me").toBe(
+    authenticated ? 200 : 401,
+  );
+}
+
+export async function enableMfa(page: Page): Promise<void> {
+  const response = await page.request.post("/api/auth/mfa/enable");
+  expect(response.status(), "POST /api/auth/mfa/enable").toBe(202);
+  const body: unknown = await response.json();
+  const confirm = await page.request.post("/api/auth/mfa/enable/confirm", {
+    data: { challengeId: parseChallengeId(body), code: parseDevCode(body) },
+  });
+  expect(confirm.status(), "POST /api/auth/mfa/enable/confirm").toBe(200);
+}
+
+export async function disableMfa(page: Page, password: string): Promise<void> {
+  const response = await page.request.post("/api/auth/mfa/disable/request");
+  expect(response.status(), "POST /api/auth/mfa/disable/request").toBe(202);
+  const body: unknown = await response.json();
+  const confirm = await page.request.post("/api/auth/mfa/disable", {
+    data: {
+      challengeId: parseChallengeId(body),
+      code: parseDevCode(body),
+      password,
+    },
+  });
+  expect(confirm.status(), "POST /api/auth/mfa/disable").toBe(200);
+}
+
+export async function startMfaLogin(page: Page, user: TestUser): Promise<void> {
+  await loginWithForm(page, user);
+  await expect(page).toHaveURL(/#\/verificar-clave$/);
+  await expect(page.getByText("Verificar código", { exact: true }).first()).toBeVisible();
+  await expectSessionStatus(page, false);
+  await expect(
+    page.getByRole("navigation", { name: "Accesos de usuario" }),
+  ).toHaveCount(0);
+}
+
+export async function completeMfaLogin(
+  page: Page,
+  code: string,
+): Promise<void> {
+  await page.getByLabel("Código de verificación").fill(code);
+  await page.getByRole("button", { name: "Verificar código" }).click();
+  await expect(page).toHaveURL(/#\/$/);
+  await expectSessionStatus(page, true);
+}
+
+export async function loginWithMfa(
+  page: Page,
+  user: TestUser,
+): Promise<string> {
+  await startMfaLogin(page, user);
+  const code = await readDevCodeFromPage(page);
+  await completeMfaLogin(page, code);
+  return code;
 }

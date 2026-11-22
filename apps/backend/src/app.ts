@@ -9,9 +9,13 @@ import { getEnv } from "./config/env.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { adminRoutes } from "./routes/adminRoutes.ts";
 import { authRoutes } from "./routes/authRoutes.ts";
+import { mfaRoutes } from "./routes/mfaRoutes.ts";
 import { ordersRoutes } from "./routes/ordersRoutes.ts";
+import { pricingRoutes } from "./routes/pricingRoutes.ts";
 import { productsRoutes } from "./routes/productsRoutes.ts";
+import { promotionsRoutes } from "./routes/promotionsRoutes.ts";
 import { reviewsRoutes } from "./routes/reviewsRoutes.ts";
+import { studentRoutes } from "./routes/studentRoutes.ts";
 import { testingRoutes } from "./routes/testingRoutes.ts";
 import { usersRoutes } from "./routes/usersRoutes.ts";
 
@@ -47,12 +51,16 @@ export function createApp() {
   app.use(cookieParser());
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
 
+  app.use("/api/auth/mfa", mfaRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/products", productsRoutes);
   app.use("/api/reviews", reviewsRoutes);
   app.use("/api/orders", ordersRoutes);
+  app.use("/api/students", studentRoutes);
+  app.use("/api/promotions", promotionsRoutes);
+  app.use("/api/pricing", pricingRoutes);
 
   // Reinicio de la base para los tests E2E (spec 016, RF-3): solo en modo test.
   if (env.nodeEnv === "test") {

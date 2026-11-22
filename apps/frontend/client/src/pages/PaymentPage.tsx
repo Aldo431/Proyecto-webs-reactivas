@@ -23,6 +23,7 @@ import {
   type PaymentFormValues,
 } from "../logic/paymentFields.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
+import { usePricingQuote } from "../logic/usePricingQuote.ts";
 
 const FIELD_ORDER = [
   "email",
@@ -55,7 +56,8 @@ const EMPTY_VALUES: PaymentFormValues = {
 // Vacío y sin éxito previo → redirección a #/catalogo.
 export function PaymentPage() {
   const { state: authState } = useAuth();
-  const { items, totalAmount, clearCart } = useCart();
+  const { items, clearCart } = useCart();
+  const quote = usePricingQuote();
   const userEmail =
     authState.status === "authenticated" ? authState.user.email : "";
   const [values, setValues] = useState<PaymentFormValues>(() => ({
@@ -180,7 +182,7 @@ export function PaymentPage() {
         <h1 className="font-mono text-3xl font-bold text-foreground">
           Pago
         </h1>
-        <OrderSummary items={items} totalAmount={totalAmount} />
+        <OrderSummary items={items} quote={quote.state} />
         <form
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6"
           noValidate
@@ -272,7 +274,9 @@ export function PaymentPage() {
             disabled={paying}
             aria-busy={paying}
           >
-            Pagar {formatPriceCLP(totalAmount)}
+            {quote.state.status === "success"
+              ? `Pagar ${formatPriceCLP(quote.state.quote.total)}`
+              : "Pagar"}
           </Button>
         </form>
       </main>

@@ -17,13 +17,17 @@ const okUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
 
 let routes: FetchRoutes;
 
-function renderAt(path: string) {
+function renderAt(path: string, state?: unknown) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter
+      initialEntries={[state === undefined ? path : { pathname: path, state }]}
+    >
       <SessionSync>
         <CartSync>
           <AppRoutes />
@@ -246,5 +250,34 @@ describe("App", () => {
       await screen.findByRole("link", { name: "Registrarse ahora" }),
     ).toBeDefined();
     expect(screen.queryByText("Ana Pérez")).toBeNull();
+  });
+
+  it("muestra la verificación en dos pasos con un desafío válido", async () => {
+    renderAt("/verificar-clave", {
+      challengeId: "challenge-1",
+      from: "/perfil",
+      devCode: "123456",
+    });
+
+    expect(
+      await screen.findByRole("button", { name: "Verificar código" }),
+    ).toBeDefined();
+    expect(screen.getByText("Código de desarrollo: 123456")).toBeDefined();
+  });
+
+  it("redirige la verificación sin desafío a iniciar sesión", async () => {
+    renderAt("/verificar-clave");
+    expect(
+      await screen.findByRole("heading", { name: "Iniciar sesión" }),
+    ).toBeDefined();
+  });
+
+  it("redirige al autenticado fuera de la verificación en dos pasos", async () => {
+    routes["/api/auth/me"] = () => jsonResponse(200, okUser);
+    renderAt("/verificar-clave", { challengeId: "challenge-1" });
+    expect(
+      await screen.findByRole("heading", { name: "TiendaDCC" }),
+    ).toBeDefined();
+    expect(screen.queryByText("Verificar código")).toBeNull();
   });
 });

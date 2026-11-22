@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { DURATION_S } from "../logic/motionTokens.ts";
 import type { FeaturedProductsSource } from "../logic/productRepository.ts";
 import { useFeaturedProducts } from "../logic/useFeaturedProducts.ts";
+import { usePromotions } from "../logic/usePromotions.ts";
 import { BlurFade } from "./magicui/blur-fade.tsx";
 import { ProductCard } from "./ProductCard.tsx";
 import { Button } from "./ui/button.tsx";
@@ -19,6 +20,7 @@ interface FeaturedProductsProps {
 // the grid (Home RF-5); the heading and "Ver más productos" always stay.
 export function FeaturedProducts({ source }: FeaturedProductsProps) {
   const { state, retry } = useFeaturedProducts(source);
+  const promotions = usePromotions();
 
   return (
     <section
@@ -70,7 +72,7 @@ export function FeaturedProducts({ source }: FeaturedProductsProps) {
                 delay={index * DURATION_S.fast}
                 className="h-full"
               >
-                <ProductCard product={product} />
+                <ProductCard product={product} promotions={promotions} />
               </BlurFade>
             </li>
           ))}

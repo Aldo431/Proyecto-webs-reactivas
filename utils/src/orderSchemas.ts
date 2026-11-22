@@ -1,9 +1,9 @@
 import { z } from "zod";
+import { discountSchema } from "./promotionSchemas.ts";
+import { ORDER_MAX_LINES, ORDER_MAX_QUANTITY } from "./orderLimits.ts";
 
-// Topes de un pedido (spec 012, RF-2, RF-3): cantidad 1 a 999 por línea y como
-// máximo 50 líneas por pedido.
-export const ORDER_MAX_QUANTITY = 999;
-export const ORDER_MAX_LINES = 50;
+export { ORDER_MAX_LINES, ORDER_MAX_QUANTITY } from "./orderLimits.ts";
+
 export const ORDER_FOLIO_PATTERN = /^PED-\d{4}-\d{4,}$/;
 export const ORDER_EMPTY_MESSAGE = "El carrito está vacío.";
 
@@ -65,6 +65,7 @@ export const orderLineSchema = z.object({
   unitPrice: positiveIntField,
   quantity: z.number().int().min(1).max(ORDER_MAX_QUANTITY),
   subtotal: positiveIntField,
+  discount: discountSchema.nullable().default(null),
 });
 
 // Estado único e inmutable del pedido (spec 012, RF-5).

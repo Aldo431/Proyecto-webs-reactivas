@@ -14,6 +14,8 @@ cátedra 09): `npm install` y `npm run check` de la raíz no descargan navegador
 | `tests/auth.spec.ts` | **Login + acceso protegido**: redirección de `#/perfil` al login, vuelta a la ruta protegida tras iniciar sesión, sesión que sobrevive a F5, botones atrás/adelante, contraseña incorrecta, cierre de sesión, `#/admin` sin rol de administrador, login inaccesible con sesión. |
 | `tests/products.spec.ts` | **CRUD de publicaciones**: crear desde `#/publicar` (con imagen), listar en `#/mis-publicaciones` y en el catálogo, editar, eliminar con confirmación y cancelar la eliminación. |
 | `tests/cart.spec.ts` | **Carrito (estado global con Zustand)**: el carrito invitado se conserva al iniciar sesión, se sincroniza con la cuenta y sobrevive a la recarga sin duplicar. |
+| `tests/promotions.spec.ts` | **Promociones y cuenta de alumno**: verificación con `devCode`, 20% en carrito/checkout/pedido, packs 3x2 y 2x15%, baja al cambiar el correo y CRUD admin. |
+| `tests/mfa.spec.ts` | **Verificación en dos pasos**: activación desde el perfil, login en dos pasos, reenvío, código inválido, desactivación con contraseña y login de un usuario sin 2FA. |
 
 ## Cómo funciona
 
@@ -23,7 +25,9 @@ cátedra 09): `npm install` y `npm run check` de la raíz no descargan navegador
    `NODE_ENV=test` y una base **MongoDB en memoria** (`mongodb-memory-server`),
    por lo que **no hace falta tener MongoDB instalado** ni se toca la base de
    desarrollo. En este modo existe `POST /api/testing/reset`, que vacía la base;
-   cada test lo llama en su `beforeEach` para partir de cero.
+   cada test lo llama en su `beforeEach` para partir de cero. También existen
+`POST /api/testing/promotions` y `POST /api/testing/admin?email=…` para sembrar
+las promociones por defecto y otorgar rol de administrador en los tests de Hito 3.
 2. **Frontend** en `http://localhost:5173` con Vite (`npm run dev`), que proxya
    `/api` al backend.
 

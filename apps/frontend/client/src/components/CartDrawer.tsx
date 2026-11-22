@@ -2,16 +2,16 @@ import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { useCart } from "../stores/cartStore.ts";
-import { formatPriceCLP } from "../logic/cartCalculations.ts";
+import { usePricingQuote } from "../logic/usePricingQuote.ts";
 import { Button } from "./ui/button.tsx";
 import { CartEmptyState } from "./CartEmptyState.tsx";
+import { CartSummary } from "./CartSummary.tsx";
 import { CartItemRow } from "./CartItemRow.tsx";
 
 export function CartDrawer() {
   const {
     items,
     isOpen,
-    totalAmount,
     mergeNotice,
     syncError,
     closeCart,
@@ -22,6 +22,7 @@ export function CartDrawer() {
   const openerRef = useRef<Element | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const quote = usePricingQuote();
 
   useEffect(() => {
     closeCart();
@@ -138,14 +139,7 @@ export function CartDrawer() {
               ))}
             </ul>
             <div className="flex flex-col gap-3 border-t border-border px-4 py-4">
-              <div className="flex items-center justify-between">
-                <span className="font-sans text-sm text-muted-foreground">
-                  Total
-                </span>
-                <span className="font-mono text-lg font-bold">
-                  {formatPriceCLP(totalAmount)}
-                </span>
-              </div>
+              <CartSummary state={quote.state} />
               <div className="flex gap-2">
                 <Button
                   variant="outline"

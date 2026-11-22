@@ -68,6 +68,7 @@ describe("GET /api/users/me", () => {
       displayName: "Ana Pérez",
       email: "ana@dcc.uchile.cl",
       emailVerified: false,
+      studentVerified: false,
       favorites: [],
       history: [],
       cart: [],

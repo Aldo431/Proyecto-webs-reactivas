@@ -4,7 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../stores/authStore.ts";
 import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
-import type { Product } from "@tiendadcc/utils";
+import type { Product, Promotion } from "@tiendadcc/utils";
+import { PromotionBadge } from "./PromotionBadge.tsx";
 import { resolveImageUrl } from "../logic/productImage.ts";
 import { productPath } from "../logic/productPath.ts";
 import {
@@ -18,7 +19,7 @@ import { Card, CardContent } from "./ui/card.tsx";
 
 interface ProductCardProps {
   product: Product;
-  // Cart and favorite buttons; hidden on the owner's own listing (008 RF-19).
+  promotions?: Promotion[];
   showShopActions?: boolean;
 }
 
@@ -28,6 +29,7 @@ interface ProductCardProps {
 // hover (007 RF-6, touch included). Both show the formatted CLP price.
 export function ProductCard({
   product,
+  promotions = [],
   showShopActions = true,
 }: ProductCardProps) {
   const { addItem, openCart } = useCart();
@@ -93,6 +95,13 @@ export function ProductCard({
             <Badge variant="secondary" className="font-mono">
               {product.category}
             </Badge>
+            {promotions.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {promotions.map((promotion) => (
+                  <PromotionBadge key={promotion.id} promotion={promotion} />
+                ))}
+              </div>
+            )}
             <h3 className="text-lg font-semibold text-card-foreground">
               {product.name}
             </h3>

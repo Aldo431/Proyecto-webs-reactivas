@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CircleAlert, Heart } from "lucide-react";
 import { Header } from "../components/Header.tsx";
+import { PromotionBadge } from "../components/PromotionBadge.tsx";
 import { ReviewList } from "../components/ReviewList.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { useAuth } from "../stores/authStore.ts";
 import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
+import { STUDENT_EMAIL_HINT, needsStudentHint } from "../logic/promotionFormat.ts";
 import { resolveImageUrl } from "../logic/productImage.ts";
 import {
   addFavorite,
@@ -16,6 +18,7 @@ import {
   removeFavorite,
 } from "../logic/profileApi.ts";
 import { useProduct } from "../logic/useProduct.ts";
+import { usePromotions } from "../logic/usePromotions.ts";
 
 export function ProductDetailPage() {
   // Reads the :id segment of the URL and loads the product from the API; an
@@ -23,6 +26,7 @@ export function ProductDetailPage() {
   const { id } = useParams();
   const productId = id ?? "";
   const { state: productState, retry } = useProduct(productId);
+  const promotions = usePromotions();
   const { addItem, openCart } = useCart();
   const { state: authState } = useAuth();
   const navigate = useNavigate();
@@ -52,6 +56,9 @@ export function ProductDetailPage() {
     product !== undefined &&
     authState.status === "authenticated" &&
     authState.user.id === product.seller.id;
+  const showStudentHint =
+    authState.status === "authenticated" &&
+    needsStudentHint(authState.user.email, authState.user.studentVerified);
 
   // Registra la visita solo con sesión y producto existente, sin bloquear el
   // render, y carga el estado inicial del favorito (RF-10).
@@ -161,9 +168,14 @@ export function ProductDetailPage() {
             className="w-full rounded-2xl object-cover"
           />
           <div>
-            <Badge variant="secondary" className="font-mono">
-              {product.category}
-            </Badge>
+            <div className="flex flex-wrap gap-1">
+              <Badge variant="secondary" className="font-mono">
+                {product.category}
+              </Badge>
+              {promotions.map((promotion) => (
+                <PromotionBadge key={promotion.id} promotion={promotion} />
+              ))}
+            </div>
             <h1 className="mt-2 text-3xl font-bold text-foreground">
               {product.name}
             </h1>
@@ -171,6 +183,19 @@ export function ProductDetailPage() {
               {formatPriceCLP(displayedPrice)}
             </p>
             <p className="mt-4 text-muted-foreground">{product.description}</p>
+            {showStudentHint && (
+              <p className="mt-3 font-sans text-sm text-muted-foreground">
+                {STUDENT_EMAIL_HINT}{" "}
+                <Link
+                  to="/perfil"
+                  state={{ section: "estudiante" }}
+                  className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+                >
+                  Verifícalo en tu perfil
+                </Link>{" "}
+                para obtener el descuento de alumno.
+              </p>
+            )}
             {product.variants.length > 0 && (
               <div className="mt-6">
                 <label

@@ -2,7 +2,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SessionSync } from "../components/SessionSync.tsx";
-import { INITIAL_AUTH_STATE, useAuth, useAuthStore } from "./authStore.ts";
+import {
+  INITIAL_AUTH_STATE,
+  resetAuthStore,
+  useAuth,
+  useAuthStore,
+} from "./authStore.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -10,6 +15,8 @@ const okUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
 
 const anonymousJson = { message: "Debes iniciar sesión." };
@@ -43,6 +50,7 @@ function wrapper({ children }: { children: ReactNode }) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  resetAuthStore();
 });
 
 describe("useAuth / authStore + SessionSync", () => {
@@ -213,5 +221,48 @@ describe("authStore fuera de React", () => {
       status: "anonymous",
       user: null,
     });
+  });
+
+  it("el login con MFA no autentica hasta verificar el código", async () => {
+    resetAuthStore();
+    useAuthStore.setState({ state: { status: "anonymous", user: null } });
+    stubFetchWithRoutes({
+      "/api/auth/login": () =>
+        json(200, {
+          mfaRequired: true,
+          challengeId: "challenge-1",
+          message: "Ingresa el código enviado a tu correo.",
+          devCode: "123456",
+        }),
+      "/api/auth/mfa/verify": () => json(200, okUser),
+    });
+
+    const loginResult = await useAuthStore.getState().login({
+      email: "ana@dcc.uchile.cl",
+      password: "secreto123",
+    });
+
+    expect(loginResult.ok).toBe(false);
+    if (!loginResult.ok && "challengeId" in loginResult) {
+      expect(loginResult.challengeId).toBe("challenge-1");
+      expect(loginResult.devCode).toBe("123456");
+    }
+    expect(useAuthStore.getState().state).toEqual({
+      status: "anonymous",
+      user: null,
+    });
+
+    const verifyResult = await useAuthStore
+      .getState()
+      .verifyMfa("challenge-1", "123456");
+
+    expect(verifyResult).toEqual({ ok: true, user: okUser });
+    expect(useAuthStore.getState().state).toEqual({
+      status: "authenticated",
+      user: okUser,
+    });
+
+    resetAuthStore();
+    expect(useAuthStore.getState().state).toEqual(INITIAL_AUTH_STATE);
   });
 });

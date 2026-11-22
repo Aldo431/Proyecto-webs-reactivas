@@ -4,16 +4,18 @@ import {
 } from "../logic/cartCalculations.ts";
 import type { CartItem } from "../logic/cartTypes.ts";
 import { resolveImageUrl } from "../logic/productImage.ts";
+import type { PricingQuoteState } from "../logic/usePricingQuote.ts";
+import { CartSummary } from "./CartSummary.tsx";
 
 interface OrderSummaryProps {
   items: CartItem[];
-  totalAmount: number;
+  quote: PricingQuoteState;
 }
 
 // Resumen de solo lectura del pedido (011 RF-3): misma información que el
 // drawer (miniatura, nombre, cantidad, subtotal por línea y total en CLP),
 // sin controles de edición.
-export function OrderSummary({ items, totalAmount }: OrderSummaryProps) {
+export function OrderSummary({ items, quote }: OrderSummaryProps) {
   return (
     <section
       aria-labelledby="order-summary-title"
@@ -49,11 +51,8 @@ export function OrderSummary({ items, totalAmount }: OrderSummaryProps) {
           </li>
         ))}
       </ul>
-      <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
-        <span className="font-sans text-sm text-muted-foreground">Total</span>
-        <span className="font-mono text-lg font-bold text-card-foreground">
-          {formatPriceCLP(totalAmount)}
-        </span>
+      <div className="mt-2 border-t border-border pt-3">
+        <CartSummary state={quote} />
       </div>
     </section>
   );

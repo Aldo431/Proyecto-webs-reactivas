@@ -3,6 +3,7 @@ import {
   ORDER_FOLIO_PATTERN,
   ORDER_MAX_LINES,
   ORDER_MAX_QUANTITY,
+  type Discount,
   type Order as PublicOrder,
 } from "@tiendadcc/utils";
 
@@ -15,6 +16,7 @@ export interface OrderItemFields {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  discount: Discount | null;
 }
 
 export interface OrderFields {
@@ -36,6 +38,23 @@ const positiveInt = (label: string) => ({
 
 // Validadores Mongoose como respaldo de los límites de Zod (spec 012, RF-3),
 // igual que en Product y Review: la entrada se valida en Zod.
+const discountItemSchema = new Schema<Discount>(
+  {
+    type: {
+      type: String,
+      enum: ["studentDiscount", "quantityPack3x2", "quantityPack2x15"],
+      required: true,
+    },
+    label: { type: String, required: true, trim: true },
+    amount: {
+      type: Number,
+      required: true,
+      validate: positiveInt("El monto del descuento"),
+    },
+  },
+  { _id: false },
+);
+
 const orderItemSchema = new Schema<OrderItemFields>(
   {
     product: {
@@ -85,6 +104,11 @@ const orderItemSchema = new Schema<OrderItemFields>(
       type: Number,
       required: [true, "El subtotal de la línea es obligatorio."],
       validate: positiveInt("El subtotal de la línea"),
+    },
+    discount: {
+      type: discountItemSchema,
+      required: false,
+      default: null,
     },
   },
   { _id: false },
@@ -164,6 +188,7 @@ export function toPublicOrder(order: OrderLike): PublicOrder {
       unitPrice: item.unitPrice,
       quantity: item.quantity,
       subtotal: item.subtotal,
+      discount: item.discount ?? null,
     })),
     total: order.total,
     createdAt: order.createdAt.toISOString(),

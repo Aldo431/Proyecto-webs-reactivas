@@ -14,6 +14,7 @@ const okProfile = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   emailVerified: false,
+  studentVerified: false,
   favorites: ["taza-dcc"],
   history: [
     { productId: "polera-dcc", viewedAt: "2026-10-13T10:00:00.000Z" },

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "../db/connect.ts";
 import { parseSeedEnv } from "../seed/seedEnv.ts";
 import { parseSeedProducts, seedProducts } from "../seed/seedProducts.ts";
+import { seedDefaultPromotions } from "../services/promotionService.ts";
 
 // Script de línea de comandos: `npm run seed -w backend`. La lógica vive en
 // `seed/seedProducts.ts`; aquí solo se lee el entorno, se conecta y se informa.
@@ -33,9 +34,11 @@ try {
       ? "Vendedor de prueba creado."
       : "Vendedor de prueba ya existía; se reutilizó.",
   );
+  const seededPromotions = await seedDefaultPromotions();
   console.log(
     `Productos: ${summary.created} creados, ${summary.updated} actualizados.`,
   );
+  console.log(`Promociones sembradas: ${seededPromotions}.`);
   console.log(
     `Cuentas con referencias antiguas actualizadas: ${summary.usersRemapped}.`,
   );

@@ -1,11 +1,13 @@
 import {
   forgotPasswordInputSchema,
   forgotPasswordResponseSchema,
+  loginResponseSchema,
   publicUserSchema,
   resetPasswordInputSchema,
   resetPasswordResponseSchema,
   validateResetTokenResponseSchema,
   type LoginInput,
+  type MfaRequiredResult,
   type PublicUser,
   type RegisterInput,
 } from "@tiendadcc/utils";
@@ -20,6 +22,13 @@ export type AuthFailure = {
 };
 
 export type AuthResult = AuthSuccess | AuthFailure;
+
+export type MfaRequiredLogin = MfaRequiredResult & {
+  ok: false;
+  fieldErrors?: undefined;
+};
+
+export type LoginResult = AuthSuccess | MfaRequiredLogin | AuthFailure;
 
 export type MessageSuccess = { ok: true; message: string };
 export type MessageResult = MessageSuccess | AuthFailure;
@@ -65,6 +74,26 @@ async function parseAuthResponse(response: Response): Promise<AuthResult> {
     return {
       ok: false,
       message: "El servidor devolvió una respuesta inesperada.",
+    };
+  }
+  return { ok: true, user: parsed.data };
+}
+
+async function parseLoginResponse(response: Response): Promise<LoginResult> {
+  const parsed = loginResponseSchema.safeParse(await response.json());
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "El servidor devolvió una respuesta inesperada.",
+    };
+  }
+  if ("mfaRequired" in parsed.data) {
+    return {
+      ok: false,
+      ...parsed.data,
+      ...(parsed.data.devCode === undefined
+        ? {}
+        : { devCode: parsed.data.devCode }),
     };
   }
   return { ok: true, user: parsed.data };
@@ -140,7 +169,7 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
   }
 }
 
-export async function login(input: LoginInput): Promise<AuthResult> {
+export async function login(input: LoginInput): Promise<LoginResult> {
   try {
     const response = await fetch(buildUrl("/login"), {
       method: "POST",
@@ -153,7 +182,7 @@ export async function login(input: LoginInput): Promise<AuthResult> {
     });
 
     if (response.status === 200) {
-      return parseAuthResponse(response);
+      return parseLoginResponse(response);
     }
     return failureFromStatus(
       response,

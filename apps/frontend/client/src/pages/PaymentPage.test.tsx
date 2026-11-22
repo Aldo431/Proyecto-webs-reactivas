@@ -13,6 +13,8 @@ const okUser = {
   displayName: "Ana Pérez",
   email: "ana@dcc.uchile.cl",
   role: "user",
+  studentVerified: false,
+  mfaEnabled: false,
 };
 
 const cartWithItems = [
@@ -63,10 +65,19 @@ function renderPage() {
   );
 }
 
+const pricingQuote = {
+  subtotal: 12000,
+  discounts: [],
+  total: 12000,
+  savings: 0,
+};
+
 function stubAuthenticatedSession() {
   const routes = stubAuthFetch();
   routes["/api/auth/me"] = () => jsonResponse(200, okUser);
   routes["/api/orders"] = () => jsonResponse(201, okOrder);
+  routes["/api/pricing/quote"] = () => jsonResponse(200, pricingQuote);
+  return routes;
 }
 
 beforeEach(() => {
@@ -105,6 +116,7 @@ describe("PaymentPage", () => {
     const routes = stubAuthFetch();
     routes["/api/auth/me"] = () => jsonResponse(200, okUser);
     routes["/api/orders"] = () => jsonResponse(500, {});
+    routes["/api/pricing/quote"] = () => jsonResponse(200, pricingQuote);
     window.localStorage.setItem("cart", JSON.stringify(cartWithItems));
 
     renderPage();
