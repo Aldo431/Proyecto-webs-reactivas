@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/authRoutes.ts";
 import { ordersRoutes } from "./routes/ordersRoutes.ts";
 import { productsRoutes } from "./routes/productsRoutes.ts";
 import { reviewsRoutes } from "./routes/reviewsRoutes.ts";
+import { testingRoutes } from "./routes/testingRoutes.ts";
 import { usersRoutes } from "./routes/usersRoutes.ts";
 
 // Solo la publicación y la edición de productos transportan imágenes (spec 008,
@@ -52,6 +53,11 @@ export function createApp() {
   app.use("/api/products", productsRoutes);
   app.use("/api/reviews", reviewsRoutes);
   app.use("/api/orders", ordersRoutes);
+
+  // Reinicio de la base para los tests E2E (spec 016, RF-3): solo en modo test.
+  if (env.nodeEnv === "test") {
+    app.use("/api/testing", testingRoutes);
+  }
 
   app.use((_request: Request, response: Response) => {
     response.status(404).json({ message: "Ruta no encontrada." });
