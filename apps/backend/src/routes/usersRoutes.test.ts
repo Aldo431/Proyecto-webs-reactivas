@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import type { MongoMemoryReplSet } from "mongodb-memory-server";
-import request, { type Response } from "supertest";
+import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
 import { User } from "../models/User.ts";
