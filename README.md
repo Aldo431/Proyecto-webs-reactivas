@@ -50,6 +50,26 @@ El repositorio usa workspaces npm (`apps/frontend/client`, `apps/backend`, `util
 npm install
 ```
 
+## MongoDB con Docker
+
+El estándar del equipo es MongoDB 7 en Docker como **replica set de un nodo**: los pedidos usan transacciones (spec 012/014) y un MongoDB standalone las rechaza, así que sin replica set fallaría el pago. La primera vez:
+
+```bash
+docker run -d --name tiendadcc-mongo -p 127.0.0.1:27017:27017 \
+  -v tiendadcc-mongo-data:/data/db mongo:7 --replSet rs0
+sleep 5
+docker exec tiendadcc-mongo mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+docker exec tiendadcc-mongo mongosh --quiet --eval 'rs.status().members[0].stateStr'   # → PRIMARY
+```
+
+Luego, cada día: `docker start tiendadcc-mongo` antes de trabajar y `docker stop tiendadcc-mongo` al terminar (datos y replica set quedan en el volumen `tiendadcc-mongo-data`). El puerto se publica solo en `127.0.0.1` porque la base no tiene contraseña.
+
+- `docker port tiendadcc-mongo` debe mostrar `27017/tcp -> 127.0.0.1:27017`. Si no muestra nada (el contenedor se creó cuando el puerto estaba ocupado), recréalo con `docker rm -f tiendadcc-mongo` y el `docker run` de arriba; el volumen conserva los datos.
+- `address already in use`: otro proceso usa el 27017 (`sudo ss -ltnp 'sport = :27017'` muestra cuál); ciérralo antes de crear el contenedor.
+- `Server selection timed out` en el seed o la API: el contenedor no está corriendo, el replica set no está inicializado o `MONGODB_URI` no apunta a `127.0.0.1:27017/...?replicaSet=rs0`.
+
+Los tests E2E no usan este contenedor: levantan su propia base en memoria.
+
 ## Variables de entorno
 
 El backend valida sus variables con Zod al arrancar (`apps/backend/src/config/env.ts`); si falta `MONGODB_URI` o `JWT_SECRET`, aborta con un mensaje en español y no escucha peticiones. Copia las plantillas y completa los valores:
@@ -67,7 +87,7 @@ Lo carga `npm run dev -w backend` con `--env-file-if-exists=.env` (cwd = `apps/b
 
 | Variable | Obligatoria | Por defecto | Descripción |
 |---|---|---|---|
-| `MONGODB_URI` | Sí | — | Cadena de conexión de MongoDB (p. ej. `mongodb://localhost:27017/tiendadcc`). |
+| `MONGODB_URI` | Sí | — | Cadena de conexión de MongoDB. Con el contenedor de [MongoDB con Docker](#mongodb-con-docker): `mongodb://127.0.0.1:27017/tiendadcc?replicaSet=rs0`. |
 | `JWT_SECRET` | Sí | — | Secreto para firmar los JWT (expiran en 7 días). Genera con `openssl rand -hex 32`. |
 | `PORT` | No | `3001` | Puerto del backend. Si lo cambias, actualiza el target del proxy en `apps/frontend/client/vite.config.ts`. |
 | `NODE_ENV` | No | `development` | `development` \| `production` \| `test`. En `production` la cookie se marca `Secure` (requiere HTTPS). |
@@ -99,9 +119,12 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 
 ## Cómo correr el proyecto
 
+Desde la raíz del repositorio (en `apps/backend`, `npm run dev` levanta el backend, no el frontend):
+
 ```bash
-npm run dev            # frontend en http://localhost:5173
-npm run dev -w backend # API en http://localhost:3001 (otra terminal)
+docker start tiendadcc-mongo  # MongoDB (ver "MongoDB con Docker")
+npm run dev -w backend        # API en http://localhost:3001
+npm run dev                   # frontend en http://localhost:5173 (otra terminal)
 ```
 
 ### Seed de productos (spec 008)
