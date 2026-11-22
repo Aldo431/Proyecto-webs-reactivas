@@ -9,10 +9,10 @@ import {
 } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CatalogPage } from "./CatalogPage.tsx";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { jsonResponse } from "../test/authMocks.ts";
 import { exampleProducts } from "../test/productMocks.ts";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 // Exposes the current location and a "back" action, so the tests can check
 // the URL and the history without a real browser.
@@ -38,15 +38,15 @@ function renderCatalog(initialEntries: string[]) {
       initialEntries={initialEntries}
       initialIndex={initialEntries.length - 1}
     >
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/" element={<p>Inicio (sonda)</p>} />
             <Route path="/catalogo" element={<CatalogPage />} />
           </Routes>
           <LocationProbe />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

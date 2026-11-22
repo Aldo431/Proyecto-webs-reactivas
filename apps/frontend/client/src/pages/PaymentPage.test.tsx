@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { PaymentPage } from "./PaymentPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
+import { resetCartStore } from "../stores/cartStore.ts";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -44,17 +45,20 @@ const okOrder = {
 };
 
 function renderPage() {
+  // El store del carrito se hidrata desde localStorage al cargar la página;
+  // los tests siembran el carrito antes de montar, así que se rehidrata aquí.
+  resetCartStore();
   return render(
     <MemoryRouter initialEntries={["/pago"]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/pago" element={<PaymentPage />} />
             <Route path="/catalogo" element={<p>Catálogo (sonda)</p>} />
             <Route path="/" element={<p>Inicio (sonda)</p>} />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

@@ -1,9 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider, useAuth } from "./AuthContext.tsx";
-import { CartProvider, useCart } from "./CartContext.tsx";
-import { clearInMemoryFallbackForTests } from "../logic/cartStorage.ts";
+import { CartSync } from "../components/CartSync.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { resetCartStore, useCart } from "../stores/cartStore.ts";
+import { clearInMemoryFallbackForTests } from "./cartStorage.ts";
 import { productsByIdsResponse } from "../test/productMocks.ts";
 
 const okUser = {
@@ -75,9 +77,9 @@ function stubFetch(
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <AuthProvider>
-      <CartProvider>{children}</CartProvider>
-    </AuthProvider>
+    <SessionSync>
+      <CartSync>{children}</CartSync>
+    </SessionSync>
   );
 }
 
@@ -85,8 +87,10 @@ function useProbe() {
   return { auth: useAuth(), cart: useCart() };
 }
 
+// Siembra el carrito guardado y rehidrata el store, como al cargar la página.
 function setLocalCart(items: unknown[]): void {
   window.localStorage.setItem("cart", JSON.stringify(items));
+  resetCartStore();
 }
 
 beforeEach(() => {
@@ -103,7 +107,7 @@ afterEach(() => {
 
 const loginInput = { email: "ana@dcc.uchile.cl", password: "secreto123" };
 
-describe("CartContext / sincronización con la cuenta", () => {
+describe("useCartSync / sincronización con la cuenta", () => {
   it("fusiona sumando cantidades y muestra el aviso al iniciar sesión", async () => {
     setLocalCart([
       {
@@ -534,7 +538,7 @@ const ghostLine = {
   quantity: 1,
 };
 
-describe("CartContext / productos desde la API", () => {
+describe("useCartSync / productos desde la API", () => {
   it("refresca el carrito guardado y descarta los productos que ya no existen", async () => {
     setLocalCart([staleTaza, ghostLine]);
     stubFetch({ "GET /api/auth/me": () => json(401, {}) });

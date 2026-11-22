@@ -4,10 +4,10 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeProduct } from "../logic/productFixtures.ts";
 import type { FeaturedProductsSource } from "../logic/productRepository.ts";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";
 import { FeaturedProducts } from "./FeaturedProducts.tsx";
+import { SessionSync } from "./SessionSync.tsx";
+import { CartSync } from "./CartSync.tsx";
 
 interface BlurFadeCall {
   duration: number | undefined;
@@ -60,11 +60,11 @@ function expectSeeMoreLink(): void {
 function renderSection(source: FeaturedProductsSource) {
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <FeaturedProducts source={source} />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

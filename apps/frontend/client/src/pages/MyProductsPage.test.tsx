@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { makeProduct } from "../logic/productFixtures.ts";
 import { PUBLISHED_NOTICE, noticeState } from "../logic/publicationNotice.ts";
 import { jsonResponse } from "../test/authMocks.ts";
 import { stubApi, testUser } from "../test/apiStub.ts";
 import { MyProductsPage } from "./MyProductsPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const mine = [
   makeProduct({ id: "p1", name: "Taza mía", price: 5990 }),
@@ -18,15 +18,15 @@ const mine = [
 function renderPage(state?: unknown) {
   return render(
     <MemoryRouter initialEntries={[{ pathname: "/mis-publicaciones", state }]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/mis-publicaciones" element={<MyProductsPage />} />
             <Route path="/publicar" element={<p>Publicar (sonda)</p>} />
             <Route path="/publicaciones/:id/editar" element={<p>Editar (sonda)</p>} />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }
@@ -188,11 +188,11 @@ describe("route protection", () => {
     stubApi(null, () => undefined);
     render(
       <MemoryRouter initialEntries={["/mis-publicaciones"]}>
-        <AuthProvider>
-          <CartProvider>
+        <SessionSync>
+          <CartSync>
             <AppRoutes />
-          </CartProvider>
-        </AuthProvider>
+          </CartSync>
+        </SessionSync>
       </MemoryRouter>,
     );
     expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeDefined();

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 import { Button } from "./ui/button.tsx";
 
 // Main accesses of the home hero (RF-6, Home RF-3): links rendered with the

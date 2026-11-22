@@ -1,27 +1,9 @@
+import { useEffect, useRef } from "react";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  addItemToCart,
-  clearCart as clearCartItems,
-  removeItemFromCart,
-  updateItemQuantity,
-  type CartProduct,
-} from "../logic/cartOperations.ts";
-import { calculateCartTotal, calculateTotalQuantity } from "../logic/cartCalculations.ts";
-import {
-  loadCartFromStorage,
   loadSyncedSnapshot,
   saveCartToStorage,
   saveSyncedSnapshot,
-} from "../logic/cartStorage.ts";
+} from "./cartStorage.ts";
 import {
   areCartItemsEqual,
   areCartLinesEqual,
@@ -29,12 +11,12 @@ import {
   refreshCartItems,
   subtractSnapshot,
   toCartLines,
-} from "../logic/cartSync.ts";
-import type { CartItem } from "../logic/cartTypes.ts";
-import { fetchProductsByIds } from "../logic/productApi.ts";
-import { fetchProfile, replaceCart } from "../logic/profileApi.ts";
-import type { Product } from "../logic/productParse.ts";
-import { useAuth } from "./AuthContext.tsx";
+} from "./cartSync.ts";
+import { fetchProductsByIds } from "./productApi.ts";
+import type { Product } from "./productParse.ts";
+import { fetchProfile, replaceCart } from "./profileApi.ts";
+import { useAuthStore } from "../stores/authStore.ts";
+import { useCartStore } from "../stores/cartStore.ts";
 
 // Productos vigentes para los ids dados (spec 008, RF-15); null si la API no
 // responde, para no descartar líneas ni subir un carrito recortado.
@@ -43,43 +25,21 @@ async function fetchCatalogFor(ids: string[]): Promise<Product[] | null> {
   return result.ok ? result.products : null;
 }
 
-const SYNC_ERROR_MESSAGE =
+export const SYNC_ERROR_MESSAGE =
   "No se pudo sincronizar el carrito con tu cuenta. Se reintentará en el próximo cambio.";
 
-const MERGE_NOTICE_MESSAGE =
+export const MERGE_NOTICE_MESSAGE =
   "Combinamos el carrito de tu visita con el de tu cuenta sumando las cantidades.";
 
-interface CartContextValue {
-  items: CartItem[];
-  isOpen: boolean;
-  totalCount: number;
-  totalAmount: number;
-  mergeNotice: string | null;
-  syncError: string | null;
-  openCart: () => void;
-  closeCart: () => void;
-  toggleCart: () => void;
-  addItem: (product: CartProduct) => void;
-  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
-  removeItem: (productId: string, variantId?: string) => void;
-  clearCart: () => void;
-  dismissMergeNotice: () => void;
-}
+// Sincroniza el store del carrito con localStorage y con la cuenta (specs 006
+// RF-12/13, 008 RF-15, 015 RF-3). Se monta una sola vez (<CartSync />): lee
+// la sesión y el carrito desde los stores de Zustand y escribe con sus
+// setters. Las reglas de fusión viven en las funciones puras de cartSync.ts.
+export function useCartSync(): void {
+  const authState = useAuthStore((store) => store.state);
+  const items = useCartStore((store) => store.items);
+  const { setItems, setMergeNotice, setSyncError } = useCartStore.getState();
 
-const CartContext = createContext<CartContextValue | null>(null);
-
-interface CartProviderProps {
-  children: ReactNode;
-}
-
-export function CartProvider({ children }: CartProviderProps) {
-  const { state: authState } = useAuth();
-  const [items, setItems] = useState<CartItem[]>(() =>
-    loadCartFromStorage(),
-  );
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [mergeNotice, setMergeNotice] = useState<string | null>(null);
-  const [syncError, setSyncError] = useState<string | null>(null);
   // Usuario para el que ya se sincronizó en esta sesión (una vez por login).
   const syncedUserRef = useRef<string | null>(null);
   const syncingRef = useRef<boolean>(false);
@@ -179,8 +139,7 @@ export function CartProvider({ children }: CartProviderProps) {
         } else {
           // Novedades invitadas: fusionar o subir, con aviso solo ante
           // fusión real con la cuenta.
-          const showNotice =
-            merged && !areCartItemsEqual(next, snapshot);
+          const showNotice = merged && !areCartItemsEqual(next, snapshot);
           if (!areCartItemsEqual(next, snapshot)) {
             skipPersistRef.current = true;
             setItems(next);
@@ -268,85 +227,7 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => {
       cancelled = true;
     };
+    // Los setters del store de Zustand son estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, userId]);
-
-  const openCart = useCallback((): void => {
-    setIsOpen(true);
-  }, []);
-
-  const closeCart = useCallback((): void => {
-    setIsOpen(false);
-  }, []);
-
-  const toggleCart = useCallback((): void => {
-    setIsOpen((previous) => !previous);
-  }, []);
-
-  const addItem = useCallback((product: CartProduct): void => {
-    setItems((previous) => addItemToCart(previous, product));
-  }, []);
-
-  const updateQuantity = useCallback(
-    (productId: string, quantity: number, variantId?: string): void => {
-      setItems((previous) =>
-        updateItemQuantity(previous, productId, quantity, variantId),
-      );
-    },
-    [],
-  );
-
-  const removeItem = useCallback((productId: string, variantId?: string): void => {
-    setItems((previous) => removeItemFromCart(previous, productId, variantId));
-  }, []);
-
-  const clearCart = useCallback((): void => {
-    setItems(clearCartItems());
-  }, []);
-
-  const dismissMergeNotice = useCallback((): void => {
-    setMergeNotice(null);
-  }, []);
-
-  const value = useMemo<CartContextValue>(
-    () => ({
-      items,
-      isOpen,
-      totalCount: calculateTotalQuantity(items),
-      totalAmount: calculateCartTotal(items),
-      mergeNotice,
-      syncError,
-      openCart,
-      closeCart,
-      toggleCart,
-      addItem,
-      updateQuantity,
-      removeItem,
-      clearCart,
-      dismissMergeNotice,
-    }),
-    [
-      items,
-      isOpen,
-      mergeNotice,
-      syncError,
-      openCart,
-      closeCart,
-      toggleCart,
-      addItem,
-      updateQuantity,
-      removeItem,
-      clearCart,
-      dismissMergeNotice,
-    ],
-  );
-
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
-}
-
-export function useCart(): CartContextValue {
-  const context = useContext(CartContext);
-  if (context === null) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
-  return context;
 }

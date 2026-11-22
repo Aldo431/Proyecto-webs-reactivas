@@ -3,14 +3,14 @@ import type { CreateProductInput } from "@tiendadcc/utils";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { ProductForm, type ProductSubmitResult } from "../components/ProductForm.tsx";
 import type { ProcessImageResult } from "../logic/imageProcessing.ts";
 import { PublishProductPage } from "./PublishProductPage.tsx";
 import { makeProduct } from "../logic/productFixtures.ts";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { productRoutes } from "../test/productMocks.ts";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -31,11 +31,11 @@ const processOk = vi.fn<Processor>(() =>
 function renderPublish() {
   return render(
     <MemoryRouter initialEntries={["/publicar"]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <AppRoutes />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }
@@ -205,8 +205,8 @@ describe("PublishProductPage submit", () => {
   function renderPage() {
     return render(
       <MemoryRouter initialEntries={["/publicar"]}>
-        <AuthProvider>
-          <CartProvider>
+        <SessionSync>
+          <CartSync>
             <Routes>
               <Route
                 path="/publicar"
@@ -214,8 +214,8 @@ describe("PublishProductPage submit", () => {
               />
               <Route path="/mis-publicaciones" element={<p>Mis publicaciones (sonda)</p>} />
             </Routes>
-          </CartProvider>
-        </AuthProvider>
+          </CartSync>
+        </SessionSync>
       </MemoryRouter>,
     );
   }

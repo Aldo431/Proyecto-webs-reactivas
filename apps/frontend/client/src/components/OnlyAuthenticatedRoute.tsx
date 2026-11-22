@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 
 interface OnlyAuthenticatedRouteProps {
   children: ReactNode;

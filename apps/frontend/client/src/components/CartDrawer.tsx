@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
-import { useCart } from "../context/CartContext.tsx";
+import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { Button } from "./ui/button.tsx";
 import { CartEmptyState } from "./CartEmptyState.tsx";

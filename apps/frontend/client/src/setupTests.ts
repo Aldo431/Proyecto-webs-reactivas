@@ -1,11 +1,21 @@
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, beforeEach } from "vitest";
+import { resetAuthStore } from "./stores/authStore.ts";
+import { resetCartStore } from "./stores/cartStore.ts";
 import {
   addMediaChangeListener,
   matchesMediaQuery,
   removeMediaChangeListener,
   setPrefersReducedMotion,
 } from "./testMedia.ts";
+
+// Los stores de Zustand son globales al módulo: cada test parte como una
+// carga nueva de la página (sesión en "loading" y carrito leído de
+// localStorage), igual que cuando el estado vivía en providers (spec 015).
+beforeEach(() => {
+  resetAuthStore();
+  resetCartStore();
+});
 
 afterEach(() => {
   cleanup();

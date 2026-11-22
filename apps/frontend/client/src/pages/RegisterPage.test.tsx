@@ -1,10 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { jsonResponse, stubAuthFetch } from "../test/authMocks.ts";
 import { RegisterPage } from "./RegisterPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -17,14 +17,14 @@ const okUser = {
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/registro"]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/registro" element={<RegisterPage />} />
             <Route path="/" element={<div>Inicio</div>} />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

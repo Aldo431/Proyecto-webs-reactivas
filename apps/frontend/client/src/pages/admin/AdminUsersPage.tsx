@@ -8,7 +8,7 @@ import { AdminSectionHeading } from "../../components/admin/AdminSectionHeading.
 import { AdminSelect } from "../../components/admin/AdminSelect.tsx";
 import { AdminUsersTable } from "../../components/admin/AdminUsersTable.tsx";
 import { CatalogPagination } from "../../components/CatalogPagination.tsx";
-import { useAuth } from "../../context/AuthContext.tsx";
+import { useAuth } from "../../stores/authStore.ts";
 import { fetchAdminUsers, setUserRole } from "../../logic/adminApi.ts";
 import { formatRange } from "../../logic/adminFormat.ts";
 import { USERS_EMPTY, roleNotice } from "../../logic/adminMessages.ts";

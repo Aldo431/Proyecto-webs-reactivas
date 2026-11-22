@@ -2,9 +2,10 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Header } from "./Header.tsx";
-import { AuthProvider, useAuth } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 import { stubAuthFetch } from "../test/authMocks.ts";
+import { SessionSync } from "./SessionSync.tsx";
+import { CartSync } from "./CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -32,8 +33,8 @@ function AuthProbe() {
 function renderHeader() {
   return render(
     <MemoryRouter initialEntries={["/"]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route
               path="/"
@@ -51,8 +52,8 @@ function renderHeader() {
               element={<p>Inicia sesión (sonda)</p>}
             />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

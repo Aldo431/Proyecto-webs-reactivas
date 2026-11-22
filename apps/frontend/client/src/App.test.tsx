@@ -2,14 +2,14 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "./App.tsx";
-import { AuthProvider } from "./context/AuthContext.tsx";
-import { CartProvider } from "./context/CartContext.tsx";
 import {
   jsonResponse,
   stubAuthFetch,
   type FetchRoutes,
 } from "./test/authMocks.ts";
 import { catalogPageResponse, notFoundRoute, productRoutes } from "./test/productMocks.ts";
+import { SessionSync } from "./components/SessionSync.tsx";
+import { CartSync } from "./components/CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -24,11 +24,11 @@ let routes: FetchRoutes;
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <AppRoutes />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

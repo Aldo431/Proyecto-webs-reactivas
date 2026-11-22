@@ -10,7 +10,7 @@ import { loginInputSchema } from "@tiendadcc/utils";
 import { Header } from "../components/Header.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { useAuth } from "../context/AuthContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 import { returnPathFromState } from "../logic/returnPath.ts";
 import { issuesToFieldErrors } from "../logic/formErrors.ts";
 

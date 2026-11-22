@@ -5,8 +5,8 @@ import { Header } from "../components/Header.tsx";
 import { ReviewList } from "../components/ReviewList.tsx";
 import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { useAuth } from "../context/AuthContext.tsx";
-import { useCart } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { resolveImageUrl } from "../logic/productImage.ts";
 import {

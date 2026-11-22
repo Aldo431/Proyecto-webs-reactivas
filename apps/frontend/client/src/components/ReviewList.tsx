@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CircleAlert } from "lucide-react";
 import type { CreateReviewInput } from "@tiendadcc/utils";
-import { useAuth } from "../context/AuthContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
 import {
   averageStars,
   findOwnReview,

@@ -10,8 +10,8 @@ import { OrderSummary } from "../components/OrderSummary.tsx";
 import { PaymentSuccess } from "../components/PaymentSuccess.tsx";
 import { TextField } from "../components/TextField.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { useAuth } from "../context/AuthContext.tsx";
-import { useCart } from "../context/CartContext.tsx";
+import { useAuth } from "../stores/authStore.ts";
+import { useCart } from "../stores/cartStore.ts";
 import { formatPriceCLP } from "../logic/cartCalculations.ts";
 import { createOrder } from "../logic/orderApi.ts";
 import {

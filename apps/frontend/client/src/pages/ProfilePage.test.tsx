@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { productsByIdsResponse } from "../test/productMocks.ts";
 import { ProfilePage } from "./ProfilePage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const okUser = {
   id: "6712a4f3c9b1e24a8f0d1234",
@@ -90,8 +90,8 @@ function stubProfileFetch(
 function renderProfile() {
   return render(
     <MemoryRouter initialEntries={["/perfil"]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route path="/perfil" element={<ProfilePage />} />
             <Route path="/catalogo" element={<p>Catálogo (sonda)</p>} />
@@ -100,8 +100,8 @@ function renderProfile() {
               element={<p>Detalle (sonda)</p>}
             />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }
@@ -403,15 +403,15 @@ describe("ProfilePage", () => {
       <MemoryRouter
         initialEntries={[{ pathname: "/perfil", state: { section: "favoritos" } }]}
       >
-        <AuthProvider>
-          <CartProvider>
+        <SessionSync>
+          <CartSync>
             <Routes>
               <Route path="/perfil" element={<ProfilePage />} />
               <Route path="/catalogo" element={<p>Catálogo (sonda)</p>} />
               <Route path="/producto/:id" element={<p>Detalle (sonda)</p>} />
             </Routes>
-          </CartProvider>
-        </AuthProvider>
+          </CartSync>
+        </SessionSync>
       </MemoryRouter>,
     );
 
@@ -525,11 +525,11 @@ describe("Ruta /perfil", () => {
 
     render(
       <MemoryRouter initialEntries={["/perfil"]}>
-        <AuthProvider>
-          <CartProvider>
+        <SessionSync>
+          <CartSync>
             <AppRoutes />
-          </CartProvider>
-        </AuthProvider>
+          </CartSync>
+        </SessionSync>
       </MemoryRouter>,
     );
 

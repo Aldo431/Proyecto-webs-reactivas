@@ -3,10 +3,10 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Product } from "@tiendadcc/utils";
 import { makeProduct } from "../logic/productFixtures.ts";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import { stubAuthFetch } from "../test/authMocks.ts";
 import { ProductGrid } from "./ProductGrid.tsx";
+import { SessionSync } from "./SessionSync.tsx";
+import { CartSync } from "./CartSync.tsx";
 
 const sampleProduct: Product = makeProduct({
   id: "cafe",
@@ -19,11 +19,11 @@ const sampleProduct: Product = makeProduct({
 function renderGrid(products: Product[]) {
   return render(
     <MemoryRouter>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <ProductGrid products={products} />
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }

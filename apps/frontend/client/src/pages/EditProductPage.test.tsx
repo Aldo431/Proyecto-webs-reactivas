@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../App.tsx";
-import { AuthProvider } from "../context/AuthContext.tsx";
-import { CartProvider } from "../context/CartContext.tsx";
 import type { ProcessImageResult } from "../logic/imageProcessing.ts";
 import { makeProduct } from "../logic/productFixtures.ts";
 import { jsonResponse } from "../test/authMocks.ts";
 import { stubApi, testUser } from "../test/apiStub.ts";
 import { EditProductPage } from "./EditProductPage.tsx";
+import { SessionSync } from "../components/SessionSync.tsx";
+import { CartSync } from "../components/CartSync.tsx";
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==";
 
@@ -28,8 +28,8 @@ const processOk = vi.fn(
 function renderEdit(path = "/publicaciones/p1/editar") {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <CartProvider>
+      <SessionSync>
+        <CartSync>
           <Routes>
             <Route
               path="/publicaciones/:id/editar"
@@ -37,8 +37,8 @@ function renderEdit(path = "/publicaciones/p1/editar") {
             />
             <Route path="/mis-publicaciones" element={<p>Mis publicaciones (sonda)</p>} />
           </Routes>
-        </CartProvider>
-      </AuthProvider>
+        </CartSync>
+      </SessionSync>
     </MemoryRouter>,
   );
 }
@@ -164,11 +164,11 @@ describe("EditProductPage", () => {
     stubApi(null, () => undefined);
     render(
       <MemoryRouter initialEntries={["/publicaciones/p1/editar"]}>
-        <AuthProvider>
-          <CartProvider>
+        <SessionSync>
+          <CartSync>
             <AppRoutes />
-          </CartProvider>
-        </AuthProvider>
+          </CartSync>
+        </SessionSync>
       </MemoryRouter>,
     );
     expect(await screen.findByRole("heading", { name: "Iniciar sesión" })).toBeDefined();
