@@ -177,17 +177,14 @@ export async function setProductFeatured(
       { _id: 1 },
     )
       .sort({ updatedAt: 1, _id: 1 })
-      .limit(MAX_FEATURED_PRODUCTS)
       .lean();
 
-    if (featuredProducts.length >= MAX_FEATURED_PRODUCTS) {
-      const oldest = featuredProducts[0];
-      if (oldest) {
-        await Product.updateOne(
-          { _id: oldest._id },
-          { $set: { featured: false } },
-        );
-      }
+    const excessCount = featuredProducts.length - (MAX_FEATURED_PRODUCTS - 1);
+    if (excessCount > 0) {
+      await Product.updateMany(
+        { _id: { $in: featuredProducts.slice(0, excessCount).map(({ _id }) => _id) } },
+        { $set: { featured: false } },
+      );
     }
   }
 

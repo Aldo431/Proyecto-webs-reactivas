@@ -97,17 +97,13 @@ export function AdminProductsPage() {
     const result = await setProductFeatured(product.id, !product.featured);
     setPending(product.id, false);
     if (result.ok) {
-      updateItems((items) =>
-        items.map((item) => (item.id === product.id ? result.data : item)),
-      );
       setNotice({
         tone: "success",
         text: featuredNotice(product.name, result.data.featured),
       });
-      // Con el filtro "Destacados" la fila ya no corresponde: se recarga.
-      if (query.destacados) {
-        reload();
-      }
+      // El backend puede desactivar otro destacado para respetar el límite;
+      // se recarga siempre para reflejar ese cambio en la tabla.
+      reload();
       return;
     }
     setNotice({ tone: "error", text: result.message });

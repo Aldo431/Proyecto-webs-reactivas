@@ -251,11 +251,13 @@ describe("AdminProductsPage / filtros en la URL", () => {
 describe("AdminProductsPage / destacar", () => {
   it("disables the switch while it answers and then shows the notice", async () => {
     let answer!: (response: Response) => void;
+    let featured = false;
     const calls = stubApi(null, (method, url) => {
       if (method === "GET" && url === LIST) {
-        return jsonResponse(200, makeAdminPage([taza]));
+        return jsonResponse(200, makeAdminPage([{ ...taza, featured }]));
       }
       if (method === "PATCH") {
+        featured = true;
         return new Promise<Response>((resolve) => {
           answer = resolve;
         });
@@ -278,7 +280,9 @@ describe("AdminProductsPage / destacar", () => {
       await screen.findByText("«Taza DCC» ahora aparece en Destacados del inicio."),
     ).toBeDefined();
     expect(screen.getByRole("status").textContent).toContain("✓ ok");
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    await waitFor(() =>
+      expect(toggle.getAttribute("aria-checked")).toBe("true"),
+    );
     expect((toggle as HTMLButtonElement).disabled).toBe(false);
   });
 
