@@ -71,15 +71,15 @@ describe("HomePage", () => {
   });
 
   describe("footer", () => {
-    it("is the contentinfo landmark with the project, course and year", async () => {
+    it("is the contentinfo landmark with the project and DCC link", async () => {
       renderHome();
       const footer = screen.getByRole("contentinfo");
       expect(within(footer).getByText("TiendaDCC")).toBeDefined();
       expect(
-        within(footer).getByText(
+        within(footer).queryByText(
           "Proyecto del curso CC5003 — Aplicaciones Web Reactivas, 2026",
         ),
-      ).toBeDefined();
+      ).toBeNull();
       await screen.findByText("Taza DCC");
     });
 

@@ -9,12 +9,6 @@ export function SiteFooter() {
           <p className="font-mono text-lg font-bold text-card-foreground">
             TiendaDCC
           </p>
-          <p className="text-sm text-muted-foreground">
-            <span aria-hidden="true" className="mr-1 font-mono">
-              {"//"}
-            </span>
-            Proyecto del curso CC5003 — Aplicaciones Web Reactivas, 2026
-          </p>
           <p className="text-sm">
             <a
               href="https://www.dcc.uchile.cl"
