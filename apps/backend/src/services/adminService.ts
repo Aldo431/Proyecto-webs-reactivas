@@ -388,9 +388,11 @@ export async function findAdminReviews(
     {
       $lookup: {
         from: Product.collection.name,
-        localField: "product",
-        foreignField: "_id",
-        pipeline: [{ $project: { name: 1 } }],
+        let: { productId: "$product" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
+          { $project: { name: 1 } },
+        ],
         as: "product",
       },
     },
@@ -398,9 +400,11 @@ export async function findAdminReviews(
     {
       $lookup: {
         from: User.collection.name,
-        localField: "author",
-        foreignField: "_id",
-        pipeline: [{ $project: { username: 1, displayName: 1, name: 1 } }],
+        let: { authorId: "$author" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$_id", "$$authorId"] } } },
+          { $project: { username: 1, displayName: 1, name: 1 } },
+        ],
         as: "author",
       },
     },
@@ -487,9 +491,11 @@ async function reviewTotals(since: Date): Promise<ReviewTotals | undefined> {
     {
       $lookup: {
         from: Product.collection.name,
-        localField: "product",
-        foreignField: "_id",
-        pipeline: [{ $project: { _id: 1 } }],
+        let: { productId: "$product" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
+          { $project: { _id: 1 } },
+        ],
         as: "productDoc",
       },
     },
