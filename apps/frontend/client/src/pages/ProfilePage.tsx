@@ -9,7 +9,6 @@ import { MfaSettings } from "../components/MfaSettings.tsx";
 import { OrderCard } from "../components/OrderCard.tsx";
 import { StudentVerificationCard } from "../components/StudentVerificationCard.tsx";
 import { TextField } from "../components/TextField.tsx";
-import { Badge } from "../components/ui/badge.tsx";
 import { Button } from "../components/ui/button.tsx";
 import {
   Card,
@@ -434,22 +433,6 @@ export function ProfilePage() {
                         </dt>
                         <dd className="font-sans text-base text-foreground">
                           {profile.email}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="font-sans text-sm text-muted-foreground">
-                          Estado de la cuenta
-                        </dt>
-                        <dd>
-                          <Badge
-                            variant={
-                              profile.emailVerified ? "default" : "secondary"
-                            }
-                          >
-                            {profile.emailVerified
-                              ? "Cuenta verificada"
-                              : "Pendiente de verificación"}
-                          </Badge>
                         </dd>
                       </div>
                     </dl>

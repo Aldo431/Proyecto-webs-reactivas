@@ -134,7 +134,7 @@ describe("ProfilePage", () => {
     expect(screen.getByText("anaperez")).toBeDefined();
     expect(screen.getByText("Ana Pérez")).toBeDefined();
     expect(screen.getByText("ana@dcc.uchile.cl")).toBeDefined();
-    expect(screen.getByText("Pendiente de verificación")).toBeDefined();
+    expect(screen.queryByText("Pendiente de verificación")).toBeNull();
     expect(screen.getByText("Taza DCC")).toBeDefined();
     expect(screen.getByText("Polera DCC")).toBeDefined();
     expect(screen.getByText("Tu carrito está vacío.")).toBeDefined();
