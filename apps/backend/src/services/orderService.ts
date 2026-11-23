@@ -1,4 +1,3 @@
-import mongoose, { type ClientSession } from "mongoose";
 import {
   type CreateOrderInput,
   type Order as PublicOrder,
@@ -30,7 +29,7 @@ function buildFolio(sequence: number): string {
 // Secuencia atómica del folio (spec 012, RF-4): un solo `$inc` garantiza un
 // correlativo único incluso con pagos concurrentes; los huecos por fallos de
 // pedido son aceptados y el índice único de `folio` es el respaldo.
-async function nextFolioSequence(session: ClientSession): Promise<number> {
+async function nextFolioSequence(): Promise<number> {
   const counter = await Counter.findByIdAndUpdate(
     ORDER_FOLIO_COUNTER_ID,
     { $inc: { value: 1 } },
@@ -38,7 +37,6 @@ async function nextFolioSequence(session: ClientSession): Promise<number> {
       returnDocument: "after",
       upsert: true,
       setDefaultsOnInsert: true,
-      session,
     },
   ).lean();
   return counter?.value ?? 1;
@@ -58,23 +56,19 @@ async function createOrderWithFolio(
   userId: string,
   items: OrderItemFields[],
   total: number,
-  session: ClientSession,
 ) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const sequence = await nextFolioSequence(session);
+    const sequence = await nextFolioSequence();
     try {
-      const [created] = await Order.create(
-        [
-          {
-            user: userId,
-            folio: buildFolio(sequence),
-            items,
-            total,
-            status: "completado",
-          },
-        ],
-        { session },
-      );
+      const [created] = await Order.create([
+        {
+          user: userId,
+          folio: buildFolio(sequence),
+          items,
+          total,
+          status: "completado",
+        },
+      ]);
       if (created === undefined) {
         throw new Error("No se pudo crear el pedido.");
       }
@@ -96,72 +90,56 @@ export async function createOrder(
   userId: string,
   input: CreateOrderInput,
 ): Promise<PublicOrder> {
-  const session = await mongoose.startSession();
-  let createdOrder: PublicOrder | undefined;
-  try {
-    await session.withTransaction(async () => {
-      const priced = await quoteForUser(userId, input.items, {
-        session,
-        stockErrorStatus: 409,
-      });
-      const items: OrderItemFields[] = [];
+  const priced = await quoteForUser(userId, input.items, {
+    stockErrorStatus: 409,
+  });
+  const items: OrderItemFields[] = [];
 
-      for (const [index, line] of priced.resolved.entries()) {
-        const pricedLine = priced.lines[index];
-        if (!pricedLine) {
-          throw new Error("No se pudo calcular la línea del pedido.");
-        }
-        if (line.variant !== undefined) {
-          const updated = await Product.updateOne(
-            {
-              _id: line.product._id,
-              variants: {
-                $elemMatch: {
-                  _id: line.variant._id,
-                  stock: { $gte: line.quantity },
-                },
-              },
+  for (const [index, line] of priced.resolved.entries()) {
+    const pricedLine = priced.lines[index];
+    if (!pricedLine) {
+      throw new Error("No se pudo calcular la línea del pedido.");
+    }
+    if (line.variant !== undefined) {
+      const updated = await Product.updateOne(
+        {
+          _id: line.product._id,
+          variants: {
+            $elemMatch: {
+              _id: line.variant._id,
+              stock: { $gte: line.quantity },
             },
-            { $inc: { "variants.$[variant].stock": -line.quantity } },
+          },
+        },
+        { $inc: { "variants.$[variant].stock": -line.quantity } },
+        {
+          arrayFilters: [
             {
-              session,
-              arrayFilters: [
-                {
-                  "variant._id": line.variant._id,
-                  "variant.stock": { $gte: line.quantity },
-                },
-              ],
+              "variant._id": line.variant._id,
+              "variant.stock": { $gte: line.quantity },
             },
-          );
-          if (updated.modifiedCount !== 1) {
-            throw new ConflictError(VARIANT_OUT_OF_STOCK_MESSAGE);
-          }
-        }
-        items.push({
-          product: line.product._id,
-          ...(line.variant === undefined
-            ? {}
-            : { variant: line.variant._id, variantName: line.variant.name }),
-          name: line.product.name,
-          image: line.product.image,
-          unitPrice: line.unitPrice,
-          quantity: line.quantity,
-          subtotal: pricedLine.subtotal,
-          discount: pricedLine.discount,
-        });
-      }
-
-      createdOrder = await createOrderWithFolio(
-        userId,
-        items,
-        priced.quote.total,
-        session,
+          ],
+        },
       );
+      if (updated.modifiedCount !== 1) {
+        throw new ConflictError(VARIANT_OUT_OF_STOCK_MESSAGE);
+      }
+    }
+    items.push({
+      product: line.product._id,
+      ...(line.variant === undefined
+        ? {}
+        : { variant: line.variant._id, variantName: line.variant.name }),
+      name: line.product.name,
+      image: line.product.image,
+      unitPrice: line.unitPrice,
+      quantity: line.quantity,
+      subtotal: pricedLine.subtotal,
+      discount: pricedLine.discount,
     });
-    return createdOrder as PublicOrder;
-  } finally {
-    await session.endSession();
   }
+
+  return createOrderWithFolio(userId, items, priced.quote.total);
 }
 
 // Pedidos del usuario, del más reciente al más antiguo (spec 012, RF-8).
