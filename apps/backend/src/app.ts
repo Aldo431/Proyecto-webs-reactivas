@@ -52,6 +52,10 @@ export function createApp() {
   app.use(createJsonParser());
   app.use(cookieParser());
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
+  app.use("/api", (_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader("Cache-Control", "no-store");
+    next();
+  });
 
   // En producción el frontend compilado se copia a `public/` junto al backend.
   const frontendPath = resolve(

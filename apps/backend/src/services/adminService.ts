@@ -34,6 +34,7 @@ const PRODUCT_NOT_FOUND = "Producto no encontrado.";
 const USER_NOT_FOUND = "Usuario no encontrado.";
 const REVIEW_NOT_FOUND = "Reseña no encontrada.";
 const OWN_ROLE_MESSAGE = "No puedes cambiar tu propio rol.";
+const MAX_FEATURED_PRODUCTS = 3;
 
 // Promedio con 1 decimal, o null sin reseñas (spec 013, RF-2).
 function roundRating(average: number): number {
@@ -165,6 +166,31 @@ export async function setProductFeatured(
   if (!isObjectIdString(id)) {
     throw new NotFoundError(PRODUCT_NOT_FOUND);
   }
+  const current = await Product.findById(id, { featured: 1 }).lean();
+  if (!current) {
+    throw new NotFoundError(PRODUCT_NOT_FOUND);
+  }
+
+  if (featured && !current.featured) {
+    const featuredProducts = await Product.find(
+      { featured: true, _id: { $ne: id } },
+      { _id: 1 },
+    )
+      .sort({ updatedAt: 1, _id: 1 })
+      .limit(MAX_FEATURED_PRODUCTS)
+      .lean();
+
+    if (featuredProducts.length >= MAX_FEATURED_PRODUCTS) {
+      const oldest = featuredProducts[0];
+      if (oldest) {
+        await Product.updateOne(
+          { _id: oldest._id },
+          { $set: { featured: false } },
+        );
+      }
+    }
+  }
+
   const updated = await Product.findByIdAndUpdate(
     id,
     { $set: { featured } },
@@ -206,7 +232,7 @@ interface UserRow {
   displayName?: string;
   name?: string;
   email: string;
-  role?: UserRole;
+  role?: string;
   emailVerified?: boolean;
   createdAt: Date;
 }
@@ -246,7 +272,9 @@ async function toAdminUsers(rows: UserRow[]): Promise<AdminUser[]> {
       displayName: row.displayName ?? row.name ?? username,
       email: row.email,
       // Cuentas anteriores a 012 no tienen `role` (012 RF-1).
-      role: row.role ?? "user",
+      // Roles antiguos/desconocidos no deben romper el listado ni obtener
+      // privilegios: se muestran como cuentas normales.
+      role: row.role === "admin" ? "admin" : "user",
       emailVerified: row.emailVerified ?? false,
       productCount: products.get(row._id.toString()) ?? 0,
       reviewCount: reviews.get(row._id.toString()) ?? 0,

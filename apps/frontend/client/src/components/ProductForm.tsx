@@ -74,7 +74,7 @@ type PreparedSubmit =
   | { ok: false; fieldErrors: FieldErrors; formError?: string | undefined };
 
 const selectClassName =
-  "border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive md:text-sm dark:bg-input/30";
+  "border-input h-9 w-full min-w-0 rounded-md border bg-input px-3 py-1 text-base text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive md:text-sm";
 
 function FieldError({ id, message }: { id: string; message: string | undefined }) {
   if (message === undefined || message === "") {
@@ -302,6 +302,7 @@ export function ProductForm(props: ProductFormProps) {
           onChange={handleTextChange}
           disabled={submitting}
           className={selectClassName}
+          style={{ colorScheme: "dark" }}
           aria-invalid={errors.category !== undefined ? true : undefined}
           aria-describedby={
             errors.category !== undefined ? categoryErrorId : undefined

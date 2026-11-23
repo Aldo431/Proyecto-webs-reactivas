@@ -525,6 +525,28 @@ describe("PATCH /api/admin/products/:id/featured", () => {
     expect(response.body.featured).toBe(true);
   });
 
+  it("mantiene como máximo tres destacados y reemplaza el más antiguo", async () => {
+    const firstThree: string[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const product = await createProduct(ana.id, { name: `Destacado ${index}` });
+      firstThree.push(product._id.toString());
+      await setFeatured(product._id.toString(), { featured: true });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    const newcomer = await createProduct(ana.id, { name: "Nuevo destacado" });
+
+    await setFeatured(newcomer._id.toString(), { featured: true });
+
+    const featured = await Product.find({ featured: true }).lean();
+    expect(featured).toHaveLength(3);
+    expect(featured.map((product) => product._id.toString())).toContain(
+      newcomer._id.toString(),
+    );
+    expect(
+      (await Product.findById(firstThree[0]))?.featured,
+    ).toBe(false);
+  });
+
   it("actualiza updatedAt y cambia el ?v= de la imagen subida", async () => {
     const product = await createProduct(ana.id, { image: makeDataUrl() });
     const id = product._id.toString();
