@@ -102,7 +102,7 @@ describe("HomePage", () => {
       await screen.findByText("Taza DCC");
     });
 
-    it("shows the informative pages as próximamente without navigating", async () => {
+    it("does not show unfinished informative pages", async () => {
       renderHome();
       const footer = screen.getByRole("contentinfo");
       for (const page of [
@@ -111,20 +111,8 @@ describe("HomePage", () => {
         "Preguntas frecuentes",
         "Contacto",
       ]) {
-        const item = within(footer).getByRole("button", {
-          name: `${page} (próximamente)`,
-        });
-        expect(item.getAttribute("aria-disabled")).toBe("true");
+        expect(within(footer).queryByText(page)).toBeNull();
       }
-
-      const before = currentLocation();
-      const contact = within(footer).getByRole("button", {
-        name: "Contacto (próximamente)",
-      });
-      fireEvent.click(contact);
-      fireEvent.keyDown(contact, { key: "Enter" });
-      fireEvent.keyDown(contact, { key: " " });
-      expect(currentLocation()).toBe(before);
       await screen.findByText("Taza DCC");
     });
   });

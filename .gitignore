@@ -9,6 +9,8 @@ node_modules/
 # Build output
 dist/
 build/
+out/
+apps/backend/public/
 
 # Logs
 *.log

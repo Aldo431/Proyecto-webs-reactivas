@@ -68,6 +68,7 @@ Lo carga `npm run dev -w backend` con `--env-file-if-exists=.env` (cwd = `apps/b
 | Variable | Obligatoria | Por defecto | Descripción |
 |---|---|---|---|
 | `MONGODB_URI` | Sí | — | Cadena de conexión de MongoDB (p. ej. `mongodb://localhost:27017/tiendadcc`). |
+| `MONGODB_DBNAME` | No | — | Nombre de la base de datos si no viene incluido en `MONGODB_URI`. |
 | `JWT_SECRET` | Sí | — | Secreto para firmar los JWT (expiran en 7 días). Genera con `openssl rand -hex 32`. |
 | `PORT` | No | `3001` | Puerto del backend. Si lo cambias, actualiza el target del proxy en `apps/frontend/client/vite.config.ts`. |
 | `NODE_ENV` | No | `development` | `development` \| `production` \| `test`. En `production` la cookie se marca `Secure` (requiere HTTPS). |
@@ -93,7 +94,7 @@ Los tests no necesitan `.env`: `apps/backend/vitest.config.ts` inyecta sus propi
 | `npm run seed -w backend` | Carga en MongoDB los productos de `apps/backend/src/seed/products.json` con el vendedor de prueba (requiere `apps/backend/.env`, ver [Seed de productos](#seed-de-productos-spec-008)) |
 | `npm run make-admin -w backend -- <correo>` | Convierte una cuenta existente en administradora (requiere `apps/backend/.env`, ver [Crear un administrador](#crear-un-administrador-spec-012)) |
 | `npm run check` | Verifica tipos (`tsc --noEmit`) y ejecuta los tests (Vitest) de `utils`, backend y frontend |
-| `npm run build` | Compila la app a `apps/frontend/client/dist` |
+| `npm run build` | Compila utils, backend (`apps/backend/out`) y frontend (`apps/frontend/client/dist`) |
 | `npm run e2e:install` | Instala `e2etests/` y el navegador Chromium de Playwright (una vez) |
 | `npm run e2e` | Ejecuta los tests E2E (levanta backend en modo test con MongoDB en memoria y Vite) |
 
@@ -207,6 +208,30 @@ puertos 3001 y 5173).
 npm run e2e:install   # una vez: dependencias de e2etests/ y Chromium
 npm run e2e           # ejecuta la suite
 ```
+
+## Deploy de producción con Docker
+
+El despliegue portable usa Nginx para servir el frontend y proxyear `/api` al
+backend. Así frontend y API comparten origen y la cookie de sesión `httpOnly`
+se conserva. MongoDB debe ser una instancia administrada o accesible desde el
+entorno donde corran los contenedores.
+
+1. Define estas variables en el entorno del host: `MONGODB_URI`, `JWT_SECRET`,
+   `CLIENT_ORIGIN` (la URL pública del frontend) y las cinco variables `SMTP_*`.
+2. Construye y levanta:
+
+```bash
+docker compose -f docker-compose.production.yml up -d --build
+```
+
+3. Publica el puerto `8080` del servicio `frontend` detrás de HTTPS. El
+   backend expone `GET /api/health` para el healthcheck; no reemplaza la
+   monitorización de MongoDB.
+
+Genera `JWT_SECRET` con `openssl rand -hex 32` y no pongas secretos en
+`docker-compose.production.yml` ni en el repositorio. Ejecuta el seed
+manualmente contra la base de producción solo después de verificar
+`MONGODB_URI`.
 
 Instrucciones completas, modos (`--ui`, `--headed`, reporte) y problemas
 frecuentes en [`e2etests/README.md`](e2etests/README.md).

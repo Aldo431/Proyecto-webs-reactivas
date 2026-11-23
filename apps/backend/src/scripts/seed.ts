@@ -23,7 +23,10 @@ try {
   );
   const products = parseSeedProducts(catalog);
 
-  await connectToDatabase(envResult.env.mongodbUri);
+  await connectToDatabase(
+    envResult.env.mongodbUri,
+    envResult.env.mongodbDbName,
+  );
   const summary = await seedProducts({
     products,
     sellerPassword: envResult.env.sellerPassword,

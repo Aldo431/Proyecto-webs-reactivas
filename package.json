@@ -8,8 +8,9 @@
     "utils"
   ],
   "scripts": {
-    "dev": "npm run dev -w tiendadcc-client",
-    "build": "npm run build -w tiendadcc-client",
+    "dev": "npm run build -w @tiendadcc/utils && npm run dev -w tiendadcc-client",
+    "build:ui": "npm run build -w tiendadcc-client && rm -rf apps/backend/public && cp -r apps/frontend/client/dist apps/backend/public",
+    "build": "npm run build -w @tiendadcc/utils && npm run build:ui && npm run build -w backend",
     "check": "npm run check -w @tiendadcc/utils && npm run check -w backend && npm run check -w tiendadcc-client",
     "e2e:install": "npm --prefix e2etests install && npm --prefix e2etests exec playwright install chromium",
     "e2e": "npm --prefix e2etests test"
@@ -18,8 +19,8 @@
     "vite": "^6.4.3"
   },
   "dependencies": {
-    "express-rate-limit": "^8.7.1",
-    "nodemailer": "^10.1.2"
+    "express-rate-limit": "^8.7.5",
+    "nodemailer": "^10.6.1"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.2"

@@ -6,7 +6,7 @@ export const MAKE_ADMIN_USAGE =
   "Uso: npm run make-admin -w backend -- <correo>";
 
 export type MakeAdminInputResult =
-  | { success: true; email: string; mongodbUri: string }
+  | { success: true; email: string; mongodbUri: string; mongodbDbName?: string }
   | { success: false; message: string };
 
 const mongodbUriSchema = z
@@ -38,7 +38,13 @@ export function parseMakeAdminInput(
       message: uri.error.issues.map((issue) => issue.message).join("\n"),
     };
   }
-  return { success: true, email: email.data, mongodbUri: uri.data };
+  const databaseName = env.MONGODB_DBNAME?.trim();
+  return {
+    success: true,
+    email: email.data,
+    mongodbUri: uri.data,
+    ...(databaseName ? { mongodbDbName: databaseName } : {}),
+  };
 }
 
 export type GrantAdminResult =

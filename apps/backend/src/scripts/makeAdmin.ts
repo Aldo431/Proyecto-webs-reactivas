@@ -16,7 +16,7 @@ if (!input.success) {
 }
 
 try {
-  await connectToDatabase(input.mongodbUri);
+  await connectToDatabase(input.mongodbUri, input.mongodbDbName);
   const result = await grantAdminRole(input.email);
   if (result.status === "granted") {
     console.log(`Listo: ${result.username} ahora es administrador.`);

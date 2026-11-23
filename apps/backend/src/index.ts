@@ -8,7 +8,7 @@ const env = getEnv();
 const app = createApp();
 
 try {
-  await connectToDatabase(env.mongodbUri);
+  await connectToDatabase(env.mongodbUri, env.mongodbDbName);
   console.log("Conexión a MongoDB establecida.");
   await repairUserIndexes();
   const migratedProducts = await migrateProductVariants();

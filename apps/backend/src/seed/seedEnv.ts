@@ -5,6 +5,7 @@ const seedEnvSchema = z.object({
     .string({ error: "Falta la variable de entorno MONGODB_URI." })
     .trim()
     .min(1, "Falta la variable de entorno MONGODB_URI."),
+  MONGODB_DBNAME: z.string().trim().min(1).optional(),
   SEED_SELLER_PASSWORD: z
     .string({ error: "Falta la variable de entorno SEED_SELLER_PASSWORD." })
     .min(
@@ -17,6 +18,7 @@ const seedEnvSchema = z.object({
 export interface SeedEnv {
   mongodbUri: string;
   sellerPassword: string;
+  mongodbDbName?: string;
 }
 
 export type SeedEnvResult =
@@ -38,6 +40,9 @@ export function parseSeedEnv(
     env: {
       mongodbUri: parsed.data.MONGODB_URI,
       sellerPassword: parsed.data.SEED_SELLER_PASSWORD,
+      ...(parsed.data.MONGODB_DBNAME
+        ? { mongodbDbName: parsed.data.MONGODB_DBNAME }
+        : {}),
     },
   };
 }

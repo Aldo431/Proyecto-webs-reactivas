@@ -5,6 +5,8 @@ import express, {
   type Request,
   type Response,
 } from "express";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getEnv } from "./config/env.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { adminRoutes } from "./routes/adminRoutes.ts";
@@ -50,6 +52,22 @@ export function createApp() {
   app.use(createJsonParser());
   app.use(cookieParser());
   app.use(cors({ origin: env.clientOrigin, credentials: true }));
+
+  // En producción el frontend compilado se copia a `public/` junto al backend.
+  const frontendPath = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../public",
+  );
+  app.use(express.static(frontendPath));
+  app.get("/", (_request: Request, response: Response, next: NextFunction) => {
+    response.sendFile(resolve(frontendPath, "index.html"), (error) => {
+      if (error) next();
+    });
+  });
+
+  app.get("/api/health", (_request: Request, response: Response) => {
+    response.json({ status: "ok" });
+  });
 
   app.use("/api/auth/mfa", mfaRoutes);
   app.use("/api/auth", authRoutes);

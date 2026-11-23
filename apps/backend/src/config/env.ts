@@ -6,6 +6,7 @@ const envSchema = z
       .string({ error: "Falta la variable de entorno MONGODB_URI." })
       .trim()
       .min(1, "Falta la variable de entorno MONGODB_URI."),
+    MONGODB_DBNAME: z.string().trim().min(1).optional(),
     JWT_SECRET: z
       .string({ error: "Falta la variable de entorno JWT_SECRET." })
       .trim()
@@ -56,6 +57,7 @@ const envSchema = z
 
 export interface Env {
   mongodbUri: string;
+  mongodbDbName: string | undefined;
   jwtSecret: string;
   port: number;
   nodeEnv: "development" | "production" | "test";
@@ -93,6 +95,7 @@ export function parseEnv(
     success: true,
     env: {
       mongodbUri: data.MONGODB_URI,
+      mongodbDbName: data.MONGODB_DBNAME,
       jwtSecret: data.JWT_SECRET,
       port: data.PORT,
       nodeEnv: data.NODE_ENV,
